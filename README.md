@@ -51,7 +51,8 @@ hrrr-manual-4/
 ├── tools/
 │   ├── process_all_products.py # Batch processing utilities
 │   ├── process_single_hour.py  # Single forecast hour processing
-│   └── create_gifs.py          # Animation generation
+│   ├── create_gifs.py          # 🎬 Automated GIF/animation generation
+│   └── hrrr_gif_maker.py       # Core GIF creation engine
 └── outputs/                     # Generated products (organized by date/model/hour)
 ```
 
@@ -173,6 +174,28 @@ python monitor_continuous.py
 # - Continue from previous cycle if new data isn't ready
 ```
 
+### Creating Animations (GIFs)
+
+```bash
+# Step 1: Generate images for multiple forecast hours
+python processor_cli.py 20250813 21 --hours 0-12 --categories smoke
+
+# Step 2: Create animated GIFs
+cd tools
+python create_gifs.py 20250813 21z --categories smoke --max-hours 12
+
+# Create GIFs for all categories
+python create_gifs.py 20250813 21z
+
+# Create faster animations (300ms per frame instead of 250ms)
+python create_gifs.py 20250813 21z --duration 300
+
+# Create animations for specific categories only
+python create_gifs.py 20250813 21z --categories severe,instability,smoke
+```
+
+**Output:** GIFs are saved to `outputs/hrrr/YYYYMMDD/HHz/animations/category/`
+
 ### Advanced Features
 
 ```bash
@@ -261,13 +284,24 @@ outputs/
 └── hrrr/
     └── 20250715/           # Date
         └── 12z/            # Model run hour
-            └── F00/        # Forecast hour
-                └── conus/  # Fixed output region
-                    └── F00/
-                        ├── severe/       # Category folders
-                        ├── instability/
-                        ├── surface/
-                        └── metadata/     # JSON metadata for each product
+            ├── F00/        # Forecast hour directories
+            ├── F01/
+            ├── F02/
+            │   └── conus/  # Fixed output region
+            │       └── F02/
+            │           ├── severe/       # Category folders
+            │           ├── instability/
+            │           ├── surface/
+            │           └── metadata/     # JSON metadata for each product
+            ├── animations/ # 🎬 Animated GIFs (created with tools/create_gifs.py)
+            │   ├── severe/
+            │   │   ├── stp_20250715_12z_animation.gif
+            │   │   └── scp_20250715_12z_animation.gif
+            │   ├── smoke/
+            │   │   ├── near_surface_smoke_20250715_12z_animation.gif
+            │   │   └── visibility_smoke_20250715_12z_animation.gif
+            │   └── instability/
+            └── logs/       # Processing logs
 ```
 
 ## 🔄 Migration Notes
@@ -305,6 +339,12 @@ python processor_cli.py --latest --fields sbcape --debug
 
 # Run verification tests
 PYTHONPATH=. python tests/test_metpy_free_refactor.py
+
+# Check what GIFs exist for a model run
+ls outputs/hrrr/20250813/21z/animations/*/
+
+# Test GIF creation for a single category
+cd tools && python create_gifs.py 20250813 21z --categories smoke --max-hours 2
 ```
 
 ## 📝 Notes
