@@ -10,40 +10,72 @@ A high-performance, extensible system for downloading, processing, and visualizi
 - **Parallel Processing**: 8x faster map generation using multiprocessing
 - **Smart Caching**: Avoids reprocessing completed products
 - **Continuous Monitoring**: Automatically process new model runs as they become available
-- **Extensible Architecture**: Easy to add new parameters, models, or visualization styles
+- **Modular Architecture**: Clean, maintainable code organized in focused modules
 - **Professional Visualizations**: SPC-style plots with customizable colormaps
 
 ## 📁 Project Structure
 
 ```
-hrrr-dr-4/
-├── processor_base.py          # Base processor class with core functionality
-├── processor_batch.py         # Batch processing with parallel map generation
-├── processor_cli.py           # Main command-line interface
-├── monitor_continuous.py      # Continuous monitoring for new model runs
-├── field_registry.py          # Dynamic field configuration system
-├── field_templates.py         # Reusable parameter templates
-├── model_config.py           # Model-specific configurations (URLs, patterns)
-├── map_enhancer.py           # Modern map styling enhancements
+hrrr-manual-4/
+├── processor_cli.py              # Main CLI (70 lines - thin wrapper)
+├── processor_batch.py            # Batch processing (19 lines - thin wrapper)
+├── processor_base.py             # Base processor (13 lines - thin wrapper)
+├── smart_hrrr/                   # 🆕 NEW: Modular architecture package
+│   ├── __init__.py               # Package exports
+│   ├── utils.py                  # Utility functions (logging, memory, parsing)
+│   ├── products.py               # Product management and availability
+│   ├── io.py                     # I/O operations and directory structure
+│   ├── availability.py           # Cycle detection and availability checks
+│   ├── derived.py                # Derived parameter computation logic
+│   ├── processor_core.py         # Slim HRRRProcessor core
+│   ├── orchestrator.py           # Process orchestration and workflows
+│   └── parallel_engine.py        # Parallel processing engine
+├── monitor_continuous.py         # Continuous monitoring for new model runs
+├── field_registry.py             # Dynamic field configuration system
+├── field_templates.py            # Reusable parameter templates
+├── model_config.py              # Model-specific configurations (URLs, patterns)
+├── map_enhancer.py              # Modern map styling enhancements
 ├── config/
-│   ├── colormaps.py          # Custom colormaps for weather parameters
+│   ├── colormaps.py             # Custom colormaps for weather parameters
 ├── core/
-│   ├── downloader.py         # GRIB file download management
-│   ├── grib_loader.py        # GRIB data extraction with cfgrib
-│   ├── metadata.py           # Metadata generation for products
-│   └── plotting.py           # Map generation with Cartopy
-├── derived_params/           # 70+ derived parameter calculations
-├── parameters/               # JSON configuration files by category
-│   ├── severe.json          # Severe weather parameters
-│   ├── instability.json     # CAPE, CIN, stability indices
-│   ├── smoke.json           # Fire and smoke products
-│   └── ...                  # Additional categories
+│   ├── downloader.py            # GRIB file download management
+│   ├── grib_loader.py           # GRIB data extraction with cfgrib
+│   ├── metadata.py              # Metadata generation for products
+│   └── plotting.py              # Map generation with Cartopy
+├── derived_params/              # 70+ derived parameter calculations
+├── parameters/                  # JSON configuration files by category
+│   ├── severe.json             # Severe weather parameters
+│   ├── instability.json        # CAPE, CIN, stability indices
+│   ├── smoke.json              # Fire and smoke products
+│   └── ...                     # Additional categories
 ├── tools/
-│   ├── process_all_products.py    # Batch processing utilities
-│   ├── process_single_hour.py     # Single forecast hour processing
-│   └── create_gifs.py            # Animation generation
-└── outputs/                      # Generated products (organized by date/model/hour)
+│   ├── process_all_products.py # Batch processing utilities
+│   ├── process_single_hour.py  # Single forecast hour processing
+│   └── create_gifs.py          # Animation generation
+└── outputs/                     # Generated products (organized by date/model/hour)
 ```
+
+### 🏗️ Architecture Improvements (Latest Refactor)
+
+**Modular Design**: The codebase has been refactored from monolithic files (~2800 LOC) into a clean, modular `smart_hrrr/` package:
+
+- **Maintainability**: Each module has a single responsibility
+- **Testability**: Isolated functions are easier to test
+- **Extensibility**: Add new features without touching existing code
+- **Backward Compatibility**: All existing commands work unchanged
+
+#### Smart HRRR Modules
+
+| Module | Purpose | Key Functions |
+|--------|---------|---------------|
+| `utils.py` | Common utilities | Logging setup, memory checks, hour parsing |
+| `products.py` | Product management | Check existing products, find missing items |
+| `io.py` | File operations | Directory structure, GRIB staging, cleanup |
+| `availability.py` | Data availability | Latest cycle detection, forecast hour checks |
+| `derived.py` | Heavy computations | Derived parameter and composite calculations |
+| `processor_core.py` | Core processor | Slim HRRRProcessor class (delegates to other modules) |
+| `orchestrator.py` | Workflow control | Process orchestration, parallel coordination |
+| `parallel_engine.py` | Performance | Optimized parallel map generation |
 
 ## 🛠️ Installation
 
