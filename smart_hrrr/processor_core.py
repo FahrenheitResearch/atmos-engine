@@ -81,3 +81,81 @@ class HRRRProcessor:
         """Create enhanced SPC-style plot with comprehensive metadata"""
         return plotting.create_plot(data, field_name, field_config, cycle, forecast_hour, output_dir,
                                    self.regions, self.current_region, self.colormaps, self.registry)
+
+    def process_fields(self, fields_to_process, cycle, forecast_hour, output_dir):
+        """Process a list of fields for a given cycle and forecast hour
+        
+        Args:
+            fields_to_process: List of field names to process
+            cycle: Model cycle datetime object
+            forecast_hour: Forecast hour integer
+            output_dir: Output directory path
+        """
+        from pathlib import Path
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        output_dir = Path(output_dir)
+        
+        # Download GRIB files if needed
+        grib_files = {}
+        for file_type in ["wrfprs", "wrfsfc"]:
+            try:
+                grib_file = self.download_model_file(cycle, forecast_hour, output_dir, file_type)
+                if grib_file and grib_file.exists():
+                    grib_files[file_type] = grib_file
+            except Exception as e:
+                logger.warning(f"Failed to download {file_type}: {e}")
+        
+        if not grib_files:
+            raise RuntimeError("No GRIB files available for processing")
+        
+        # Process each field
+        processed_count = 0
+        failed_fields = []
+        
+        for field_name in fields_to_process:
+            try:
+                # Get field configuration
+                field_config = self.registry.get_field_config(field_name)
+                if not field_config:
+                    logger.error(f"No configuration found for field: {field_name}")
+                    failed_fields.append(field_name)
+                    continue
+                
+                # Load field data
+                if field_config.get('derived'):
+                    # Derived parameter
+                    data = self.load_derived_parameter(field_name, field_config, 
+                                                     grib_files.get('wrfprs'), 
+                                                     grib_files.get('wrfsfc'))
+                else:
+                    # Direct GRIB field
+                    primary_file = grib_files.get('wrfprs') or grib_files.get('wrfsfc')
+                    if not primary_file:
+                        raise ValueError(f"No suitable GRIB file for {field_name}")
+                    data = self.load_field_data(primary_file, field_name, field_config)
+                
+                if data is None:
+                    logger.error(f"Failed to load data for {field_name}")
+                    failed_fields.append(field_name)
+                    continue
+                
+                # Create plot
+                self.create_spc_plot(data, field_name, field_config, cycle, forecast_hour, output_dir)
+                processed_count += 1
+                logger.info(f"✓ Processed {field_name}")
+                
+            except Exception as e:
+                logger.error(f"✗ Failed to process {field_name}: {e}")
+                failed_fields.append(field_name)
+        
+        logger.info(f"Processed {processed_count}/{len(fields_to_process)} fields")
+        if failed_fields:
+            logger.warning(f"Failed fields: {', '.join(failed_fields)}")
+        
+        return {
+            'processed': processed_count,
+            'failed': failed_fields,
+            'total': len(fields_to_process)
+        }

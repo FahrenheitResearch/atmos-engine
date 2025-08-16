@@ -2,16 +2,16 @@
   "_comment_core_severe": "=== CORE SEVERE WEATHER PARAMETERS ===",
 
   "scp": {
-    "title": "Supercell Composite Parameter (ESRH/EBWD/CIN)",
+    "title": "Supercell Composite Parameter (SPC Standard)",
     "units": "dimensionless",
     "cmap": "SCP",
-    "levels": [-2, 0, 1, 2, 4, 8, 10],
+    "levels": [0, 0.5, 1, 2, 4, 8, 12, 16, 20],
     "extend": "max",
     "category": "severe",
     "derived": true,
-    "inputs": ["mucape", "effective_srh", "effective_shear", "mucin"],
+    "inputs": ["mucape", "effective_srh", "effective_shear"],
     "function": "supercell_composite_parameter",
-    "description": "SCP = (muCAPE/1000) × (ESRH/50) × clip((EBWD-10)/10, 0, 1) × (-40/muCIN). SPC-compliant shear term: 0 below 10 m/s, linear 10-20 m/s, 1.0 above 20 m/s. Values >10 = extreme overlap"
+    "description": "🟢 SPC standard SCP (no CIN term). SCP > 1 indicates supercell potential."
   },
 
   "scp_effective": {
@@ -53,8 +53,88 @@
     "description": "STP CIN = (MLCAPE/1500) × (ESRH/150) × (EBWD/12) × ((2000-MLLCL)/1000) × ((MLCIN+200)/150). Effective-layer version with CIN term."
   },
 
+  "_comment_spc_aligned": "=== SPC-ALIGNED PARAMETERS (v2.2) ===",
+
+  "stp_fixed": {
+    "title": "Significant Tornado Parameter (Fixed Layer - SPC)",
+    "units": "dimensionless",
+    "cmap": "STP",
+    "levels": [0, 0.5, 1, 2, 3, 4, 5, 8, 10],
+    "extend": "max",
+    "category": "severe",
+    "derived": true,
+    "inputs": ["mlcape", "mlcin", "srh_01km", "wind_shear_06km", "lcl_height"],
+    "function": "significant_tornado_parameter_fixed",
+    "description": "🟢 SPC canonical fixed-layer STP with CIN term per 2012 update. STP > 1 indicates heightened EF2+ tornado risk."
+  },
+
+  "stp_effective": {
+    "title": "Significant Tornado Parameter (Effective Layer - SPC)",
+    "units": "dimensionless",
+    "cmap": "STP",
+    "levels": [0, 0.5, 1, 2, 3, 4, 5, 8, 10],
+    "extend": "max",
+    "category": "severe",
+    "derived": true,
+    "inputs": ["mlcape", "mlcin", "effective_srh", "effective_shear", "lcl_height"],
+    "function": "significant_tornado_parameter_effective",
+    "description": "🟢 SPC canonical effective-layer STP with CIN term. Uses ESRH and EBWD/20 for improved accuracy."
+  },
+
+  "ehi_spc": {
+    "title": "Energy-Helicity Index (SPC Canonical)",
+    "units": "dimensionless",
+    "cmap": "EHI",
+    "levels": [-2, -1, 0, 1, 2, 4, 6, 8, 10],
+    "extend": "both",
+    "category": "severe",
+    "derived": true,
+    "inputs": ["sbcape", "srh_03km"],
+    "function": "energy_helicity_index",
+    "description": "🟢 SPC canonical EHI: (CAPE/1000) × (SRH/100). EHI > 2 indicates significant tornado potential."
+  },
+
+  "ehi_display": {
+    "title": "Energy-Helicity Index (Display Scaled)",
+    "units": "dimensionless",
+    "cmap": "EHI",
+    "levels": [-1, -0.5, 0, 0.5, 1, 2, 3, 5, 7],
+    "extend": "both",
+    "category": "severe",
+    "derived": true,
+    "inputs": ["sbcape", "srh_03km"],
+    "function": "energy_helicity_index_display",
+    "description": "🟡 Display-scaled EHI with damping for visualization. Adjusted thresholds: >0.6, >1.25, >2.5."
+  },
+
+  "scp_modified": {
+    "title": "Supercell Composite Parameter (Modified with CIN)",
+    "units": "dimensionless",
+    "cmap": "SCP",
+    "levels": [0, 0.5, 1, 2, 4, 8, 12, 16, 20],
+    "extend": "max",
+    "category": "severe",
+    "derived": true,
+    "inputs": ["mucape", "effective_srh", "effective_shear", "mucin"],
+    "function": "supercell_composite_parameter_modified",
+    "description": "🟡 Modified SCP with CIN weighting for operational applications."
+  },
+
+  "stp_fixed_no_cin": {
+    "title": "Significant Tornado Parameter (Fixed Layer - No CIN)",
+    "units": "dimensionless",
+    "cmap": "STP",
+    "levels": [0, 0.5, 1, 2, 3, 4, 5, 8, 10],
+    "extend": "max",
+    "category": "severe",
+    "derived": true,
+    "inputs": ["mlcape", "srh_01km", "wind_shear_06km", "lcl_height"],
+    "function": "significant_tornado_parameter_fixed_no_cin",
+    "description": "🟡 Modified STP without CIN term for comparison studies."
+  },
+
   "ehi": {
-    "title": "Energy-Helicity Index (0-3km)",
+    "title": "Energy-Helicity Index (Legacy)",
     "units": "dimensionless",
     "cmap": "EHI",
     "levels": [-2, -1, -0.5, 0, 0.5, 1, 2, 3, 4, 5, 6, 8, 10, 12, 15],
@@ -63,7 +143,7 @@
     "derived": true,
     "inputs": ["sbcape", "srh_03km"],
     "function": "energy_helicity_index",
-    "description": "EHI with anti-saturation damping. EHI > 2 = significant tornado potential, > 5 = extreme. Positive = right-moving, negative = left-moving supercells"
+    "description": "🟡 Legacy EHI for backward compatibility. Use ehi_spc for SPC canonical version."
   },
 
   "ehi_01km": {
