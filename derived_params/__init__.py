@@ -54,6 +54,7 @@ from .haines_index import haines_index
 from .ventilation_rate import ventilation_rate
 from .enhanced_smoke_dispersion_index import enhanced_smoke_dispersion_index
 from .ventilation_rate_from_components import ventilation_rate_from_components, ventilation_rate_from_surface_winds
+from .effective_layer_detection import detect_effective_inflow_layer, compute_effective_layer_wind_shear, compute_effective_layer_srh
 from .enhanced_smoke_dispersion_index_simplified import enhanced_smoke_dispersion_index_simplified
 from .shear_vector_magnitude_ratio_from_components import shear_vector_magnitude_ratio_from_components
 from .enhanced_smoke_dispersion_index_from_components import enhanced_smoke_dispersion_index_from_components
@@ -130,6 +131,9 @@ _DERIVED_FUNCTIONS = {
     'enhanced_smoke_dispersion_index': enhanced_smoke_dispersion_index,
     'ventilation_rate_from_components': ventilation_rate_from_components,
     'ventilation_rate_from_surface_winds': ventilation_rate_from_surface_winds,
+    'detect_effective_inflow_layer': detect_effective_inflow_layer,
+    'compute_effective_layer_wind_shear': compute_effective_layer_wind_shear,
+    'compute_effective_layer_srh': compute_effective_layer_srh,
     'enhanced_smoke_dispersion_index_simplified': enhanced_smoke_dispersion_index_simplified,
     'shear_vector_magnitude_ratio_from_components': shear_vector_magnitude_ratio_from_components,
     'enhanced_smoke_dispersion_index_from_components': enhanced_smoke_dispersion_index_from_components,
@@ -451,6 +455,9 @@ class DerivedParameters:
     enhanced_smoke_dispersion_index = staticmethod(enhanced_smoke_dispersion_index)
     ventilation_rate_from_components = staticmethod(ventilation_rate_from_components)
     ventilation_rate_from_surface_winds = staticmethod(ventilation_rate_from_surface_winds)
+    detect_effective_inflow_layer = staticmethod(detect_effective_inflow_layer)
+    compute_effective_layer_wind_shear = staticmethod(compute_effective_layer_wind_shear)
+    compute_effective_layer_srh = staticmethod(compute_effective_layer_srh)
     enhanced_smoke_dispersion_index_simplified = staticmethod(enhanced_smoke_dispersion_index_simplified)
     shear_vector_magnitude_ratio_from_components = staticmethod(shear_vector_magnitude_ratio_from_components)
     enhanced_smoke_dispersion_index_from_components = staticmethod(enhanced_smoke_dispersion_index_from_components)
