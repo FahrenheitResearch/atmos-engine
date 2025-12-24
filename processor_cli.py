@@ -25,6 +25,7 @@ def main():
     parser.add_argument("--cleanup", action="store_true", help="Move old files before processing")
     parser.add_argument("--check-interval", type=int, default=30, help="Check interval (seconds) for --latest")
     parser.add_argument("--download-threads", type=int, default=8, help="Parallel download threads (default: 8)")
+    parser.add_argument("--interactive", action="store_true", help="Generate interactive HTML maps with hover values")
 
     args = parser.parse_args()
 
@@ -53,7 +54,7 @@ def main():
         monitor_and_process_latest(categories=categories, fields=fields, workers=workers,
                                  check_interval=args.check_interval, force_reprocess=args.force,
                                  hour_range=hour_range, max_hours=args.max_hours, model=args.model,
-                                 download_threads=args.download_threads)
+                                 download_threads=args.download_threads, interactive=args.interactive)
     else:
         hour_range = parse_hour_range(args.hours)
         if hour_range is not None:

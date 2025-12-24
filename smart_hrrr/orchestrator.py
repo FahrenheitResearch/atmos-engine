@@ -85,6 +85,67 @@ def _run_subprocess_single(cycle: str, forecast_hour: int, fhr_dir: Path,
     return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout_s, cwd=Path(__file__).resolve().parent.parent)
 
 
+def _generate_interactive_maps(cycle: str, forecast_hour: int, fhr_dir: Path, model: str,
+                               categories: Optional[List[str]] = None):
+    """Generate interactive HTML maps for a forecast hour."""
+    logger = logging.getLogger(__name__)
+    try:
+        from core.interactive_map import create_interactive_map
+        from field_registry import FieldRegistry
+
+        # Find GRIB files
+        prs_file = next(fhr_dir.glob("*wrfprs*.grib2"), None)
+        if not prs_file:
+            logger.warning("No pressure GRIB file for interactive maps")
+            return 0
+
+        # Get fields to process
+        registry = FieldRegistry()
+        if categories:
+            fields_to_process = []
+            for cat in categories:
+                fields_to_process.extend(registry.get_fields_by_category(cat).keys())
+        else:
+            # Just do a few key fields by default to avoid huge processing time
+            fields_to_process = ['t2m', 'sbcape', 'reflectivity_comp', 'wspd10m_max']
+
+        processor = HRRRProcessor(model=model)
+        count = 0
+        interactive_dir = fhr_dir / "interactive"
+        interactive_dir.mkdir(exist_ok=True)
+
+        for field_name in fields_to_process[:10]:  # Limit to 10 fields for now
+            try:
+                field_config = registry.get_field(field_name)
+                if not field_config or field_config.get('derived'):
+                    continue  # Skip derived for now
+
+                data = processor.load_field_data(str(prs_file), field_name, field_config)
+                if data is None:
+                    continue
+
+                output_path = create_interactive_map(
+                    data=data,
+                    field_name=field_name,
+                    field_config=field_config,
+                    cycle=cycle,
+                    forecast_hour=forecast_hour,
+                    output_dir=interactive_dir,
+                    colormap=field_config.get('colormap', 'viridis'),
+                )
+                if output_path:
+                    count += 1
+            except Exception as e:
+                logger.debug(f"Interactive map failed for {field_name}: {e}")
+
+        if count > 0:
+            logger.info(f"Generated {count} interactive maps in {interactive_dir}")
+        return count
+    except Exception as e:
+        logger.error(f"Interactive map generation failed: {e}")
+        return 0
+
+
 def process_forecast_hour_smart(
     cycle: str,
     forecast_hour: int,
@@ -93,6 +154,7 @@ def process_forecast_hour_smart(
     fields: Optional[List[str]] = None,
     force_reprocess: bool = False,
     model: str = "hrrr",
+    interactive: bool = False,
 ):
     """Process a single forecast hour with smart duplicate detection and shared GRIB downloads"""
     logger = logging.getLogger(__name__)
@@ -149,6 +211,8 @@ def process_forecast_hour_smart(
             final_products = check_existing_products(fhr_dir)
             if final_products:
                 logger.info(f"F{forecast_hour:02d} completed in {dur:.1f}s ({len(final_products)} products)")
+                if interactive:
+                    _generate_interactive_maps(cycle, forecast_hour, fhr_dir, model, categories)
                 return {"success": True, "forecast_hour": forecast_hour, "duration": dur,
                        "product_count": len(final_products), "skipped": False}
             else:
@@ -165,6 +229,8 @@ def process_forecast_hour_smart(
         if res.returncode == 0:
             final_products = check_existing_products(fhr_dir)
             logger.info(f"F{forecast_hour:02d} completed in {dur:.1f}s ({len(final_products)} products)")
+            if interactive:
+                _generate_interactive_maps(cycle, forecast_hour, fhr_dir, model, categories)
             return {"success": True, "forecast_hour": forecast_hour, "duration": dur, "product_count": len(final_products), "skipped": False}
         else:
             logger.error(f"F{forecast_hour:02d} failed with return code {res.returncode}")
@@ -261,6 +327,7 @@ def monitor_and_process_latest(
     max_hours: Optional[int] = None,
     model: str = "hrrr",
     download_threads: int = 8,
+    interactive: bool = False,
 ):
     """Monitor for new forecast hours and process them as they become available.
 
@@ -328,7 +395,7 @@ def monitor_and_process_latest(
             pending = sorted(downloaded_hours - processed_hours)
             if pending:
                 fhr = pending[0]
-                res = process_forecast_hour_smart(cycle, fhr, output_dirs, categories, fields, force_reprocess, model)
+                res = process_forecast_hour_smart(cycle, fhr, output_dirs, categories, fields, force_reprocess, model, interactive)
                 if res["success"]:
                     processed_hours.add(fhr)
                 else:
