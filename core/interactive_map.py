@@ -129,87 +129,119 @@ def create_interactive_map(
         ).add_to(m)
 
         # Prepare data for JavaScript hover lookup
-        # Use same subsampling as image for alignment
-        values_js = values_sub.copy()
-
-        # Mask values below vmin in hover data too (show as null)
-        values_js = np.where(values_js < vmin, np.nan, values_js)
+        # Use same grid as image for alignment, subsample for file size
+        hover_step = 2
+        values_js = values_sub[::hover_step, ::hover_step]
 
         if lats_sub.ndim == 1:
-            lats_js = lats_sub
-            lons_js = lons_sub
+            lats_js = lats_sub[::hover_step]
+            lons_js = lons_sub[::hover_step]
         else:
-            lats_js = lats_sub
-            lons_js = lons_sub
+            lats_js = lats_sub[::hover_step, ::hover_step]
+            lons_js = lons_sub[::hover_step, ::hover_step]
 
-        # Further subsample for file size, but keep alignment
-        hover_step = 2
-        values_js = values_js[::hover_step, ::hover_step]
-        if lats_js.ndim == 1:
-            lats_js = lats_js[::hover_step]
-            lons_js = lons_js[::hover_step]
-        else:
-            lats_js = lats_js[::hover_step, ::hover_step]
-            lons_js = lons_js[::hover_step, ::hover_step]
-
-        # Convert to lists, handling NaN/masked values
+        # Convert to lists - show actual values (even negative for reflectivity)
         values_list = np.where(np.isnan(values_js), None, np.round(values_js, 1)).tolist()
 
-        if lats_js.ndim == 1:
-            lats_list = lats_js.tolist()
-            lons_list = lons_js.tolist()
+        # Handle 2D curvilinear grids (like HRRR Lambert Conformal)
+        if lats_js.ndim == 2:
+            # Flatten to 1D for simpler JS lookup, store grid dimensions
+            grid_shape = lats_js.shape
+            lats_flat = lats_js.flatten().tolist()
+            lons_flat = lons_js.flatten().tolist()
+            values_flat = np.array(values_list).flatten().tolist()
+            is_2d_grid = True
         else:
-            lats_list = lats_js[:, 0].tolist()  # Get 1D array for regular grid
-            lons_list = lons_js[0, :].tolist()
+            lats_flat = lats_js.tolist()
+            lons_flat = lons_js.tolist()
+            values_flat = values_list
+            grid_shape = (len(lats_js), len(lons_js))
+            is_2d_grid = False
 
         # Get units
         units = field_config.get('units', '')
         title = field_config.get('title', field_name)
 
         # Add custom JavaScript for hover display and opacity control
-        hover_js = f"""
-        <script>
-        var weatherData = {{
-            values: {json.dumps(values_list)},
-            lats: {json.dumps(lats_list)},
-            lons: {json.dumps(lons_list)},
-            units: "{units}",
-            title: "{title}"
-        }};
+        if is_2d_grid:
+            # 2D grid - need full coordinate search
+            hover_js = f"""
+            <script>
+            var weatherData = {{
+                lats: {json.dumps(lats_flat)},
+                lons: {json.dumps(lons_flat)},
+                values: {json.dumps(values_flat)},
+                units: "{units}",
+                title: "{title}"
+            }};
 
-        function findNearestValue(lat, lon) {{
-            var lats = weatherData.lats;
-            var lons = weatherData.lons;
-            var values = weatherData.values;
+            function findNearestValue(lat, lon) {{
+                var lats = weatherData.lats;
+                var lons = weatherData.lons;
+                var values = weatherData.values;
 
-            // Find nearest lat index
-            var latIdx = 0;
-            var minLatDiff = Math.abs(lats[0] - lat);
-            for (var i = 1; i < lats.length; i++) {{
-                var diff = Math.abs(lats[i] - lat);
-                if (diff < minLatDiff) {{
-                    minLatDiff = diff;
-                    latIdx = i;
+                // Convert lon to 0-360 if needed (HRRR uses 0-360)
+                var lonAdj = lon < 0 ? lon + 360 : lon;
+
+                // Find nearest point in flattened grid
+                var minDist = Infinity;
+                var bestIdx = -1;
+                for (var i = 0; i < lats.length; i++) {{
+                    var dLat = lats[i] - lat;
+                    var dLon = lons[i] - lonAdj;
+                    var dist = dLat*dLat + dLon*dLon;
+                    if (dist < minDist) {{
+                        minDist = dist;
+                        bestIdx = i;
+                    }}
                 }}
-            }}
 
-            // Find nearest lon index
-            var lonIdx = 0;
-            var minLonDiff = Math.abs(lons[0] - lon);
-            for (var i = 1; i < lons.length; i++) {{
-                var diff = Math.abs(lons[i] - lon);
-                if (diff < minLonDiff) {{
-                    minLonDiff = diff;
-                    lonIdx = i;
+                if (bestIdx >= 0 && bestIdx < values.length) {{
+                    return values[bestIdx];
                 }}
-            }}
+                return null;
+            }}"""
+        else:
+            # 1D regular grid
+            hover_js = f"""
+            <script>
+            var weatherData = {{
+                lats: {json.dumps(lats_flat)},
+                lons: {json.dumps(lons_flat)},
+                values: {json.dumps(values_flat)},
+                units: "{units}",
+                title: "{title}"
+            }};
 
-            // Get value
-            if (latIdx < values.length && lonIdx < values[0].length) {{
-                return values[latIdx][lonIdx];
-            }}
-            return null;
-        }}
+            function findNearestValue(lat, lon) {{
+                var lats = weatherData.lats;
+                var lons = weatherData.lons;
+                var values = weatherData.values;
+
+                var latIdx = 0, lonIdx = 0;
+                var minLatDiff = Math.abs(lats[0] - lat);
+                var minLonDiff = Math.abs(lons[0] - lon);
+
+                for (var i = 1; i < lats.length; i++) {{
+                    if (Math.abs(lats[i] - lat) < minLatDiff) {{
+                        minLatDiff = Math.abs(lats[i] - lat);
+                        latIdx = i;
+                    }}
+                }}
+                for (var i = 1; i < lons.length; i++) {{
+                    if (Math.abs(lons[i] - lon) < minLonDiff) {{
+                        minLonDiff = Math.abs(lons[i] - lon);
+                        lonIdx = i;
+                    }}
+                }}
+
+                if (latIdx < values.length && lonIdx < values[0].length) {{
+                    return values[latIdx][lonIdx];
+                }}
+                return null;
+            }}"""
+
+        hover_js += f"""
 
         document.addEventListener('DOMContentLoaded', function() {{
             var map = document.querySelector('.folium-map');
