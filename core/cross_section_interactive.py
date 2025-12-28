@@ -922,6 +922,117 @@ class InteractiveCrossSection:
                 cbar = plt.colorbar(cf, ax=ax, shrink=0.9)
                 cbar.set_label('Shear (10⁻³/s)')
                 shading_label = "Shear"
+        elif style == "q":
+            q = data.get('specific_humidity')
+            if q is not None:
+                q_gkg = q * 1000  # kg/kg to g/kg
+                if surface_pressure is not None:
+                    q_gkg = q_gkg.copy()
+                    for i in range(n_points):
+                        for lev_idx, plev in enumerate(pressure_levels):
+                            if plev > surface_pressure[i]:
+                                q_gkg[lev_idx, i] = np.nan
+                cf = ax.contourf(X, Y, q_gkg, levels=np.arange(0, 21, 1), cmap='YlGnBu', extend='max')
+                cbar = plt.colorbar(cf, ax=ax, shrink=0.9)
+                cbar.set_label('Specific Humidity (g/kg)')
+                shading_label = "q"
+        elif style == "cloud_total":
+            cloud = data.get('cloud')
+            if cloud is not None:
+                cloud_gkg = cloud * 1000  # kg/kg to g/kg
+                if surface_pressure is not None:
+                    cloud_gkg = cloud_gkg.copy()
+                    for i in range(n_points):
+                        for lev_idx, plev in enumerate(pressure_levels):
+                            if plev > surface_pressure[i]:
+                                cloud_gkg[lev_idx, i] = np.nan
+                cloud_colors = ['#FFFFFF', '#E8E8E8', '#D0D0D0', '#B8B8B8', '#A0C0E0', '#80A0D0', '#6080C0']
+                cloud_cmap = mcolors.LinearSegmentedColormap.from_list('cloud', cloud_colors, N=256)
+                cf = ax.contourf(X, Y, cloud_gkg, levels=np.linspace(0, 1.0, 11), cmap=cloud_cmap, extend='max')
+                cbar = plt.colorbar(cf, ax=ax, shrink=0.9)
+                cbar.set_label('Cloud Water (g/kg)')
+                shading_label = "Cloud"
+        elif style == "cloud":
+            cloud = data.get('cloud')
+            if cloud is not None:
+                cloud_gkg = cloud * 1000
+                if surface_pressure is not None:
+                    cloud_gkg = cloud_gkg.copy()
+                    for i in range(n_points):
+                        for lev_idx, plev in enumerate(pressure_levels):
+                            if plev > surface_pressure[i]:
+                                cloud_gkg[lev_idx, i] = np.nan
+                cf = ax.contourf(X, Y, cloud_gkg, levels=np.linspace(0, 0.5, 11), cmap='Blues', extend='max')
+                cbar = plt.colorbar(cf, ax=ax, shrink=0.9)
+                cbar.set_label('Cloud LWC (g/kg)')
+                shading_label = "Cloud"
+        elif style == "lapse_rate":
+            lapse = data.get('lapse_rate')
+            if lapse is not None:
+                if surface_pressure is not None:
+                    lapse = lapse.copy()
+                    for i in range(n_points):
+                        for lev_idx, plev in enumerate(pressure_levels):
+                            if plev > surface_pressure[i]:
+                                lapse[lev_idx, i] = np.nan
+                # Diverging colormap: blue (stable) -> white -> red (unstable)
+                cf = ax.contourf(X, Y, lapse, levels=np.linspace(0, 12, 13), cmap='RdYlBu_r', extend='both')
+                cbar = plt.colorbar(cf, ax=ax, shrink=0.9)
+                cbar.set_label('Lapse Rate (°C/km)')
+                # Add dry adiabatic line
+                ax.contour(X, Y, lapse, levels=[9.8], colors='black', linewidths=2, linestyles='--')
+                shading_label = "Γ"
+        elif style == "wetbulb":
+            wetbulb = data.get('wetbulb')
+            if wetbulb is not None:
+                if surface_pressure is not None:
+                    wetbulb = wetbulb.copy()
+                    for i in range(n_points):
+                        for lev_idx, plev in enumerate(pressure_levels):
+                            if plev > surface_pressure[i]:
+                                wetbulb[lev_idx, i] = np.nan
+                cf = ax.contourf(X, Y, wetbulb, levels=np.arange(-40, 35, 5), cmap='coolwarm', extend='both')
+                cbar = plt.colorbar(cf, ax=ax, shrink=0.9)
+                cbar.set_label('Wet-Bulb Temp (°C)')
+                # Wet-bulb 0°C line (critical for precip type)
+                try:
+                    cs_wb0 = ax.contour(X, Y, wetbulb, levels=[0], colors='cyan', linewidths=2.5)
+                    ax.clabel(cs_wb0, inline=True, fontsize=9, fmt='Tw=0')
+                except:
+                    pass
+                shading_label = "Tw"
+        elif style == "icing":
+            icing = data.get('icing')
+            if icing is not None:
+                if surface_pressure is not None:
+                    icing = icing.copy()
+                    for i in range(n_points):
+                        for lev_idx, plev in enumerate(pressure_levels):
+                            if plev > surface_pressure[i]:
+                                icing[lev_idx, i] = np.nan
+                # Purple gradient for icing intensity
+                icing_colors = ['#FFFFFF', '#E8D8F0', '#D0B0E0', '#B888D0', '#A060C0', '#8838B0', '#7010A0']
+                icing_cmap = mcolors.LinearSegmentedColormap.from_list('icing', icing_colors, N=256)
+                cf = ax.contourf(X, Y, icing, levels=np.linspace(0, 0.3, 7), cmap=icing_cmap, extend='max')
+                cbar = plt.colorbar(cf, ax=ax, shrink=0.9)
+                cbar.set_label('Icing (SLW g/kg)')
+                shading_label = "Icing"
+        elif style == "vorticity":
+            vort = data.get('vorticity')
+            if vort is not None:
+                vort_scaled = vort * 1e5  # Scale for display
+                if surface_pressure is not None:
+                    vort_scaled = vort_scaled.copy()
+                    for i in range(n_points):
+                        for lev_idx, plev in enumerate(pressure_levels):
+                            if plev > surface_pressure[i]:
+                                vort_scaled[lev_idx, i] = np.nan
+                vort_max = min(np.nanmax(np.abs(vort_scaled)), 30)
+                cf = ax.contourf(X, Y, vort_scaled, levels=np.linspace(-vort_max, vort_max, 21),
+                                cmap='RdBu_r', extend='both')
+                cbar = plt.colorbar(cf, ax=ax, shrink=0.9)
+                cbar.set_label('Vorticity (10⁻⁵/s)')
+                shading_label = "ζ"
         else:
             # Default to theta shading
             if theta is not None:
@@ -935,7 +1046,7 @@ class InteractiveCrossSection:
             cs = ax.contour(X, Y, theta, levels=np.arange(270, 330, 4), colors='black', linewidths=0.8)
             ax.clabel(cs, inline=True, fontsize=8, fmt='%.0f')
 
-        # Freezing level
+        # Temperature overlays (freezing level, DGZ, additional isotherms)
         if temperature is not None:
             temp_c_plot = temperature - 273.15
             if surface_pressure is not None:
@@ -945,9 +1056,71 @@ class InteractiveCrossSection:
                         if plev > surface_pressure[i]:
                             temp_c_plot[lev_idx, i] = np.nan
             try:
+                # Freezing level (0°C) - magenta
                 ax.contour(X, Y, temp_c_plot, levels=[0], colors='magenta', linewidths=2)
+
+                # Additional isotherms for winter weather styles
+                if style in ['icing', 'wetbulb', 'temp', 'cloud', 'cloud_total']:
+                    # -10°C and -20°C isotherms
+                    cs_iso = ax.contour(X, Y, temp_c_plot, levels=[-10, -20],
+                                       colors=['cyan', 'blue'], linewidths=1.2, linestyles='--')
+                    ax.clabel(cs_iso, inline=True, fontsize=8, fmt='%.0f°C')
+
+                # DGZ band (-12 to -18°C) for snow growth - highlight on relevant styles
+                if style in ['icing', 'wetbulb', 'cloud', 'cloud_total', 'temp']:
+                    dgz_mask = (temp_c_plot >= -18) & (temp_c_plot <= -12)
+                    if np.any(dgz_mask):
+                        ax.contourf(X, Y, dgz_mask.astype(float), levels=[0.5, 1.5],
+                                   colors=['lightblue'], alpha=0.25, zorder=2)
             except:
                 pass
+
+        # Wind barbs
+        if u_wind is not None and v_wind is not None:
+            # Subsample for readability
+            x_skip = max(1, n_points // 25)
+            y_skip = max(1, n_levels // 12)
+
+            x_idx = np.arange(0, n_points, x_skip)
+            y_idx = np.arange(0, n_levels, y_skip)
+
+            X_barb = distances[x_idx]
+            Y_barb = pressure_levels[y_idx]
+            XX_barb, YY_barb = np.meshgrid(X_barb, Y_barb)
+
+            # Get wind at subsampled points
+            U_barb = u_wind[np.ix_(y_idx, x_idx)].copy()
+            V_barb = v_wind[np.ix_(y_idx, x_idx)].copy()
+
+            # Mask below terrain
+            if surface_pressure is not None:
+                for i, xi in enumerate(x_idx):
+                    sp = surface_pressure[xi]
+                    for j, yj in enumerate(y_idx):
+                        if pressure_levels[yj] > sp:
+                            U_barb[j, i] = np.nan
+                            V_barb[j, i] = np.nan
+
+            # Convert m/s to knots
+            U_kt = U_barb * 1.944
+            V_kt = V_barb * 1.944
+
+            # Rotate winds to cross-section view
+            dlat = lats[-1] - lats[0]
+            dlon = lons[-1] - lons[0]
+            section_azimuth = np.arctan2(dlon * np.cos(np.radians(np.mean(lats))), dlat)
+
+            # Rotate wind vectors so section-parallel is horizontal
+            U_rot = U_kt * np.sin(section_azimuth) + V_kt * np.cos(section_azimuth)
+            V_rot = -U_kt * np.cos(section_azimuth) + V_kt * np.sin(section_azimuth)
+
+            # Plot wind barbs
+            ax.barbs(
+                XX_barb, YY_barb, U_rot, V_rot,
+                length=5, barbcolor='black', flagcolor='black',
+                linewidth=0.6, pivot='middle',
+                sizes=dict(emptybarb=0.04, spacing=0.12, height=0.35),
+            )
 
         # Terrain fill
         if surface_pressure is not None:

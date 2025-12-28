@@ -45,9 +45,15 @@ XSECT_STYLES = [
     ('temp', 'Temperature'),
     ('theta_e', 'Theta-E'),
     ('rh', 'Relative Humidity'),
+    ('q', 'Specific Humidity'),
     ('omega', 'Vertical Velocity'),
     ('vorticity', 'Vorticity'),
+    ('shear', 'Wind Shear'),
+    ('lapse_rate', 'Lapse Rate'),
     ('cloud', 'Cloud Water'),
+    ('cloud_total', 'Total Condensate'),
+    ('wetbulb', 'Wet-Bulb Temp'),
+    ('icing', 'Icing Potential'),
 ]
 
 # =============================================================================
@@ -214,7 +220,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             font-size: 13px;
         }
         #sidebar {
-            width: 450px;
+            width: 55%;
+            min-width: 500px;
             background: var(--panel);
             border-left: 1px solid var(--border);
             display: flex;
@@ -329,13 +336,29 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const {lat, lng} = e.latlng;
 
             if (!startMarker) {
-                startMarker = L.circleMarker([lat, lng], {
-                    radius: 8, color: '#38bdf8', fillOpacity: 0.8
+                startMarker = L.marker([lat, lng], {
+                    draggable: true,
+                    icon: L.divIcon({
+                        className: 'marker-start',
+                        html: '<div style="width:16px;height:16px;background:#38bdf8;border-radius:50%;border:2px solid white;"></div>',
+                        iconSize: [16, 16],
+                        iconAnchor: [8, 8]
+                    })
                 }).addTo(map);
+                startMarker.on('drag', updateLine);
+                startMarker.on('dragend', generateCrossSection);
             } else if (!endMarker) {
-                endMarker = L.circleMarker([lat, lng], {
-                    radius: 8, color: '#f87171', fillOpacity: 0.8
+                endMarker = L.marker([lat, lng], {
+                    draggable: true,
+                    icon: L.divIcon({
+                        className: 'marker-end',
+                        html: '<div style="width:16px;height:16px;background:#f87171;border-radius:50%;border:2px solid white;"></div>',
+                        iconSize: [16, 16],
+                        iconAnchor: [8, 8]
+                    })
                 }).addTo(map);
+                endMarker.on('drag', updateLine);
+                endMarker.on('dragend', generateCrossSection);
 
                 line = L.polyline([startMarker.getLatLng(), endMarker.getLatLng()], {
                     color: '#fbbf24', weight: 3, dashArray: '10, 5'
@@ -344,6 +367,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 generateCrossSection();
             }
         });
+
+        function updateLine() {
+            if (startMarker && endMarker && line) {
+                line.setLatLngs([startMarker.getLatLng(), endMarker.getLatLng()]);
+            }
+        }
 
         // Generate cross-section
         function generateCrossSection() {
