@@ -200,6 +200,10 @@ class InteractiveCrossSection:
         self.cache_dir = Path(cache_dir) if cache_dir else None
         if self.cache_dir:
             self.cache_dir.mkdir(parents=True, exist_ok=True)
+        # Metadata for labeling
+        self.model = "HRRR"
+        self.init_date = None  # YYYYMMDD
+        self.init_hour = None  # HH
 
     def _get_cache_path(self, grib_file: str) -> Optional[Path]:
         """Get cache path for a GRIB file."""
@@ -416,6 +420,23 @@ class InteractiveCrossSection:
             print(f"Run directory not found: {run_dir}")
             return 0
 
+        # Extract init date/hour from path (e.g., outputs/hrrr/20251224/19z)
+        import re
+        path_str = str(run_path)
+        date_match = re.search(r'/(\d{8})/(\d{2})z', path_str)
+        if date_match:
+            self.init_date = date_match.group(1)
+            self.init_hour = date_match.group(2)
+        else:
+            # Try to get from directory names
+            parts = run_path.parts
+            for i, part in enumerate(parts):
+                if len(part) == 8 and part.isdigit():
+                    self.init_date = part
+                    if i + 1 < len(parts) and parts[i + 1].endswith('z'):
+                        self.init_hour = parts[i + 1].replace('z', '')
+                    break
+
         # Collect files to load
         files_to_load = []
         for fhr in range(max_hours + 1):
@@ -617,8 +638,16 @@ class InteractiveCrossSection:
         if not return_image:
             return data
 
+        # Build metadata for labels
+        metadata = {
+            'model': self.model,
+            'init_date': self.init_date,
+            'init_hour': self.init_hour,
+            'forecast_hour': forecast_hour,
+        }
+
         # Render
-        img_bytes = self._render_cross_section(data, style, dpi)
+        img_bytes = self._render_cross_section(data, style, dpi, metadata)
 
         t_total = time.time() - start
         print(f"Cross-section generated in {t_total:.3f}s (interp: {t_interp:.3f}s)")
@@ -799,13 +828,14 @@ class InteractiveCrossSection:
             distances.append(distances[-1] + R * c)
         return np.array(distances)
 
-    def _render_cross_section(self, data: Dict, style: str, dpi: int) -> bytes:
+    def _render_cross_section(self, data: Dict, style: str, dpi: int, metadata: Dict = None) -> bytes:
         """Render cross-section to PNG bytes."""
         import matplotlib
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
         import matplotlib.colors as mcolors
         from matplotlib.ticker import MultipleLocator
+        from datetime import datetime, timedelta
 
         distances = data['distances']
         pressure_levels = data['pressure_levels']
@@ -816,6 +846,27 @@ class InteractiveCrossSection:
         v_wind = data.get('v_wind')
         lats = data['lats']
         lons = data['lons']
+
+        # Parse metadata for labels
+        metadata = metadata or {}
+        model = metadata.get('model', 'HRRR')
+        init_date = metadata.get('init_date')
+        init_hour = metadata.get('init_hour')
+        forecast_hour = metadata.get('forecast_hour', 0)
+
+        # Calculate valid time
+        if init_date and init_hour:
+            try:
+                init_dt = datetime.strptime(f"{init_date}{init_hour}", "%Y%m%d%H")
+                valid_dt = init_dt + timedelta(hours=forecast_hour)
+                init_str = init_dt.strftime("%Y-%m-%d %HZ")
+                valid_str = valid_dt.strftime("%Y-%m-%d %HZ")
+            except:
+                init_str = f"{init_date} {init_hour}Z" if init_date else "Unknown"
+                valid_str = "Unknown"
+        else:
+            init_str = "Unknown"
+            valid_str = "Unknown"
 
         n_levels, n_points = theta.shape if theta is not None else (len(pressure_levels), len(distances))
 
@@ -1133,12 +1184,28 @@ class InteractiveCrossSection:
         # Axes
         ax.set_ylim(max(pressure_levels), min(pressure_levels))
         ax.set_xlim(0, distances[-1])
-        ax.set_xlabel('Distance (km)')
-        ax.set_ylabel('Pressure (hPa)')
+        ax.set_xlabel('Distance (km)', fontsize=11)
+        ax.set_ylabel('Pressure (hPa)', fontsize=11)
         ax.yaxis.set_major_locator(MultipleLocator(100))
         ax.grid(True, alpha=0.3)
 
-        ax.set_title(f'Cross-Section: {shading_label} + θ | {lats[0]:.1f},{lons[0]:.1f} → {lats[-1]:.1f},{lons[-1]:.1f}')
+        # Title with full metadata
+        # Main title: Model info and times
+        title_main = f'{model} Cross-Section: {shading_label}'
+        ax.set_title(title_main, fontsize=14, fontweight='bold', loc='left')
+
+        # Right-aligned info: Init and Valid times
+        ax.set_title(f'Init: {init_str}  |  F{forecast_hour:02d}  |  Valid: {valid_str}',
+                    fontsize=10, loc='right', color='#555')
+
+        # Add path info at bottom of figure
+        total_dist = distances[-1]
+        path_text = f'({lats[0]:.2f}°, {lons[0]:.2f}°) → ({lats[-1]:.2f}°, {lons[-1]:.2f}°)  [{total_dist:.0f} km]'
+        fig.text(0.5, 0.01, path_text, ha='center', fontsize=9, color='#666',
+                transform=fig.transFigure)
+
+        # Adjust layout to make room for bottom text
+        plt.subplots_adjust(bottom=0.12)
 
         # Save to bytes
         buf = io.BytesIO()
