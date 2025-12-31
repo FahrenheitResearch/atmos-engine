@@ -812,6 +812,61 @@ class InteractiveCrossSection:
             icing = np.where((T_c >= -20) & (T_c <= 0), cloud, 0)
             result['icing'] = icing
 
+        if style == 'frontogenesis':
+            # Petterssen Kinematic Frontogenesis (Winter Bander Mode)
+            # Compute frontogenesis on the cross-section using NumPy
+            # F = -|∇θ|^(-1) * deformation_term
+            from scipy.ndimage import gaussian_filter
+
+            theta = result.get('theta')
+            u = result.get('u_wind')
+            v = result.get('v_wind')
+
+            if theta is not None and u is not None and v is not None:
+                # Apply Gaussian smoothing to reduce noise from high-res (3km) data
+                # Sigma=1.5 smooths over ~4-5 grid points, removing small-scale noise
+                # while preserving synoptic-scale frontal features
+                sigma_val = 1.5
+                theta_smooth = gaussian_filter(theta, sigma=sigma_val)
+                u_smooth = gaussian_filter(u, sigma=sigma_val)
+                v_smooth = gaussian_filter(v, sigma=sigma_val)
+
+                distances_m = result['distances'] * 1000  # km to m
+
+                # Compute gradients along section (ds = along-section distance)
+                dtheta_ds = np.gradient(theta_smooth, distances_m, axis=1)
+
+                # Compute section azimuth for wind rotation
+                dlat = path_lats[-1] - path_lats[0]
+                dlon = path_lons[-1] - path_lons[0]
+                azimuth = np.arctan2(dlon * np.cos(np.radians(np.mean(path_lats))), dlat)
+
+                # Project winds to section-parallel component
+                u_section = u_smooth * np.cos(azimuth) + v_smooth * np.sin(azimuth)
+                du_section_ds = np.gradient(u_section, distances_m, axis=1)
+
+                # Magnitude of theta gradient
+                grad_theta_mag = np.abs(dtheta_ds)
+                grad_theta_mag = np.where(grad_theta_mag < 1e-10, 1e-10, grad_theta_mag)  # Avoid div by zero
+
+                # Frontogenesis: F = -|∇θ| * d(u_n)/ds where u_n is normal to theta gradient
+                # For section: F ≈ -(dθ/ds)^2 / |dθ/ds| * du_section/ds
+                # Simplified: F = -sign(dθ/ds) * |dθ/ds| * du_section/ds
+                frontogenesis_raw = -dtheta_ds * du_section_ds / grad_theta_mag
+
+                # Convert units: K/m * m/s / m = K/m/s
+                # Scale to K/100km/3hr: multiply by 100000 (100km) * 10800 (3hr)
+                # = 1.08e9, but values are very small, so use 1e11 scaling
+                frontogenesis = frontogenesis_raw * 1.08e9
+
+                # Light smoothing on output for cleaner visualization
+                frontogenesis = gaussian_filter(frontogenesis, sigma=0.8)
+
+                # Mask unrealistic values (cap at ±5 K/100km/3hr)
+                frontogenesis = np.clip(frontogenesis, -5, 5)
+
+                result['frontogenesis'] = frontogenesis
+
         return result
 
     def _calculate_distances(self, lats: np.ndarray, lons: np.ndarray) -> np.ndarray:
@@ -1084,6 +1139,39 @@ class InteractiveCrossSection:
                 cbar = plt.colorbar(cf, ax=ax, shrink=0.9)
                 cbar.set_label('Vorticity (10⁻⁵/s)')
                 shading_label = "ζ"
+        elif style == "frontogenesis":
+            # Winter Bander Mode - Petterssen Frontogenesis
+            fronto = data.get('frontogenesis')
+            if fronto is not None:
+                if surface_pressure is not None:
+                    fronto = fronto.copy()
+                    for i in range(n_points):
+                        for lev_idx, plev in enumerate(pressure_levels):
+                            if plev > surface_pressure[i]:
+                                fronto[lev_idx, i] = np.nan
+
+                # Diverging colormap: blue (frontolysis) -> white -> red (frontogenesis)
+                # Red = frontogenesis (temperature gradient increasing) = banding
+                # Blue = frontolysis (temperature gradient decreasing)
+                fronto_colors = ['#2166AC', '#4393C3', '#92C5DE', '#D1E5F0',
+                                '#F7F7F7',
+                                '#FDDBC7', '#F4A582', '#D6604D', '#B2182B']
+                fronto_cmap = mcolors.LinearSegmentedColormap.from_list('fronto', fronto_colors, N=256)
+
+                # Levels centered on zero, range typically -2 to +2 K/100km/3hr
+                levels = np.linspace(-2, 2, 21)
+                cf = ax.contourf(X, Y, fronto, levels=levels, cmap=fronto_cmap, extend='both')
+                cbar = plt.colorbar(cf, ax=ax, shrink=0.9)
+                cbar.set_label('Frontogenesis (K/100km/3hr)')
+
+                # Highlight strong frontogenesis bands
+                try:
+                    cs_strong = ax.contour(X, Y, fronto, levels=[0.5, 1.0, 1.5],
+                                          colors='darkred', linewidths=[0.8, 1.2, 1.6])
+                except:
+                    pass
+
+                shading_label = "❄ Frontogenesis"
         else:
             # Default to theta shading
             if theta is not None:
