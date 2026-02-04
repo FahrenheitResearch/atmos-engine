@@ -455,9 +455,11 @@ class CrossSectionManager:
 
         for cycle in cycles_to_load:
             cycle_key = cycle['cycle_key']
-            logger.info(f"Pre-loading {cycle['display']}...")
+            logger.info(f"Pre-loading {cycle['display']} (even FHRs only)...")
 
             for fhr in cycle['available_fhrs']:
+                if fhr % 2 != 0:
+                    continue  # Only preload even forecast hours into RAM
                 with self._lock:
                     if (cycle_key, fhr) in self.loaded_items:
                         continue
@@ -647,6 +649,8 @@ class CrossSectionManager:
             return None
 
         try:
+            # Pass real forecast hour for correct title labeling
+            self.xsect._real_forecast_hour = fhr
             png_bytes = self.xsect.get_cross_section(
                 start_point=start,
                 end_point=end,

@@ -188,11 +188,13 @@ class InteractiveCrossSection:
         'dpt': 'dew_point',
     }
 
+    CACHE_LIMIT_GB = 400  # Max NPZ cache size on disk
+
     def __init__(self, cache_dir: str = None):
         """Initialize the interactive cross-section system.
 
         Args:
-            cache_dir: Directory for Zarr cache. If provided, enables fast caching.
+            cache_dir: Directory for NPZ cache. If provided, enables fast caching.
                       First load from GRIB takes ~25s, subsequent loads ~2s.
         """
         self.forecast_hours: Dict[int, ForecastHourData] = {}
@@ -221,6 +223,29 @@ class InteractiveCrossSection:
             cache_name = f"{grib_path.stem}.npz"
         return self.cache_dir / cache_name
 
+    def _cleanup_cache(self):
+        """Evict oldest NPZ cache files if cache exceeds CACHE_LIMIT_GB."""
+        if not self.cache_dir:
+            return
+        try:
+            files = list(self.cache_dir.glob('*.npz'))
+            total_bytes = sum(f.stat().st_size for f in files)
+            total_gb = total_bytes / (1024 ** 3)
+            if total_gb <= self.CACHE_LIMIT_GB:
+                return
+            # Sort by access time (oldest first) and delete until under 85% of limit
+            target_gb = self.CACHE_LIMIT_GB * 0.85
+            files.sort(key=lambda f: f.stat().st_atime)
+            for f in files:
+                if total_gb <= target_gb:
+                    break
+                size_gb = f.stat().st_size / (1024 ** 3)
+                f.unlink()
+                total_gb -= size_gb
+                print(f"Cache cleanup: removed {f.name} ({size_gb:.1f}GB), {total_gb:.1f}GB remaining")
+        except Exception as e:
+            print(f"Cache cleanup error: {e}")
+
     def _save_to_cache(self, fhr_data: ForecastHourData, cache_path: Path):
         """Save ForecastHourData to numpy format (uncompressed for speed)."""
         data = {'forecast_hour': np.array([fhr_data.forecast_hour])}
@@ -234,6 +259,7 @@ class InteractiveCrossSection:
 
         # Use uncompressed for fast save (~3.5GB per file, but saves in ~5s vs 60s)
         np.savez(cache_path, **data)
+        self._cleanup_cache()
 
     def _load_from_cache(self, cache_path: Path) -> Optional[ForecastHourData]:
         """Load ForecastHourData from compressed numpy format."""
@@ -664,12 +690,15 @@ class InteractiveCrossSection:
             return data
 
         # Build metadata for labels
+        # Use _real_forecast_hour if set by dashboard (engine_key != real fhr)
+        real_fhr = getattr(self, '_real_forecast_hour', fhr_data.forecast_hour)
         metadata = {
             'model': self.model,
             'init_date': self.init_date,
             'init_hour': self.init_hour,
-            'forecast_hour': forecast_hour,
+            'forecast_hour': real_fhr,
         }
+        self._real_forecast_hour = None  # Reset after use
 
         # Render
         img_bytes = self._render_cross_section(data, style, dpi, metadata, y_axis, vscale, y_top)
@@ -997,12 +1026,11 @@ class InteractiveCrossSection:
         # NOTE: Terrain masking removed - let contourf fill entire grid
         # The terrain fill (zorder=5) will cover underground portions
 
-        # Create figure - extra height for inset map above plot
-        # Apply vertical scale factor to figure height
-        base_height = 9.5  # Taller for inset map space above
-        fig_height = base_height * min(max(vscale, 0.5), 3.0)  # Clamp between 0.5x and 3x
-        fig, ax = plt.subplots(figsize=(14, fig_height), facecolor='white')
-        ax.set_position([0.08, 0.07, 0.84, 0.73])  # Wide plot, room above for inset
+        # Create figure - 25% larger with room for inset above and labels below
+        base_height = 11.0
+        fig_height = base_height * min(max(vscale, 0.5), 3.0)
+        fig, ax = plt.subplots(figsize=(17, fig_height), facecolor='white')
+        ax.set_position([0.06, 0.12, 0.82, 0.68])  # Room above for inset, below for labels
 
         # Determine Y coordinate based on y_axis choice
         use_height = (y_axis == 'height' and geopotential_height is not None)
@@ -1069,7 +1097,7 @@ class InteractiveCrossSection:
             wspd_cmap = mcolors.LinearSegmentedColormap.from_list('wspd', colors_only, N=256)
             # Fine resolution levels for smooth gradient (every 2 kts)
             cf = ax.contourf(X, Y, wind_speed, levels=np.arange(0, 102, 2), cmap=wspd_cmap, extend='max')
-            cbar_ax = fig.add_axes([0.93, 0.07, 0.015, 0.73])
+            cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
             cbar = plt.colorbar(cf, cax=cbar_ax)
             cbar.set_label('Wind Speed (kts)')
             shading_label = "Wind Speed"
@@ -1093,8 +1121,8 @@ class InteractiveCrossSection:
                 ]
                 ndfd_cmap = mcolors.LinearSegmentedColormap.from_list('ndfd_temp', ndfd_temp_colors, N=256)
                 cf = ax.contourf(X, Y, temp_c, levels=np.arange(-60, 45, 5), cmap=ndfd_cmap, extend='both')
-                cbar_ax = fig.add_axes([0.93, 0.07, 0.015, 0.73])
-            cbar = plt.colorbar(cf, cax=cbar_ax)
+                cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
+                cbar = plt.colorbar(cf, cax=cbar_ax)
                 cbar.set_label('Temperature (°C)')
                 shading_label = "T(°C)"
         elif style == "rh":
@@ -1105,8 +1133,8 @@ class InteractiveCrossSection:
                              (0.2, 0.6, 0.3), (0.1, 0.4, 0.2)]
                 rh_cmap = mcolors.LinearSegmentedColormap.from_list('rh', rh_colors, N=256)
                 cf = ax.contourf(X, Y, rh, levels=np.arange(0, 105, 5), cmap=rh_cmap, extend='both')
-                cbar_ax = fig.add_axes([0.93, 0.07, 0.015, 0.73])
-            cbar = plt.colorbar(cf, cax=cbar_ax)
+                cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
+                cbar = plt.colorbar(cf, cax=cbar_ax)
                 cbar.set_label('Relative Humidity (%)')
                 shading_label = "RH(%)"
         elif style == "omega":
@@ -1116,24 +1144,24 @@ class InteractiveCrossSection:
                 omega_max = min(np.nanmax(np.abs(omega_display)), 20)
                 cf = ax.contourf(X, Y, omega_display, levels=np.linspace(-omega_max, omega_max, 21),
                                 cmap='RdBu_r', extend='both')
-                cbar_ax = fig.add_axes([0.93, 0.07, 0.015, 0.73])
-            cbar = plt.colorbar(cf, cax=cbar_ax)
+                cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
+                cbar = plt.colorbar(cf, cax=cbar_ax)
                 cbar.set_label('ω (hPa/hr)')
                 shading_label = "ω"
         elif style == "theta_e":
             theta_e = data.get('theta_e')
             if theta_e is not None:
                 cf = ax.contourf(X, Y, theta_e, levels=np.arange(280, 365, 4), cmap='Spectral_r', extend='both')
-                cbar_ax = fig.add_axes([0.93, 0.07, 0.015, 0.73])
-            cbar = plt.colorbar(cf, cax=cbar_ax)
+                cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
+                cbar = plt.colorbar(cf, cax=cbar_ax)
                 cbar.set_label('θₑ (K)')
                 shading_label = "θₑ"
         elif style == "shear":
             shear = data.get('shear')
             if shear is not None:
                 cf = ax.contourf(X, Y, shear, levels=np.linspace(0, 10, 11), cmap='OrRd', extend='max')
-                cbar_ax = fig.add_axes([0.93, 0.07, 0.015, 0.73])
-            cbar = plt.colorbar(cf, cax=cbar_ax)
+                cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
+                cbar = plt.colorbar(cf, cax=cbar_ax)
                 cbar.set_label('Shear (10⁻³/s)')
                 shading_label = "Shear"
         elif style == "q":
@@ -1141,8 +1169,8 @@ class InteractiveCrossSection:
             if q is not None:
                 q_gkg = q * 1000  # kg/kg to g/kg
                 cf = ax.contourf(X, Y, q_gkg, levels=np.arange(0, 21, 1), cmap='YlGnBu', extend='max')
-                cbar_ax = fig.add_axes([0.93, 0.07, 0.015, 0.73])
-            cbar = plt.colorbar(cf, cax=cbar_ax)
+                cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
+                cbar = plt.colorbar(cf, cax=cbar_ax)
                 cbar.set_label('Specific Humidity (g/kg)')
                 shading_label = "q"
         elif style == "cloud_total":
@@ -1162,8 +1190,8 @@ class InteractiveCrossSection:
                 ]
                 cloud_cmap = mcolors.LinearSegmentedColormap.from_list('cloud', cloud_colors, N=256)
                 cf = ax.contourf(X, Y, cloud_gkg, levels=np.linspace(0, 1.0, 11), cmap=cloud_cmap, extend='max')
-                cbar_ax = fig.add_axes([0.93, 0.07, 0.015, 0.73])
-            cbar = plt.colorbar(cf, cax=cbar_ax)
+                cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
+                cbar = plt.colorbar(cf, cax=cbar_ax)
                 cbar.set_label('Total Condensate (g/kg)')
                 shading_label = "Cloud"
         elif style == "cloud":
@@ -1171,8 +1199,8 @@ class InteractiveCrossSection:
             if cloud is not None:
                 cloud_gkg = cloud * 1000
                 cf = ax.contourf(X, Y, cloud_gkg, levels=np.linspace(0, 0.5, 11), cmap='Blues', extend='max')
-                cbar_ax = fig.add_axes([0.93, 0.07, 0.015, 0.73])
-            cbar = plt.colorbar(cf, cax=cbar_ax)
+                cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
+                cbar = plt.colorbar(cf, cax=cbar_ax)
                 cbar.set_label('Cloud LWC (g/kg)')
                 shading_label = "Cloud"
         elif style == "lapse_rate":
@@ -1180,8 +1208,8 @@ class InteractiveCrossSection:
             if lapse is not None:
                 # Diverging colormap: blue (stable) -> white -> red (unstable)
                 cf = ax.contourf(X, Y, lapse, levels=np.linspace(0, 12, 13), cmap='RdYlBu_r', extend='both')
-                cbar_ax = fig.add_axes([0.93, 0.07, 0.015, 0.73])
-            cbar = plt.colorbar(cf, cax=cbar_ax)
+                cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
+                cbar = plt.colorbar(cf, cax=cbar_ax)
                 cbar.set_label('Lapse Rate (°C/km)')
                 # Add dry adiabatic line
                 ax.contour(X, Y, lapse, levels=[9.8], colors='black', linewidths=2, linestyles='--')
@@ -1190,8 +1218,8 @@ class InteractiveCrossSection:
             wetbulb = data.get('wetbulb')
             if wetbulb is not None:
                 cf = ax.contourf(X, Y, wetbulb, levels=np.arange(-40, 35, 5), cmap='coolwarm', extend='both')
-                cbar_ax = fig.add_axes([0.93, 0.07, 0.015, 0.73])
-            cbar = plt.colorbar(cf, cax=cbar_ax)
+                cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
+                cbar = plt.colorbar(cf, cax=cbar_ax)
                 cbar.set_label('Wet-Bulb Temp (°C)')
                 # Wet-bulb 0°C line (critical for precip type)
                 try:
@@ -1216,8 +1244,8 @@ class InteractiveCrossSection:
                 ]
                 icing_cmap = mcolors.LinearSegmentedColormap.from_list('icing', icing_colors, N=256)
                 cf = ax.contourf(X, Y, icing, levels=np.linspace(0, 0.3, 7), cmap=icing_cmap, extend='max')
-                cbar_ax = fig.add_axes([0.93, 0.07, 0.015, 0.73])
-            cbar = plt.colorbar(cf, cax=cbar_ax)
+                cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
+                cbar = plt.colorbar(cf, cax=cbar_ax)
                 cbar.set_label('Icing (SLW g/kg)')
                 shading_label = "Icing"
         elif style == "vorticity":
@@ -1227,8 +1255,8 @@ class InteractiveCrossSection:
                 vort_max = min(np.nanmax(np.abs(vort_scaled)), 30)
                 cf = ax.contourf(X, Y, vort_scaled, levels=np.linspace(-vort_max, vort_max, 21),
                                 cmap='RdBu_r', extend='both')
-                cbar_ax = fig.add_axes([0.93, 0.07, 0.015, 0.73])
-            cbar = plt.colorbar(cf, cax=cbar_ax)
+                cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
+                cbar = plt.colorbar(cf, cax=cbar_ax)
                 cbar.set_label('Vorticity (10⁻⁵/s)')
                 shading_label = "ζ"
         elif style == "frontogenesis":
@@ -1246,8 +1274,8 @@ class InteractiveCrossSection:
                 # Levels centered on zero, range typically -2 to +2 K/100km/3hr
                 levels = np.linspace(-2, 2, 21)
                 cf = ax.contourf(X, Y, fronto, levels=levels, cmap=fronto_cmap, extend='both')
-                cbar_ax = fig.add_axes([0.93, 0.07, 0.015, 0.73])
-            cbar = plt.colorbar(cf, cax=cbar_ax)
+                cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
+                cbar = plt.colorbar(cf, cax=cbar_ax)
                 cbar.set_label('Frontogenesis (K/100km/3hr)')
 
                 # Highlight strong frontogenesis bands
@@ -1262,8 +1290,8 @@ class InteractiveCrossSection:
             # Default to theta shading
             if theta is not None:
                 cf = ax.contourf(X, Y, theta, levels=np.arange(270, 360, 4), cmap='viridis', extend='both')
-                cbar_ax = fig.add_axes([0.93, 0.07, 0.015, 0.73])
-            cbar = plt.colorbar(cf, cax=cbar_ax)
+                cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
+                cbar = plt.colorbar(cf, cax=cbar_ax)
                 cbar.set_label('θ (K)')
                 shading_label = "θ"
 
@@ -1393,20 +1421,122 @@ class InteractiveCrossSection:
 
         ax.grid(True, alpha=0.3)
 
+        # Legend
+        from matplotlib.lines import Line2D
+        from matplotlib.patches import Patch
+        legend_items = []
+        if theta is not None:
+            legend_items.append(Line2D([0], [0], color='black', linewidth=0.8, label='Potential Temp (K)'))
+        if temperature is not None:
+            legend_items.append(Line2D([0], [0], color='magenta', linewidth=2, label='0°C Isotherm'))
+        if u_wind is not None and v_wind is not None:
+            legend_items.append(Line2D([0], [0], marker=r'$\rightarrow$', color='black', linestyle='None',
+                                       markersize=8, label='Wind Barbs (kt)'))
+        if surface_pressure is not None:
+            legend_items.append(Patch(facecolor='saddlebrown', alpha=0.9, label='Terrain'))
+        if legend_items:
+            ax.legend(handles=legend_items, loc='upper left', fontsize=7, framealpha=0.85,
+                     edgecolor='#999', fancybox=False, borderpad=0.4, handlelength=1.5)
+
         # Title with full metadata
-        # Main title: Model info and times
         title_main = f'{model} Cross-Section: {shading_label}'
         ax.set_title(title_main, fontsize=14, fontweight='bold', loc='left')
-
-        # Right-aligned info: Init and Valid times
         ax.set_title(f'Init: {init_str}  |  F{forecast_hour:02d}  |  Valid: {valid_str}',
                     fontsize=10, loc='right', color='#555')
 
-        # Add path info at bottom of figure (left-aligned)
+        # A/B endpoint labels below the secondary axis
         total_dist = distances[-1]
-        path_text = f'({lats[0]:.2f}°, {lons[0]:.2f}°) → ({lats[-1]:.2f}°, {lons[-1]:.2f}°)  [{total_dist:.0f} km]'
-        fig.text(0.08, 0.02, path_text, ha='left', fontsize=9, color='#666',
-                transform=fig.transFigure)
+        a_label = f"A\n{abs(lats[0]):.2f}°{'N' if lats[0]>=0 else 'S'}, {abs(lons[0]):.2f}°{'W' if lons[0]<0 else 'E'}"
+        b_label = f"B\n{abs(lats[-1]):.2f}°{'N' if lats[-1]>=0 else 'S'}, {abs(lons[-1]):.2f}°{'W' if lons[-1]<0 else 'E'}"
+        fig.text(0.06, 0.045, a_label, ha='left', va='top', fontsize=8, fontweight='bold',
+                color='#333', transform=fig.transFigure)
+        fig.text(0.88, 0.045, b_label, ha='right', va='top', fontsize=8, fontweight='bold',
+                color='#333', transform=fig.transFigure)
+
+        # Lat/lon + nearby city labels along x-axis
+        _cities = [
+            # Major metros
+            (40.71, -74.01, "New York"), (34.05, -118.24, "Los Angeles"), (41.88, -87.63, "Chicago"),
+            (29.76, -95.37, "Houston"), (33.45, -112.07, "Phoenix"), (29.95, -90.07, "New Orleans"),
+            (39.74, -104.99, "Denver"), (47.61, -122.33, "Seattle"), (25.76, -80.19, "Miami"),
+            (33.75, -84.39, "Atlanta"), (42.36, -71.06, "Boston"), (38.91, -77.04, "Washington DC"),
+            (32.72, -96.97, "Dallas"), (37.77, -122.42, "San Francisco"), (36.17, -115.14, "Las Vegas"),
+            (39.96, -82.99, "Columbus"), (35.23, -80.84, "Charlotte"), (44.98, -93.27, "Minneapolis"),
+            (30.27, -97.74, "Austin"), (32.22, -110.93, "Tucson"), (36.16, -86.78, "Nashville"),
+            (45.52, -122.68, "Portland OR"), (38.63, -90.20, "St. Louis"), (39.10, -94.58, "Kansas City"),
+            (35.47, -97.52, "Oklahoma City"), (37.34, -121.89, "San Jose"),
+            (40.76, -111.89, "Salt Lake City"), (43.62, -116.21, "Boise"), (42.33, -83.05, "Detroit"),
+            (39.77, -86.16, "Indianapolis"), (41.26, -95.94, "Omaha"), (28.54, -81.38, "Orlando"),
+            (27.95, -82.46, "Tampa"), (30.33, -81.66, "Jacksonville"), (40.44, -79.99, "Pittsburgh"),
+            # Mid-size & regional
+            (35.96, -83.92, "Knoxville"), (36.85, -75.98, "Virginia Beach"), (43.04, -87.91, "Milwaukee"),
+            (34.73, -92.33, "Little Rock"), (32.30, -90.18, "Jackson MS"), (37.54, -77.44, "Richmond"),
+            (42.89, -78.88, "Buffalo"), (43.05, -76.15, "Syracuse"), (41.76, -72.68, "Hartford"),
+            (46.87, -114.00, "Missoula"), (47.66, -117.43, "Spokane"), (35.08, -106.65, "Albuquerque"),
+            (31.77, -106.44, "El Paso"), (37.69, -97.34, "Wichita"), (38.80, -97.61, "Salina"),
+            (41.59, -93.62, "Des Moines"), (40.81, -96.70, "Lincoln"), (46.81, -100.78, "Bismarck"),
+            (38.04, -84.50, "Lexington"), (34.00, -81.03, "Columbia SC"), (36.07, -79.79, "Greensboro"),
+            (26.12, -80.14, "Fort Lauderdale"), (43.66, -70.26, "Portland ME"),
+            # Western US fill (sparse areas)
+            (38.57, -121.49, "Sacramento"), (36.75, -119.77, "Fresno"), (35.37, -119.02, "Bakersfield"),
+            (34.42, -119.70, "Santa Barbara"), (33.43, -117.61, "San Clemente"),
+            (33.95, -117.40, "Riverside"), (32.72, -117.16, "San Diego"),
+            (36.60, -121.89, "Monterey"), (40.59, -122.39, "Redding"), (42.32, -122.87, "Medford"),
+            (39.53, -119.81, "Reno"), (38.80, -112.08, "Richfield UT"), (39.17, -119.77, "Carson City"),
+            (40.83, -115.76, "Elko"), (38.54, -109.55, "Moab"), (37.10, -113.58, "St. George"),
+            (39.64, -106.37, "Vail"), (38.27, -104.76, "Pueblo"), (40.59, -105.08, "Fort Collins"),
+            (35.20, -101.83, "Amarillo"), (33.58, -101.85, "Lubbock"), (31.97, -99.90, "Abilene"),
+            (27.80, -97.40, "Corpus Christi"), (32.45, -100.43, "Sweetwater"),
+            (41.14, -104.82, "Cheyenne"), (42.87, -106.33, "Casper"), (44.77, -108.73, "Cody"),
+            (43.48, -110.76, "Jackson WY"), (46.60, -112.04, "Helena"),
+            (48.76, -122.47, "Bellingham"), (44.06, -121.31, "Bend OR"),
+            (46.73, -117.00, "Lewiston ID"), (44.26, -72.58, "Montpelier"),
+            (43.21, -71.54, "Concord NH"), (41.82, -71.41, "Providence"),
+            (39.16, -75.52, "Dover"), (44.37, -100.35, "Pierre SD"), (44.97, -89.63, "Wausau"),
+            (38.58, -92.17, "Jefferson City"), (37.22, -93.29, "Springfield MO"),
+            (36.40, -105.57, "Taos"), (34.51, -105.38, "Roswell"), (32.34, -106.76, "Las Cruces"),
+            (48.23, -101.30, "Minot"), (47.51, -111.28, "Great Falls"),
+            (39.83, -98.53, "Smith Center KS"), (41.13, -100.77, "North Platte"),
+            (44.08, -103.23, "Rapid City"), (38.73, -116.69, "Tonopah"),
+            (37.23, -115.02, "Alamo NV"), (40.84, -111.89, "SLC"),
+            (21.31, -157.86, "Honolulu"), (61.22, -149.90, "Anchorage"),
+        ]
+        n_ticks = min(8, max(3, int(total_dist / 200)))  # ~1 tick per 200km
+        tick_indices = np.linspace(0, len(distances) - 1, n_ticks + 2, dtype=int)[1:-1]  # Skip A/B endpoints
+
+        tick_positions = []
+        tick_labels = []
+        used_cities = set()  # Prevent same city appearing twice
+        for idx in tick_indices:
+            d = distances[idx]
+            lat_i, lon_i = lats[idx], lons[idx]
+
+            # Find nearest city within 120km that hasn't been used
+            best_city = None
+            best_dist = 120  # km threshold
+            for clat, clon, cname in _cities:
+                if cname in used_cities:
+                    continue
+                cdist = np.sqrt(((lat_i - clat) * 111) ** 2 + (((lon_i - clon) * 111 * np.cos(np.radians(lat_i)))) ** 2)
+                if cdist < best_dist:
+                    best_dist = cdist
+                    best_city = cname
+
+            label = f"{abs(lat_i):.1f}°{'N' if lat_i >= 0 else 'S'}, {abs(lon_i):.1f}°{'W' if lon_i < 0 else 'E'}"
+            if best_city:
+                label += f"\n{best_city}"
+                used_cities.add(best_city)
+            label += f"\n{d:.0f} km"
+            tick_positions.append(d)
+            tick_labels.append(label)
+
+        # Secondary x-axis with lat/lon + city labels below the main axis
+        ax2 = ax.secondary_xaxis(-0.08)
+        ax2.set_xticks(tick_positions)
+        ax2.set_xticklabels(tick_labels, fontsize=7, color='#555', ha='center')
+        ax2.tick_params(axis='x', length=4, color='#999')
+
+        # Path coords incorporated into A/B labels - no separate text needed
 
         # Add professional inset map showing cross-section path
         try:
@@ -1434,7 +1564,7 @@ class InteractiveCrossSection:
             inset_height = 0.12
 
             # Place inset map above plot, right-aligned (in the top margin)
-            axins = fig.add_axes([0.92 - inset_width, 0.84, inset_width, inset_height],
+            axins = fig.add_axes([0.88 - inset_width, 0.83, inset_width, inset_height],
                                 projection=ccrs.PlateCarree())
             axins.set_extent([lon_min, lon_max, lat_min, lat_max], crs=ccrs.PlateCarree())
 
@@ -1454,14 +1584,16 @@ class InteractiveCrossSection:
 
             # Draw cross-section path
             axins.plot(lons, lats, 'r-', linewidth=2.5, transform=ccrs.PlateCarree(), zorder=10)
-            # Start point (blue)
-            axins.plot(lons[0], lats[0], 'o', color='#38bdf8', markersize=8,
-                      markeredgecolor='white', markeredgewidth=1.5,
-                      transform=ccrs.PlateCarree(), zorder=11)
-            # End point (red)
-            axins.plot(lons[-1], lats[-1], 'o', color='#f87171', markersize=8,
-                      markeredgecolor='white', markeredgewidth=1.5,
-                      transform=ccrs.PlateCarree(), zorder=11)
+            # Start point - A label
+            axins.text(lons[0], lats[0], 'A', transform=ccrs.PlateCarree(), zorder=11,
+                      fontsize=10, fontweight='bold', ha='center', va='center',
+                      color='white', bbox=dict(boxstyle='round,pad=0.15', facecolor='#38bdf8',
+                                               edgecolor='white', linewidth=1.5))
+            # End point - B label
+            axins.text(lons[-1], lats[-1], 'B', transform=ccrs.PlateCarree(), zorder=11,
+                      fontsize=10, fontweight='bold', ha='center', va='center',
+                      color='white', bbox=dict(boxstyle='round,pad=0.15', facecolor='#f87171',
+                                               edgecolor='white', linewidth=1.5))
 
             # Style the border
             for spine in axins.spines.values():
@@ -1471,10 +1603,10 @@ class InteractiveCrossSection:
         except Exception as e:
             pass  # Skip inset if cartopy fails
 
-        # Add credit (centered, below coords line)
-        fig.text(0.5, 0.005, 'CA Wildfire Tracking Research Collaborative  •  Mesoscale Analysis Division',
-                 ha='center', va='bottom', fontsize=7, color='#888888',
-                 transform=fig.transFigure, style='italic')
+        # Add credit
+        fig.text(0.5, 0.005, 'CA Wildfire Tracking Research Collaborative  •  Mesoscale Analysis Division\nContributors: Sequoiagrove & others',
+                 ha='center', va='bottom', fontsize=8, color='#888888',
+                 transform=fig.transFigure, style='italic', fontweight='bold')
 
         # Save to bytes (don't use tight_layout or bbox_inches - conflicts with inset positioning)
         buf = io.BytesIO()
