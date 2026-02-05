@@ -1272,7 +1272,7 @@ class InteractiveCrossSection:
         y_top: int = 100,
         units: str = "km",
         terrain_data: Dict = None,
-        temp_cmap: str = "green_purple",
+        temp_cmap: str = "standard",
         metadata: Dict = None,
         anomaly: bool = False,
     ) -> Optional[bytes]:
@@ -1644,13 +1644,14 @@ class InteractiveCrossSection:
         return np.array(distances)
 
     @staticmethod
-    def _build_temp_colormap(name: str = "green_purple"):
+    def _build_temp_colormap(name: str = "standard"):
         """Build a temperature colormap by name.
 
         Options:
-            green_purple: Green (0°C) -> yellow -> orange -> red -> purple (hot)
+            standard:     Indigo -> blue -> cyan -> teal -> pale green (0°C) -> yellow -> orange -> red -> maroon
             white_zero:   White (0°C) with purples below and warm colors above
             nws_ndfd:     Classic NWS blue -> cyan -> yellow (0°C) -> orange -> red
+            green_purple: Legacy green (0°C) -> yellow -> orange -> red -> purple
         """
         import matplotlib.colors as mcolors
 
@@ -1701,8 +1702,8 @@ class InteractiveCrossSection:
                 (115, (180,   0,  60)),  # Red-purple
                 (125, ( 90,  10, 140)),  # Deep purple
             ])
-        else:
-            # green_purple (default): blue-teal below freezing, green at 0°C, warm above
+        elif name == "green_purple":
+            # Legacy: blue-teal below freezing, green at 0°C, warm above
             return from_f_anchors([
                 (-80, (220, 220, 255)),  # Pale blue-white (extreme cold)
                 (-60, (180, 180, 255)),  # Light blue
@@ -1725,10 +1726,36 @@ class InteractiveCrossSection:
                 (120, (110,  20, 110)),  # Purple
                 (125, ( 90,  10, 140)),  # Deep purple
             ])
+        else:
+            # standard (default): smooth met colormap
+            # Deep indigo (tropopause) -> blue -> cyan -> teal (0°C) ->
+            # green -> yellow -> orange -> red -> maroon
+            # Freezing sits in cool teal; warm colors start above ~10°C
+            return from_f_anchors([
+                (-80, ( 15,   0,  60)),  # Near-black indigo (tropopause)
+                (-65, ( 30,   5, 110)),  # Deep indigo
+                (-50, ( 45,  20, 170)),  # Dark violet-blue
+                (-35, ( 20,  55, 210)),  # Royal blue
+                (-20, ( 15,  95, 235)),  # Bright blue
+                ( -5, ( 25, 150, 250)),  # Azure
+                ( 12, ( 40, 190, 235)),  # Sky blue
+                ( 24, ( 60, 210, 210)),  # Cyan-teal
+                ( 32, ( 80, 220, 190)),  # Teal (freezing — clearly cool)
+                ( 42, (110, 210, 140)),  # Cool green
+                ( 52, (170, 215,  80)),  # Yellow-green
+                ( 62, (230, 210,  40)),  # Yellow (warm — above ~17°C)
+                ( 72, (255, 175,  20)),  # Gold-orange
+                ( 82, (255, 130,  10)),  # Orange
+                ( 92, (240,  75,  10)),  # Red-orange
+                (100, (215,  30,  15)),  # True red
+                (108, (170,  10,  25)),  # Crimson
+                (118, (115,   5,  35)),  # Dark red
+                (125, ( 70,   0,  40)),  # Deep maroon
+            ])
 
     def _render_cross_section(self, data: Dict, style: str, dpi: int, metadata: Dict = None,
                                y_axis: str = "pressure", vscale: float = 1.0, y_top: int = 100,
-                               units: str = "km", temp_cmap: str = "green_purple",
+                               units: str = "km", temp_cmap: str = "standard",
                                ref_pressure_levels: np.ndarray = None,
                                anomaly: bool = False, climo_info: Dict = None) -> bytes:
         """Render cross-section to PNG bytes.

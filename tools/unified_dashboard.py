@@ -610,7 +610,7 @@ class CrossSectionManager:
         progress_done(op_id)
 
     def auto_load_latest(self):
-        """Check latest 2 cycles for new PRELOAD_FHRS on disk and load them into RAM."""
+        """Load new FHRs from disk, newest cycle first (priority)."""
         if not self._loading.acquire(blocking=False):
             logger.info("Skipping auto-load — another load operation in progress")
             return
@@ -623,11 +623,14 @@ class CrossSectionManager:
         if not self.xsect or not self.available_cycles:
             return
 
-        # Auto-load all available cycles on disk (mmap makes this cheap)
-        for cycle in self.available_cycles:
-            cycle_key = cycle['cycle_key']
+        # Prioritize the newest cycle — load it fully before touching anything else
+        newest = self.available_cycles[0]
+        cycles_to_check = [newest] + [c for c in self.available_cycles[1:]]
 
+        for cycle in cycles_to_check:
+            cycle_key = cycle['cycle_key']
             run_path = Path(cycle['path'])
+
             with self._lock:
                 fhrs_to_load = [fhr for fhr in cycle['available_fhrs']
                                 if fhr in self.PRELOAD_FHRS
@@ -636,25 +639,32 @@ class CrossSectionManager:
             if not fhrs_to_load:
                 continue
 
-            def _load_one(fhr):
-                with self._lock:
-                    if (cycle_key, fhr) in self.loaded_items:
-                        return fhr, True
-                    self.xsect.init_date = cycle['date']
-                    self.xsect.init_hour = cycle['hour']
-                    self._evict_if_needed()
-                    engine_key = self._get_engine_key(cycle_key, fhr)
+            is_newest = (cycle_key == newest['cycle_key'])
 
-                prs_files = list((run_path / f"F{fhr:02d}").glob("*wrfprs*.grib2"))
-                if prs_files and self.xsect.load_forecast_hour(str(prs_files[0]), engine_key):
+            def _make_loader(c, ck):
+                def _load_one(fhr):
                     with self._lock:
-                        if (cycle_key, fhr) not in self.loaded_items:
-                            self.loaded_items.append((cycle_key, fhr))
-                    return fhr, True
-                return fhr, False
+                        if (ck, fhr) in self.loaded_items:
+                            return fhr, True
+                        self.xsect.init_date = c['date']
+                        self.xsect.init_hour = c['hour']
+                        self._evict_if_needed()
+                        engine_key = self._get_engine_key(ck, fhr)
+
+                    prs_files = list((Path(c['path']) / f"F{fhr:02d}").glob("*wrfprs*.grib2"))
+                    if prs_files and self.xsect.load_forecast_hour(str(prs_files[0]), engine_key):
+                        with self._lock:
+                            if (ck, fhr) not in self.loaded_items:
+                                self.loaded_items.append((ck, fhr))
+                        return fhr, True
+                    return fhr, False
+                return _load_one
+
+            _load_one = _make_loader(cycle, cycle_key)
 
             fhr_list = ', '.join(f'F{f:02d}' for f in fhrs_to_load)
-            logger.info(f"Auto-loading new FHRs for {cycle['display']} [{fhr_list}]...")
+            priority = " [PRIORITY]" if is_newest else ""
+            logger.info(f"Auto-loading{priority} {cycle['display']} [{fhr_list}]...")
 
             with ThreadPoolExecutor(max_workers=self.PRELOAD_WORKERS) as pool:
                 futures = {pool.submit(_load_one, fhr): fhr for fhr in fhrs_to_load}
@@ -864,7 +874,7 @@ class CrossSectionManager:
             'memory_mb': round(mem_mb, 0),
         }
 
-    def generate_cross_section(self, start, end, cycle_key, fhr, style, y_axis='pressure', vscale=1.0, y_top=100, units='km', terrain_data=None, temp_cmap='green_purple', anomaly=False):
+    def generate_cross_section(self, start, end, cycle_key, fhr, style, y_axis='pressure', vscale=1.0, y_top=100, units='km', terrain_data=None, temp_cmap='standard', anomaly=False):
         """Generate a cross-section for a loaded forecast hour."""
         if not self.xsect:
             return None
@@ -1603,9 +1613,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     <label>Style:</label>
                     <select id="style-select"></select>
                     <select id="temp-cmap-select" style="display:none" title="Temperature color table">
-                        <option value="green_purple">Green-Purple</option>
-                        <option value="white_zero">White at 0°C</option>
+                        <option value="standard">Standard</option>
                         <option value="nws_ndfd">NWS Classic</option>
+                        <option value="white_zero">White at 0°C</option>
+                        <option value="green_purple">Green-Purple</option>
                     </select>
                     <button class="help-btn" id="help-btn" title="Style explanations & feedback">?</button>
                 </div>
@@ -3088,9 +3099,9 @@ def api_xsect():
 
     if dist_units not in ('km', 'mi'):
         dist_units = 'km'
-    temp_cmap_param = request.args.get('temp_cmap', 'green_purple')
-    if temp_cmap_param not in ('green_purple', 'white_zero', 'nws_ndfd'):
-        temp_cmap_param = 'green_purple'
+    temp_cmap_param = request.args.get('temp_cmap', 'standard')
+    if temp_cmap_param not in ('standard', 'green_purple', 'white_zero', 'nws_ndfd'):
+        temp_cmap_param = 'standard'
     anomaly_param = request.args.get('anomaly', '0') == '1'
     acquired = RENDER_SEMAPHORE.acquire(timeout=10)
     if not acquired:
@@ -3130,9 +3141,9 @@ def api_xsect_gif():
         y_top = 100
     if dist_units not in ('km', 'mi'):
         dist_units = 'km'
-    gif_temp_cmap = request.args.get('temp_cmap', 'green_purple')
-    if gif_temp_cmap not in ('green_purple', 'white_zero', 'nws_ndfd'):
-        gif_temp_cmap = 'green_purple'
+    gif_temp_cmap = request.args.get('temp_cmap', 'standard')
+    if gif_temp_cmap not in ('standard', 'green_purple', 'white_zero', 'nws_ndfd'):
+        gif_temp_cmap = 'standard'
     gif_anomaly = request.args.get('anomaly', '0') == '1'
 
     # All loaded FHRs available for GIF (mmap makes loading all FHRs cheap)
