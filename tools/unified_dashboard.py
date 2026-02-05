@@ -53,6 +53,40 @@ ANOMALY_STYLES = {
     'q', 'vorticity', 'shear', 'lapse_rate', 'wetbulb',
 }
 
+# --- v1 API: product name mapping and metadata ---
+PRODUCT_TO_STYLE = {
+    'temperature': 'temp', 'temp': 'temp',
+    'wind_speed': 'wind_speed', 'wind': 'wind_speed',
+    'theta_e': 'theta_e',
+    'relative_humidity': 'rh', 'rh': 'rh',
+    'vertical_velocity': 'omega', 'omega': 'omega',
+    'specific_humidity': 'q', 'q': 'q',
+    'vorticity': 'vorticity',
+    'wind_shear': 'shear', 'shear': 'shear',
+    'lapse_rate': 'lapse_rate',
+    'cloud': 'cloud_total', 'cloud_total': 'cloud_total',
+    'wetbulb': 'wetbulb', 'wet_bulb': 'wetbulb',
+    'icing': 'icing',
+    'frontogenesis': 'frontogenesis',
+    'smoke': 'smoke',
+}
+PRODUCTS_INFO = [
+    {'id': 'temperature', 'name': 'Temperature', 'units': '\u00b0C'},
+    {'id': 'wind_speed', 'name': 'Wind Speed', 'units': 'knots'},
+    {'id': 'theta_e', 'name': 'Equivalent Potential Temperature', 'units': 'K'},
+    {'id': 'rh', 'name': 'Relative Humidity', 'units': '%'},
+    {'id': 'omega', 'name': 'Vertical Velocity', 'units': 'hPa/hr'},
+    {'id': 'q', 'name': 'Specific Humidity', 'units': 'g/kg'},
+    {'id': 'vorticity', 'name': 'Absolute Vorticity', 'units': '10\u207b\u2075 s\u207b\u00b9'},
+    {'id': 'shear', 'name': 'Wind Shear', 'units': '10\u207b\u00b3 s\u207b\u00b9'},
+    {'id': 'lapse_rate', 'name': 'Lapse Rate', 'units': '\u00b0C/km'},
+    {'id': 'cloud_total', 'name': 'Cloud Total Condensate', 'units': 'g/kg'},
+    {'id': 'wetbulb', 'name': 'Wet-Bulb Temperature', 'units': '\u00b0C'},
+    {'id': 'icing', 'name': 'Icing Potential', 'units': 'g/kg'},
+    {'id': 'frontogenesis', 'name': 'Frontogenesis', 'units': 'K/100km/3hr'},
+    {'id': 'smoke', 'name': 'PM2.5 Smoke', 'units': '\u03bcg/m\u00b3'},
+]
+
 def load_votes():
     """Load votes from JSON file."""
     if VOTES_FILE.exists():
@@ -641,6 +675,29 @@ class CrossSectionManager:
             'memory_mb': round(mem_mb, 0),
             'loading': self._lock.locked(),
         }
+
+    def resolve_cycle(self, cycle_key: str, fhr: int) -> 'Optional[str]':
+        """Resolve 'latest' to an actual cycle key. Returns None if nothing available."""
+        if cycle_key and cycle_key != 'latest':
+            return cycle_key
+        with self._lock:
+            # Prefer newest loaded cycle that has this FHR
+            for ck, f in reversed(self.loaded_items):
+                if f == fhr:
+                    return ck
+            # Fall back to newest available cycle on disk
+            for c in self.available_cycles:
+                if fhr in c['available_fhrs']:
+                    return c['cycle_key']
+        return None
+
+    def ensure_loaded(self, cycle_key: str, fhr: int) -> bool:
+        """Ensure a forecast hour is loaded (auto-loads from mmap/GRIB). Returns True if ready."""
+        with self._lock:
+            if (cycle_key, fhr) in self.loaded_items:
+                return True
+        result = self.load_forecast_hour(cycle_key, fhr)
+        return result.get('success', False)
 
     def load_cycle(self, cycle_key: str) -> dict:
         """Load an entire cycle (all available FHRs) into memory, parallel."""
@@ -3122,6 +3179,121 @@ def api_xsect_gif():
     touch_cycle_access(cycle_key)
     return send_file(gif_buf, mimetype='image/gif', download_name=f'xsect_{cycle_key}_{style}.gif')
 
+# =============================================================================
+# v1 API — agent-friendly endpoints with smart defaults
+# =============================================================================
+
+@app.route('/api/v1/cross-section')
+@rate_limit
+def api_v1_cross_section():
+    """Generate a cross-section PNG. Defaults to latest cycle, F00, temperature."""
+    try:
+        for p in ('start_lat', 'start_lon', 'end_lat', 'end_lon'):
+            if p not in request.args:
+                raise KeyError(p)
+        start = (float(request.args['start_lat']), float(request.args['start_lon']))
+        end = (float(request.args['end_lat']), float(request.args['end_lon']))
+    except KeyError as e:
+        return jsonify({
+            'error': f'Missing required parameter: {e.args[0]}',
+            'usage': 'Required: start_lat, start_lon, end_lat, end_lon',
+            'example': '/api/v1/cross-section?start_lat=39.74&start_lon=-104.99&end_lat=41.88&end_lon=-87.63',
+        }), 400
+    except ValueError:
+        return jsonify({
+            'error': 'Coordinates must be numeric (e.g. start_lat=39.74)',
+        }), 400
+
+    product = request.args.get('product', 'temperature')
+    cycle_raw = request.args.get('cycle', 'latest')
+    try:
+        fhr = int(request.args.get('fhr', 0))
+    except ValueError:
+        fhr = 0
+    y_axis = request.args.get('y_axis', 'pressure')
+    if y_axis not in ('pressure', 'height'):
+        y_axis = 'pressure'
+    try:
+        y_top = int(request.args.get('y_top', 100))
+    except ValueError:
+        y_top = 100
+    if y_top not in (100, 200, 300, 500, 700):
+        y_top = 100
+    units = request.args.get('units', 'km')
+    if units not in ('km', 'mi'):
+        units = 'km'
+
+    # Map product name to internal style
+    style = PRODUCT_TO_STYLE.get(product)
+    if style is None:
+        return jsonify({
+            'error': f'Unknown product: {product}',
+            'available': [p['id'] for p in PRODUCTS_INFO],
+        }), 400
+
+    # Resolve cycle
+    cycle_key = data_manager.resolve_cycle(cycle_raw, fhr)
+    if not cycle_key:
+        return jsonify({'error': f'No data available with forecast hour F{fhr:02d}'}), 404
+
+    # Auto-load if needed (mmap = ~14ms, GRIB = ~30s)
+    if not data_manager.ensure_loaded(cycle_key, fhr):
+        return jsonify({'error': f'Failed to load {cycle_key} F{fhr:02d}'}), 500
+
+    acquired = RENDER_SEMAPHORE.acquire(timeout=90)
+    if not acquired:
+        return jsonify({'error': 'Server busy rendering other requests, try again in a moment'}), 503
+    try:
+        buf = data_manager.generate_cross_section(
+            start, end, cycle_key, fhr, style, y_axis, 1.0, y_top, units=units)
+    finally:
+        RENDER_SEMAPHORE.release()
+
+    if buf is None:
+        return jsonify({'error': 'Render failed'}), 500
+
+    touch_cycle_access(cycle_key)
+    return send_file(buf, mimetype='image/png')
+
+
+@app.route('/api/v1/products')
+@rate_limit
+def api_v1_products():
+    """List available cross-section products."""
+    return jsonify({'products': PRODUCTS_INFO})
+
+
+@app.route('/api/v1/cycles')
+@rate_limit
+def api_v1_cycles():
+    """List available cycles and their forecast hours."""
+    cycles_out = []
+    for c in data_manager.available_cycles:
+        ck = c['cycle_key']
+        cycles_out.append({
+            'key': ck,
+            'display': c['display'],
+            'forecast_hours': c['available_fhrs'],
+            'loaded': any(k == ck for k, _ in data_manager.loaded_items),
+        })
+    latest = data_manager.available_cycles[0]['cycle_key'] if data_manager.available_cycles else None
+    return jsonify({'cycles': cycles_out, 'latest': latest})
+
+
+@app.route('/api/v1/status')
+@rate_limit
+def api_v1_status():
+    """Server health and status."""
+    mem_mb = data_manager.xsect.get_memory_usage() if data_manager.xsect else 0
+    latest = data_manager.available_cycles[0]['cycle_key'] if data_manager.available_cycles else None
+    return jsonify({
+        'ok': True,
+        'loaded_count': len(data_manager.loaded_items),
+        'memory_mb': round(mem_mb, 0),
+        'latest_cycle': latest,
+    })
+
+
 # Legacy endpoint for compatibility
 @app.route('/api/info')
 def api_info():
@@ -3299,7 +3471,7 @@ def api_favorite_delete(fav_id):
 def main():
     parser = argparse.ArgumentParser(description='HRRR Cross-Section Dashboard')
     parser.add_argument('--auto-update', action='store_true', help='Download latest data before starting')
-    parser.add_argument('--preload', type=int, default=24, help='Number of latest cycles to pre-load (mmap makes all cheap)')
+    parser.add_argument('--preload', type=int, default=12, help='Number of latest cycles to pre-load (mmap makes all cheap)')
     parser.add_argument('--max-hours', type=int, default=18, help='Max forecast hour to download')
     parser.add_argument('--port', type=int, default=5000, help='Server port')
     parser.add_argument('--host', type=str, default='0.0.0.0', help='Server host')
