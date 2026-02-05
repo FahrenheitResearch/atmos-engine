@@ -20,13 +20,21 @@ logger = logging.getLogger(__name__)
 
 
 def download_grib_file(url: str, output_path: Path, timeout: int = 600) -> bool:
-    """Download a single GRIB file from URL."""
+    """Download a single GRIB file from URL.
+
+    Downloads to a .partial temp file first, then atomically renames to the
+    final path. This prevents readers from seeing a half-written file.
+    """
+    partial_path = Path(str(output_path) + '.partial')
     try:
         socket.setdefaulttimeout(timeout)
-        urllib.request.urlretrieve(url, output_path)
+        urllib.request.urlretrieve(url, partial_path)
+        partial_path.rename(output_path)
         return True
-    except (urllib.error.URLError, socket.timeout) as e:
+    except (urllib.error.URLError, socket.timeout, OSError) as e:
         logger.debug(f"Failed to download from {url}: {e}")
+        # Clean up partial file on failure
+        partial_path.unlink(missing_ok=True)
         return False
 
 

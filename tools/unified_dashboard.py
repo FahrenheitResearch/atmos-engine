@@ -446,11 +446,18 @@ class CrossSectionManager:
                     continue
 
                 # Check what forecast hours are available on disk
+                # Require both wrfprs AND wrfsfc to prevent loading without surface pressure
                 available_fhrs = []
                 for fhr in self.FORECAST_HOURS:
                     fhr_dir = hour_dir / f"F{fhr:02d}"
-                    if fhr_dir.exists() and list(fhr_dir.glob("*wrfprs*.grib2")):
-                        available_fhrs.append(fhr)
+                    if fhr_dir.exists():
+                        has_prs = list(fhr_dir.glob("*wrfprs*.grib2"))
+                        has_sfc = list(fhr_dir.glob("*wrfsfc*.grib2"))
+                        # Skip .partial files (still downloading)
+                        has_prs = [f for f in has_prs if not f.name.endswith('.partial')]
+                        has_sfc = [f for f in has_sfc if not f.name.endswith('.partial')]
+                        if has_prs and has_sfc:
+                            available_fhrs.append(fhr)
 
                 if available_fhrs:
                     cycle_key = f"{date_dir.name}_{hour}z"

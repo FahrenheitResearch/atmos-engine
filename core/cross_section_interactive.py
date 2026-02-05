@@ -456,10 +456,17 @@ class InteractiveCrossSection:
             print(f"Loading F{forecast_hour:02d} from cache...")
             start = time.time()
             fhr_data = self._load_from_cache(cache_path)
-            if fhr_data is not None and len(fhr_data.pressure_levels) < 35:
-                print(f"  Cache has only {len(fhr_data.pressure_levels)} levels (expected 40), discarding stale cache")
-                cache_path.unlink(missing_ok=True)
-                fhr_data = None
+            if fhr_data is not None:
+                n_levels = len(fhr_data.pressure_levels)
+                has_surface_p = fhr_data.surface_pressure is not None
+                if n_levels < 40:
+                    print(f"  Cache has only {n_levels} levels (expected 40), discarding stale cache")
+                    cache_path.unlink(missing_ok=True)
+                    fhr_data = None
+                elif not has_surface_p:
+                    print(f"  Cache missing surface_pressure (needed for terrain), discarding stale cache")
+                    cache_path.unlink(missing_ok=True)
+                    fhr_data = None
             if fhr_data is not None:
                 # Backfill smoke if missing from cache but wrfnat now available
                 if fhr_data.smoke_hyb is None:
@@ -612,6 +619,15 @@ class InteractiveCrossSection:
                         theta[lev_idx] = fhr_data.temperature[lev_idx] * (P_ref / p) ** kappa
                     fhr_data.theta = theta
                     fhr_data.temp_c = fhr_data.temperature - 273.15
+
+                # Validate before storing — don't cache incomplete data
+                n_levels = len(fhr_data.pressure_levels)
+                if n_levels < 40:
+                    print(f"  WARNING: Only got {n_levels}/40 pressure levels — GRIB may be incomplete, skipping")
+                    return False
+                if fhr_data.surface_pressure is None:
+                    print(f"  WARNING: No surface pressure loaded — wrfsfc may be missing, skipping")
+                    return False
 
                 # Store
                 self.forecast_hours[forecast_hour] = fhr_data
