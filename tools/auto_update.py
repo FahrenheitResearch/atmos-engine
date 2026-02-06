@@ -87,8 +87,8 @@ def get_base_dir(model):
     return OUTPUTS_BASE / model
 
 
-def get_latest_two_cycles(model='hrrr'):
-    """Determine the latest 2 expected cycles based on current UTC time.
+def get_latest_cycles(model='hrrr', count=2):
+    """Determine the latest N expected cycles based on current UTC time.
 
     Returns list of (date_str, hour) tuples, newest first.
     """
@@ -110,7 +110,7 @@ def get_latest_two_cycles(model='hrrr'):
             date_str = cycle_time.strftime("%Y%m%d")
             hour = cycle_time.hour
             cycles.append((date_str, hour))
-            if len(cycles) >= 2:
+            if len(cycles) >= count:
                 break
 
     return cycles
@@ -208,7 +208,10 @@ def get_pending_work(model, max_hours=None):
     if max_hours is None:
         max_hours = MODEL_DEFAULT_MAX_FHR.get(model, 18)
 
-    cycles = get_latest_two_cycles(model)
+    # HRRR: 2 latest cycles (current + previous for base FHRs)
+    # GFS/RRFS: only latest cycle — no handoff
+    n_cycles = 2 if model == 'hrrr' else 1
+    cycles = get_latest_cycles(model, count=n_cycles)
     if not cycles:
         return []
 
@@ -299,7 +302,7 @@ def cleanup_disk_if_needed(model='hrrr'):
     recent_cutoff = now - 7200  # 2 hours
 
     # Get latest 2 cycle keys (auto-update targets) - never evict these
-    latest = get_latest_two_cycles(model)
+    latest = get_latest_cycles(model, count=2)
     protected = {f"{d}_{h:02d}z" for d, h in latest}
 
     disk_cycles = []
@@ -384,7 +387,7 @@ def run_update_cycle_for_model(model, max_hours=None):
     if max_hours is None:
         max_hours = MODEL_DEFAULT_MAX_FHR.get(model, 18)
 
-    cycles = get_latest_two_cycles(model)
+    cycles = get_latest_cycles(model, count=2)
     if not cycles:
         logger.info(f"[{model.upper()}] No cycles available yet")
         return 0
@@ -464,7 +467,7 @@ def main():
     #   - Other models share remaining bandwidth round-robin
     # This ensures HRRR never waits for slow GFS/RRFS downloads.
 
-    HRRR_RECHECK_INTERVAL = 2  # Re-scan HRRR work after this many non-HRRR downloads
+    HRRR_BATCH_SIZE = 5  # Download this many HRRR FHRs, then give other models a turn
     hrrr_max_fhr = args.max_hours if args.max_hours else None
 
     while running:
@@ -489,66 +492,73 @@ def main():
                 continue
 
             total_new = 0
-            non_hrrr_since_recheck = 0
             other_models = [m for m in models if m != 'hrrr']
             other_idx = 0  # Round-robin index for non-HRRR models
 
             while running and work_queues:
-                # --- HRRR always goes first if it has work ---
+                # --- HRRR batch: download up to N FHRs, then yield to others ---
                 if 'hrrr' in work_queues:
-                    date_str, hour, fhr = work_queues['hrrr'].pop(0)
-                    logger.info(f"[HRRR] Downloading {date_str}/{hour:02d}z F{fhr:02d} "
-                                f"({len(work_queues['hrrr'])} remaining)")
-                    try:
-                        ok = download_single_fhr('hrrr', date_str, hour, fhr)
-                        if ok:
-                            total_new += 1
-                    except Exception as e:
-                        logger.warning(f"[HRRR] Failed {date_str}/{hour:02d}z F{fhr:02d}: {e}")
-                    if not work_queues['hrrr']:
-                        del work_queues['hrrr']
-                        # Re-check HRRR — new FHRs may have appeared on NOMADS
-                        new_hrrr = get_pending_work('hrrr', hrrr_max_fhr)
-                        if new_hrrr:
-                            work_queues['hrrr'] = new_hrrr
-                            logger.info(f"[HRRR] Refreshed: {len(new_hrrr)} new pending FHRs")
-                    continue
+                    hrrr_batch = 0
+                    while 'hrrr' in work_queues and hrrr_batch < HRRR_BATCH_SIZE and running:
+                        date_str, hour, fhr = work_queues['hrrr'].pop(0)
+                        logger.info(f"[HRRR] Downloading {date_str}/{hour:02d}z F{fhr:02d} "
+                                    f"({len(work_queues['hrrr'])} remaining)")
+                        try:
+                            ok = download_single_fhr('hrrr', date_str, hour, fhr)
+                            if ok:
+                                total_new += 1
+                            else:
+                                # FHR not available yet — skip remaining from this cycle
+                                # (higher FHRs won't be available either)
+                                logger.info(f"[HRRR] F{fhr:02d} not available, yielding to other models")
+                                work_queues['hrrr'] = [
+                                    (d, h, f) for d, h, f in work_queues.get('hrrr', [])
+                                    if not (d == date_str and h == hour and f > fhr)
+                                ]
+                                if not work_queues['hrrr']:
+                                    del work_queues['hrrr']
+                                break  # Yield to GFS/RRFS immediately
+                        except Exception as e:
+                            logger.warning(f"[HRRR] Failed {date_str}/{hour:02d}z F{fhr:02d}: {e}")
+                            break  # Yield on error too
+                        hrrr_batch += 1
+                        if not work_queues.get('hrrr'):
+                            if 'hrrr' in work_queues:
+                                del work_queues['hrrr']
+                            # Re-check HRRR — new FHRs may have appeared on NOMADS
+                            new_hrrr = get_pending_work('hrrr', hrrr_max_fhr)
+                            if new_hrrr:
+                                work_queues['hrrr'] = new_hrrr
+                                logger.info(f"[HRRR] Refreshed: {len(new_hrrr)} new pending FHRs")
 
-                # --- No HRRR work: download one FHR from next non-HRRR model ---
-                if not other_models:
+                # --- Non-HRRR: one FHR per model (round-robin) ---
+                # When HRRR is idle, this runs every iteration = full bandwidth to GFS/RRFS
+                has_other_work = False
+                if other_models:
+                    tried = 0
+                    while tried < len(other_models) and running:
+                        model = other_models[other_idx % len(other_models)]
+                        other_idx += 1
+                        tried += 1
+                        if model not in work_queues:
+                            continue
+
+                        has_other_work = True
+                        date_str, hour, fhr = work_queues[model].pop(0)
+                        logger.info(f"[{model.upper()}] Downloading {date_str}/{hour:02d}z F{fhr:02d} "
+                                    f"({len(work_queues[model])} remaining)")
+                        try:
+                            ok = download_single_fhr(model, date_str, hour, fhr)
+                            if ok:
+                                total_new += 1
+                        except Exception as e:
+                            logger.warning(f"[{model.upper()}] Failed {date_str}/{hour:02d}z F{fhr:02d}: {e}")
+                        if not work_queues[model]:
+                            del work_queues[model]
+
+                # Nothing left anywhere
+                if not work_queues:
                     break
-
-                # Find next non-HRRR model with work
-                tried = 0
-                while tried < len(other_models):
-                    model = other_models[other_idx % len(other_models)]
-                    other_idx += 1
-                    if model in work_queues:
-                        break
-                    tried += 1
-                else:
-                    break  # No non-HRRR models have work
-
-                date_str, hour, fhr = work_queues[model].pop(0)
-                logger.info(f"[{model.upper()}] Downloading {date_str}/{hour:02d}z F{fhr:02d} "
-                            f"({len(work_queues[model])} remaining)")
-                try:
-                    ok = download_single_fhr(model, date_str, hour, fhr)
-                    if ok:
-                        total_new += 1
-                except Exception as e:
-                    logger.warning(f"[{model.upper()}] Failed {date_str}/{hour:02d}z F{fhr:02d}: {e}")
-                if not work_queues[model]:
-                    del work_queues[model]
-
-                # Periodically re-check HRRR for new work (new FHRs published)
-                non_hrrr_since_recheck += 1
-                if non_hrrr_since_recheck >= HRRR_RECHECK_INTERVAL:
-                    non_hrrr_since_recheck = 0
-                    new_hrrr = get_pending_work('hrrr', hrrr_max_fhr)
-                    if new_hrrr:
-                        work_queues['hrrr'] = new_hrrr
-                        logger.info(f"[HRRR] New work detected: {len(new_hrrr)} FHRs — switching to HRRR")
 
             if total_new > 0:
                 logger.info(f"Total new downloads this pass: {total_new}")

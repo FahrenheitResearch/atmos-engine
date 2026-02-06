@@ -55,27 +55,31 @@ XSECT_GRIB_BACKEND=cfgrib WXSECTION_KEY=your_key python tools/unified_dashboard.
 - **Cancel operations** - admin can cancel pre-render and download jobs via X button in progress panel
 - **Archive request modal** - calendar date picker, hour selector, FHR range for downloading historical data
 - **Load All button** - loads all FHRs for the current cycle at once (available to all users)
+- **Step buttons** - prev/next frame buttons flanking the play button for frame-by-frame navigation
 
 ### Performance
 - **0.5s warm renders** - cartopy geometry cache + KDTree cache eliminate repeated I/O
 - **~23s GRIB-to-mmap conversion** on NVMe (was ~50s on VHD)
 - **<0.1s cached FHR loads** - mmap from NVMe, instant page faults
 - **Frame prerender cache** - 500-entry server-side cache, ~20ms cached vs ~0.5s live render
+- **Parallel prerender** - ThreadPool(8) batch rendering, ~4s for 19 frames (was ~10s sequential)
 - **Two-phase preload**: cached FHRs load instantly (Phase 1), GRIB conversions run in background (Phase 2)
-- **Render semaphore** - caps concurrent matplotlib renders at 4
+- **Render semaphore** - caps concurrent matplotlib renders at 12 (8 prerender + 4 live)
 
 ### Mmap Cache Architecture
 - **Memory-mapped cache on NVMe** - per-field raw arrays, ~2.3GB per FHR on disk
 - **Tiny RAM footprint** - mmap only pages in accessed slices (~100MB resident per FHR, ~29MB heap)
-- **174 FHRs in preload window** = ~400GB on NVMe, ~17GB in RAM
+- **~125 FHRs in preload window** = ~290GB on NVMe, ~12GB in RAM
 - **Two-tier NVMe eviction**:
   - Tier 1: Rotated preload cycles always evicted from cache when they leave target window
   - Tier 2: Archive request caches persist up to 670GB limit, oldest evicted first when over
 - **Per-model memory budgets**: HRRR 48GB, GFS 8GB, RRFS 8GB
 
-### HRRR-Priority Auto-Update
-- **Interleaved downloads** - HRRR always first, GFS/RRFS round-robin when HRRR idle
-- **Re-checks HRRR** every 2 non-HRRR downloads for newly published FHRs
+### Auto-Update (HRRR-Priority Batched)
+- **Batched interleaving** - HRRR downloads in batches of 5, then yields to GFS/RRFS round-robin
+- **Fail-fast on unavailable FHRs** - if an HRRR FHR isn't published yet, immediately yields to other models
+- **GFS/RRFS get full bandwidth** when HRRR is caught up (no batch gating)
+- **Single-cycle targeting** - only downloads latest available cycle per model (no handoff)
 - **Extended 48h** for HRRR synoptic cycles (00/06/12/18z)
 
 ### Admin Key System
@@ -149,8 +153,9 @@ tools/
 │   ├── Community favorites          # Save/load/delete with 12h expiry
 │   └── Admin key system             # WXSECTION_KEY env var
 │
-├── auto_update.py                   # HRRR-priority interleaved download daemon
-│   ├── Interleaved scheduling       # HRRR always first, round-robin GFS/RRFS
+├── auto_update.py                   # HRRR-priority batched download daemon
+│   ├── Batched interleaving         # HRRR batch of 5, then GFS/RRFS round-robin
+│   ├── Fail-fast                    # Yields to other models on unavailable FHRs
 │   ├── Extended 48h                 # Synoptic HRRR cycles get F19-F48
 │   └── Space-based cleanup          # Evicts least-popular when disk full
 │

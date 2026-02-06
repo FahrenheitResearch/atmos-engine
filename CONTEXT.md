@@ -17,7 +17,7 @@ Or manually:
 ```bash
 sudo mount /dev/sde /mnt/hrrr
 nohup python tools/auto_update.py --interval 2 --models hrrr,gfs,rrfs > /tmp/auto_update.log 2>&1 &
-XSECT_GRIB_BACKEND=cfgrib WXSECTION_KEY=ctwc nohup python3 tools/unified_dashboard.py --port 5561 --models hrrr,gfs,rrfs > /tmp/dashboard.log 2>&1 &
+XSECT_GRIB_BACKEND=cfgrib WXSECTION_KEY=cwtc nohup python3 tools/unified_dashboard.py --port 5561 --models hrrr,gfs,rrfs > /tmp/dashboard.log 2>&1 &
 nohup cloudflared tunnel run wxsection > /tmp/cloudflared.log 2>&1 &
 ```
 
@@ -100,14 +100,22 @@ NVMe cache eviction — two-tier (cache_evict_old_cycles):
   - Budget: ~425GB preload window + ~245GB archive headroom
 ```
 
-### HRRR-Priority Auto-Update (interleaved)
+### Auto-Update (HRRR-Priority Batched)
 ```
-Old: for model in [hrrr, gfs, rrfs]: download_all_fhrs(model)  # RRFS blocks for 15+ min
-New: Download one FHR at a time, HRRR always first:
-  - If HRRR has work -> download HRRR FHR, continue
-  - If HRRR empty -> download one GFS/RRFS FHR (round-robin)
-  - Every 2 non-HRRR downloads -> re-check HRRR for new FHRs from NOMADS
-  - When HRRR queue empties -> re-scan for newly published FHRs
+HRRR_BATCH_SIZE = 5  — download up to 5 HRRR FHRs, then yield
+
+Loop:
+  1. HRRR batch: download up to 5 FHRs from HRRR queue
+     - If a download fails (FHR not published yet), immediately yield
+     - Prunes higher FHRs from same cycle (won't be available either)
+     - When queue empties, re-scan NOMADS for newly published FHRs
+  2. Non-HRRR round: one FHR per model (GFS, RRFS round-robin)
+     - When HRRR has no work, this runs every iteration = full bandwidth
+  3. Repeat until all queues empty, then sleep 30s and re-scan
+
+Cycle targeting:
+  - HRRR: latest 2 cycles (for base FHRs)
+  - GFS/RRFS: latest cycle only (no handoff)
 ```
 
 ### Memory Architecture
@@ -157,14 +165,14 @@ HRRR synoptic (49 FHR): ~61GB GRIB, ~113GB cache
 - **Archive requests**: Modal with date picker, hour selector, FHR range (admin-gated)
 - **Download progress**: Shows in-flight FHRs in real-time (`Downloading F00, F01, F02, F03 from AWS archive...`)
 - **Cancel jobs**: Admin can cancel pre-render and download operations via X button in progress panel
-- **Auto-update**: HRRR-priority interleaved downloads, re-checks HRRR every 2 non-HRRR downloads
+- **Auto-update**: HRRR-priority batched (5 FHRs then yield), fail-fast on unavailable, GFS/RRFS latest-only targeting
 - **Cache-first preload**: Cached FHRs load in <1s total, GRIB conversions run in background
 - **Time slider + auto-play**: 0.5x-4x speed, pre-render for instant scrubbing
 - **Frame prerender cache**: 500-entry server-side cache
 - **Cycle comparison mode**: Side-by-side Same FHR or Valid Time matching
 - **Community favorites**: Save/load cross-section configs
 - **GIF animation**: `/api/xsect_gif`
-- **Admin key**: `WXSECTION_KEY=ctwc` env var gates archive downloads, cancel ops
+- **Admin key**: `WXSECTION_KEY=cwtc` env var gates archive downloads, cancel ops
 
 ### Controls UI
 - **Primary row**: Model, Run, Style, Favorites, Swap, Clear, "More" toggle
@@ -188,8 +196,11 @@ tools/unified_dashboard.py          # Flask dashboard — everything UI + API
 PRELOAD_WORKERS = 20   # Thread workers for cached mmap loads
 GRIB_WORKERS = 4       # Thread workers for GRIB-to-mmap conversion
 CACHE_BASE = '/home/drew/hrrr-maps/cache/xsect'  # NVMe — fast local storage
-CACHE_LIMIT_GB = 670   # ~425GB preload + ~245GB archive headroom
+CACHE_LIMIT_GB = 670   # ~290GB preload + ~380GB archive headroom
+RENDER_SEMAPHORE = 12  # 8 prerender + 4 live user requests
+PRERENDER_WORKERS = 8  # Parallel threads for batch prerender
 HRRR_HOURLY_CYCLES = 3
+HRRR_BATCH_SIZE = 5    # auto_update.py: HRRR FHRs per batch before yielding
 ```
 
 ---

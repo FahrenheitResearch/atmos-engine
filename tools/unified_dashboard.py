@@ -665,7 +665,7 @@ class CrossSectionManager:
 
         HRRR: newest synoptic (48h) + N most recent hourly cycles.
               Only one synoptic kept (no previous synoptic handoff).
-        GFS/RRFS: newest cycle. During handoff, also includes previous.
+        GFS/RRFS: newest cycle only, no handoff.
         """
         if not self.available_cycles:
             return []
@@ -712,18 +712,8 @@ class CrossSectionManager:
         return targets
 
     def _get_simple_target_cycles(self) -> list:
-        """GFS/RRFS: newest cycle + handoff previous."""
-        targets = [self.available_cycles[0]]
-
-        # Handoff: if newest cycle isn't mostly loaded, keep previous
-        max_target = self.GFS_CYCLES if self.model_name == 'gfs' else self.RRFS_CYCLES
-        newest_ck = self.available_cycles[0]['cycle_key']
-        loaded_fhrs = {fhr for ck, fhr in self.loaded_items if ck == newest_ck}
-        base_count = min(10, len(self.FORECAST_HOURS))  # "mostly loaded" threshold
-        if len(loaded_fhrs) < base_count and len(self.available_cycles) > 1:
-            targets.append(self.available_cycles[1])
-
-        return targets
+        """GFS/RRFS: newest cycle only, no handoff."""
+        return [self.available_cycles[0]]
 
     def get_protected_cycles(self) -> set:
         """Return cycle keys that should never be evicted — matches target cycle strategy."""
