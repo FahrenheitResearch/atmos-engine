@@ -1,236 +1,206 @@
 # Cross-Section Dashboard Context
 
-## Current State (Feb 5, 2026 — evening)
+## Current State (Feb 6, 2026)
 
 ### Branch: `hrrr-maps-cross-section`
 
-Focused repo for interactive HRRR cross-section visualization.
-Live at **wxsection.com** via Cloudflare Tunnel (`cloudflared` running in WSL).
+Live at **wxsection.com** via Cloudflare Tunnel. WSL2 on Windows, 32 cores, 118GB RAM.
 
-### What's New (uncommitted changes on branch)
+### Startup
 
-#### Multi-Model Support
-- `unified_dashboard.py` supports `--models hrrr,gfs,rrfs` (comma-separated)
-- `ModelManagerRegistry` holds one `CrossSectionManager` per model
-- `MODEL_MEM_BUDGETS`: hrrr=58GB, gfs=8GB, rrfs=8GB (total ~64GB target)
-- `model_config.py` registry provides full_name, resolution, domain per model
-- `MODEL_PRS_PATTERNS`, `MODEL_SFC_PATTERNS`, `MODEL_NEEDS_SEPARATE_SFC` handle per-model GRIB layout
-- All API endpoints accept `?model=hrrr` query param (defaults to hrrr)
-- UI model selector dropdown (hidden when only 1 model enabled)
+```bash
+cd ~/hrrr-maps && ./start.sh
+# Mounts VHD, starts auto_update, dashboard (port 5561), cloudflared tunnel
+```
 
-#### Extended 48h HRRR Forecasts (Synoptic Cycles)
-- `SYNOPTIC_HOURS = {0, 6, 12, 18}` — these HRRR cycles run to F48 (others F18)
-- `get_max_fhr_for_cycle()` returns 48 for synoptic, 18 for hourly
-- `scan_available_cycles()` includes `max_fhr` and `is_synoptic` in cycle metadata
-- `auto_update.py`: `get_latest_synoptic_cycle()` finds most recent 00/06/12/18z; `run_update_cycle()` downloads F19-F48 for it after standard F00-F18
-- `cleanup_old_extended()` keeps only 2 most recent synoptic runs with extended FHRs
+Or manually:
+```bash
+sudo mount /dev/sde /mnt/hrrr
+nohup python tools/auto_update.py --interval 2 --models hrrr,gfs,rrfs > /tmp/auto_update.log 2>&1 &
+XSECT_GRIB_BACKEND=cfgrib WXSECTION_KEY=ctwc nohup python3 tools/unified_dashboard.py --port 5561 --models hrrr,gfs,rrfs > /tmp/dashboard.log 2>&1 &
+nohup cloudflared tunnel run wxsection > /tmp/cloudflared.log 2>&1 &
+```
 
-#### Synoptic Cycle Handoff (always keep a 48h cycle loaded)
-- `get_protected_cycles()` now also calls `_get_synoptic_protected()` for HRRR
-- Protects the newest synoptic cycle that has F00-F18 "mostly loaded" (15+ of 19 FHRs)
-- If newest synoptic isn't ready yet, ALSO protects the previous synoptic cycle
-- Ensures users always have a 48h cycle available during the handoff window
-- `_auto_load_latest_inner()` prioritizes synoptic cycles (up to 2 newest) in load queue
-- Synoptic HRRR cycles get ALL available FHRs loaded (F00-F48), not just base F00-F18
+---
 
-#### Interleaved Cycle Loading
-- `_preload_latest_cycles_inner()` now interleaves FHRs round-robin across all cycles
-- Both hourly AND synoptic cycles load simultaneously (no waiting for one to finish)
-- Also pulls in synoptic cycles beyond the top N if not already included
-- `PRELOAD_WORKERS = 4` (up from 2) — ~2.3GB temp RAM each during GRIB-to-mmap conversion
+## COMPLETED: NVMe Cache Migration
 
-#### Dynamic FHR Chips (UI)
-- `renderFhrChips()` reads `max_fhr` from cycle metadata
-- Synoptic cycles show F00-F18 then divider `|` then F19-F48 with dashed-border "extended" chips
-- Hourly cycles unchanged (F00-F18)
+### What Changed
+- **Deleted stale 371GB cache** at `~/hrrr-maps/cache/dashboard/` (was unused, left over from old config)
+- **Moved CACHE_BASE to NVMe**: `/home/drew/hrrr-maps/cache/xsect` (was `/mnt/hrrr/cache/xsect` on VHD)
+- **Updated `start.sh`** to create NVMe cache dir instead of VHD cache dir
+- **NVMe free after migration**: ~1.4TB (was 963GB before deleting stale cache)
+- **Old VHD cache** at `/mnt/hrrr/cache/xsect/` (~348GB) is now orphaned and can be deleted to free VHD space
 
-#### Time Slider + Auto-Play
-- Slider row appears when 2+ FHRs loaded
-- Play/pause button with configurable speed (0.5x, 1x, 2x, 4x)
-- Pre-render button batches all loaded frames for instant scrubbing
-- Slider uses prerendered blob URLs when available, else live fetch
-- `invalidatePrerender()` fires on marker drag and style/param changes
+### Performance Impact
+- GRIB-to-mmap conversion improved from ~50s/FHR (VHD) to ~23s/FHR (NVMe) — **2x faster**
+- Cache writes no longer compete with GRIB reads for VHD I/O bandwidth
+- Mmap page faults for cached data now served from NVMe instead of external VHD
 
-#### Frame Prerender Cache + API
-- `FRAME_CACHE` dict with 500-entry limit (~75MB max)
-- `POST /api/prerender` — batch renders frames in background thread with progress tracking
-- `GET /api/frame` — cache-first frame retrieval, falls back to live render
-- Cached frames serve in ~20ms vs ~4.5s live render
+---
 
-#### Cycle Comparison Mode
-- "Compare" toggle button in control bar
-- Second cycle dropdown and mode toggle (Same FHR vs Valid Time)
-- Side-by-side flexbox layout with labeled panels
-- Same FHR mode: both panels show identical FHR from different init cycles
-- Valid Time mode: auto-calculates comparison FHR to match same valid time
-- Comparison panel updates on primary FHR change, marker drag, or slider scrub
+## CRITICAL ISSUES & PERFORMANCE PROBLEMS
 
-#### Agent-Friendly v1 API
-- All endpoints return JSON (cycles, status, progress, etc.)
-- `/api/frame` returns PNG for a single frame
-- `/api/prerender` batch renders
-- `API_GUIDE.md` documents all endpoints
+### 1. GRIB-to-mmap Conversion (~23s/FHR on NVMe, was ~50s on VHD)
+- **cfgrib** does extensive Python-level work between eccodes C calls — dominated by GIL contention
+- 20 threads = 0 completions in 3+ min (99/102 threads on `futex_wait_queue`)
+- 4 ThreadPool workers is the only stable config
+- **ProcessPoolExecutor fails on WSL2**: `folio_wait_bit_common` kernel-level contention when multiple processes do concurrent I/O through Hyper-V virtual block layer. All workers go D-state
+- Full preload of 151 uncached FHRs takes ~58 min at current rate (was ~125 min on VHD)
 
-#### Standard Temperature Colormap
-- New `standard` temp colormap added as default
-- Auto-load priority favors newest cycle
+### 2. WSL2 VHD Folio Contention
+- Both `/dev/sdd` (2TB NVMe VHD) and `/dev/sde` (20TB external VHD) go through Hyper-V virtual block layer
+- Multiple *processes* doing concurrent I/O trigger `folio_wait_bit_common` in WSL2 page cache locking
+- This is NOT disk speed — it's WSL2-specific kernel contention
+- ThreadPoolExecutor (single process) avoids folio; ProcessPoolExecutor triggers it
+- NVMe has less folio pressure than external VHD but still goes through Hyper-V layer
 
-### Memory Architecture (updated)
-- **58GB HRRR hard cap** (soft trigger at 56GB), 8GB each for GFS/RRFS
-- **Mmap cache**: Per-field float16 .npy files, memory-mapped with `mmap_mode='r'`
-- **Heap per FHR**: ~29MB (just lats+lons coordinate arrays) — OS page cache manages data
-- **GRIB-to-mmap conversion**: ~30-40s per FHR, ~2.3GB temp RAM during conversion, then garbage collected
-- **Disk requirement**: ~2.3GB cache per FHR; ensure sufficient free disk or mmap saves fail and RAM stays high
-- **Old-format cache cleanup**: Previously caches were at `cache/dashboard/xsect/CYCLE_FHR_FILE/`, now at `cache/dashboard/xsect/{model}/CYCLE_FHR_FILE/`. Old format must be manually cleaned: `rm -rf cache/dashboard/xsect/202*`
+---
+
+## Architecture
+
+### Preload Window (6 HRRR cycles, ~151-174 FHRs)
+```
+Priority order:
+  1. Latest init (e.g. 08z) — 19 FHRs, always first
+  2. Newest synoptic 48h (e.g. 06z) — 49 FHRs
+  3. Previous synoptic handoff (e.g. 00z) — 49 FHRs (if newest not ready)
+  4. 3 recent hourlies (e.g. 07z, 05z, 04z) — 19 FHRs each
+
+HRRR_HOURLY_CYCLES = 3  (was 5, reduced to keep picker clean)
+```
+
+Only these cycles appear in the run picker dropdown. Archive-requested cycles appear when downloading/loaded.
+
+### Two-Phase Preload (cache-first)
+```
+Phase 1: ThreadPoolExecutor(20 workers) — cached mmap loads (<0.1s each)
+Phase 2: ThreadPoolExecutor(4 workers)  — GRIB conversion (~23s each on NVMe)
+```
+Partitions FHRs by checking if mmap cache dir exists. Users see data immediately from Phase 1 instead of waiting for all GRIB conversions.
+
+### Cache Eviction (RAM + NVMe disk)
+```
+RAM eviction:
+  - _auto_load_latest_inner(): evicts loaded FHRs whose cycle is no longer in target window
+  - _evict_if_needed(): memory-pressure backstop at 48GB HRRR / 8GB GFS,RRFS limits
+  - Protected cycles (current target window) are never evicted from RAM
+
+NVMe cache eviction — two-tier (cache_evict_old_cycles):
+  Tier 1 (always, every ~10 min):
+    - Rotated preload cycles: if a cycle falls out of target window and
+      wasn't an archive request, its cache is deleted immediately
+    - Example: 03z hourly rotates out when 09z appears → 03z cache deleted
+  Tier 2 (size-based, CACHE_LIMIT_GB = 670):
+    - Archive request caches persist on NVMe for fast re-loading
+    - Only evicted when total cache exceeds 670GB, oldest archive first
+    - Evicts down to 85% (~570GB) to avoid thrashing
+  - ARCHIVE_CACHE_KEYS set tracks which cycles were archive-requested
+  - Target/loaded cycles are never evicted at either tier
+  - Budget: ~425GB preload window + ~245GB archive headroom
+```
+
+### HRRR-Priority Auto-Update (interleaved)
+```
+Old: for model in [hrrr, gfs, rrfs]: download_all_fhrs(model)  # RRFS blocks for 15+ min
+New: Download one FHR at a time, HRRR always first:
+  - If HRRR has work -> download HRRR FHR, continue
+  - If HRRR empty -> download one GFS/RRFS FHR (round-robin)
+  - Every 2 non-HRRR downloads -> re-check HRRR for new FHRs from NOMADS
+  - When HRRR queue empties -> re-scan for newly published FHRs
+```
+
+### Memory Architecture
+- **Mmap cache per FHR**: 2.3GB on disk (40 levels x 1059 x 1799 x 14 float16/32 fields)
+- **Resident RAM per FHR**: ~100MB (mmap only pages in accessed slices)
+- **174 FHRs loaded**: ~4-6GB RAM, ~400GB on disk
+- **Heap per FHR**: ~29MB (lats+lons coordinate arrays)
+- **Memory limits**: 48GB HRRR hard cap, 8GB each GFS/RRFS
+
+### Disk Layout
+```
+/dev/sdd (2TB NVMe VHD) mounted at /  — 1.4TB free
+  ~/hrrr-maps/                         — code
+  ~/hrrr-maps/cache/xsect/hrrr/       — ACTIVE mmap cache (NVMe, building up)
+  ~/hrrr-maps/cache/xsect/gfs/        — GFS cache (NVMe)
+  ~/hrrr-maps/outputs/                 — symlinks to VHD
+
+/dev/sde (20TB external VHD) mounted at /mnt/hrrr  — 17TB free
+  /mnt/hrrr/hrrr-live/                 — live HRRR GRIBs (491GB)
+  /mnt/hrrr/gfs/                       — live GFS GRIBs (113GB)
+  /mnt/hrrr/rrfs/                      — live RRFS GRIBs (83GB)
+  /mnt/hrrr/cache/xsect/              — OLD VHD cache (~348GB, orphaned, can delete)
+  /mnt/hrrr/YYYYMMDD/                 — archived HRRR GRIBs
+  /mnt/hrrr/climatology/              — monthly mean NPZ files
+
+/dev/shm (59GB tmpfs, pure RAM)       — unused, too small for cache
+```
+
+### Per-FHR Sizes
+```
+HRRR GRIB source:  ~1.2GB (wrfprs + wrfsfc + wrfnat)
+HRRR mmap cache:   ~2.3GB (14 fields x 40 levels x 1059x1799)
+HRRR cycle (19 FHR): ~23GB GRIB, ~44GB cache
+HRRR synoptic (49 FHR): ~61GB GRIB, ~113GB cache
+```
+
+---
+
+## Features
 
 ### What Works
-- **Dashboard**: `tools/unified_dashboard.py` - Flask + Leaflet interactive map
-- **Cross-section engine**: `core/cross_section_interactive.py` - Sub-second generation
-- **Mmap caching**: `cache/dashboard/xsect/{model}/` — per-field .npy files in float16, memory-mapped (~12ms "load" vs 2s old NPZ, ~2.3GB/FHR disk, 400GB limit with eviction). OS page cache manages physical RAM automatically. Legacy .npz caches auto-migrate on first load
+- **Dashboard**: `tools/unified_dashboard.py` — Flask + Leaflet, live at wxsection.com:5561
+- **Cross-section engine**: `core/cross_section_interactive.py` — 0.5s warm renders
+- **Multi-model**: HRRR, GFS, RRFS support everywhere
 - **15 styles**: wind_speed, temp, theta_e, rh, q, omega, vorticity, shear, lapse_rate, cloud, cloud_total, wetbulb, icing, frontogenesis, smoke
-- **Anomaly/departure mode**: "Raw / 5yr Dep" toggle subtracts 5-year HRRR climatological mean from current forecast. RdBu_r diverging colormap centered at 0. Works for 10 anomaly-eligible styles
-- **Climatology pipeline**: `tools/build_climatology.py` builds monthly mean NPZ files from archived HRRR data
-- **Color-coded chip UI**: Grey (on disk) / Green (in RAM) / Blue (viewing) / Yellow (loading) / Shift+click to unload
-- **Plot annotations**: A/B labels, ~100+ city labels, lat/lon secondary axis, legend box, inset map with A/B badges
-- **Distance units**: km/mi toggle at render time
-- **Auto-load**: Background thread (every 60s) detects new FHRs, loads them, prioritizes synoptic cycles
-- **Smart memory management**: LRU eviction with synoptic cycle protection
-- **Render semaphore**: Limits concurrent matplotlib renders to 4, returns 503 if queue full
-- **Disk management**: 500GB GRIB limit with space-based LRU eviction
-- **Auto-update daemon**: `tools/auto_update.py` downloads latest cycles continuously + extended F19-F48 for synoptic
-- **Custom date requests**: Calendar button downloads any date from NOMADS/AWS with live progress toast (admin key required)
-- **Community favorites**: Save/load cross-section configs, 12h expiry
-- **Cloudflare Tunnel**: Named tunnel `wxsection` -> wxsection.com + www.wxsection.com
-- **GIF animation**: `/api/xsect_gif` animated GIF with Pillow, 4 speed options
-- **Terrain masking**: Theta contours, freezing level, isotherms masked below terrain
-- **Temperature colormaps**: 4 options (standard, green_purple, white_zero, nws_ndfd)
-- **Admin key system**: `WXSECTION_KEY` env var only gates downloading. Loading/unloading open to all
-- **Smoke loading**: eccodes-based MASSDEN from wrfnat on native hybrid levels
-- **Atomic downloads**: `.partial` temp files, renamed on completion
+- **Run picker**: Filtered to preload window + loaded archive cycles only
+- **Archive requests**: Modal with date picker, hour selector, FHR range (admin-gated)
+- **Download progress**: Shows in-flight FHRs in real-time (`Downloading F00, F01, F02, F03 from AWS archive...`)
+- **Cancel jobs**: Admin can cancel pre-render and download operations via X button in progress panel
+- **Auto-update**: HRRR-priority interleaved downloads, re-checks HRRR every 2 non-HRRR downloads
+- **Cache-first preload**: Cached FHRs load in <1s total, GRIB conversions run in background
+- **Time slider + auto-play**: 0.5x-4x speed, pre-render for instant scrubbing
+- **Frame prerender cache**: 500-entry server-side cache
+- **Cycle comparison mode**: Side-by-side Same FHR or Valid Time matching
+- **Community favorites**: Save/load cross-section configs
+- **GIF animation**: `/api/xsect_gif`
+- **Admin key**: `WXSECTION_KEY=ctwc` env var gates archive downloads, cancel ops
 
-### Files (16 Python files)
+### Controls UI
+- **Primary row**: Model, Run, Style, Favorites, Swap, Clear, "More" toggle
+- **Secondary row** (hidden by default): Y-Axis, V-Scale, Top, Units, Help, Request Run, GIF, Load All, Compare, Admin, Memory
+
+---
+
+## Files
+
 ```
-config/colormaps.py
-core/__init__.py
-core/cross_section_interactive.py   # Main engine - get_cross_section() + anomaly subtraction
-core/cross_section_production.py    # Batch generation
-core/downloader.py
-core/grib_loader.py
+start.sh                           # Startup script (mount VHD, start services)
 model_config.py                     # Model registry (HRRR/GFS/RRFS metadata)
-smart_hrrr/__init__.py
-smart_hrrr/availability.py
-smart_hrrr/io.py
-smart_hrrr/orchestrator.py          # Parallel GRIB downloads (on_complete callback)
-smart_hrrr/utils.py
-tools/auto_update.py                # Progressive download daemon + extended 48h synoptic
-tools/build_climatology.py          # Build monthly climatology NPZ from archived HRRR
-tools/bulk_download.py              # Bulk HRRR archive downloader for VHD/external drives
-tools/unified_dashboard.py          # Flask dashboard + multi-model + comparison + slider
+core/cross_section_interactive.py   # Main engine — mmap cache, cartopy cache, KDTree cache
+smart_hrrr/orchestrator.py          # Parallel GRIB downloads (on_complete, on_start, should_cancel)
+tools/auto_update.py                # HRRR-priority interleaved download daemon
+tools/unified_dashboard.py          # Flask dashboard — everything UI + API
 ```
 
-### Key Architecture Details
-- **Engine key system**: `_engine_key_map` maps `(cycle_key, fhr)` to auto-incrementing int for `self.forecast_hours` dict
-- **Metadata passthrough**: Dashboard builds metadata dict (model, init_date, init_hour, real FHR) and passes directly to `get_cross_section(metadata=...)` — thread-safe, no shared state
-- **Colorbar positioning**: Manual `fig.add_axes([0.90, 0.12, 0.012, 0.68])` with `cax=cbar_ax` (15 instances)
-- **City labels**: `ax.secondary_xaxis(-0.08)` for aligned secondary axis, 120km search radius
-- **Unit conversion**: `dist_scale = KM_TO_MI if use_miles else 1.0` applied at render time
-- **Figure size**: `figsize=(17, 11)`, axes at `[0.06, 0.12, 0.82, 0.68]`
-- **Terrain masking**: `terrain_mask` built from `pressure_levels > surface_pressure[i]`, applied to theta/temperature contours via `np.ma.masked_where`
-- **Temperature colormaps**: `_build_temp_colormap(name)` static method returns colormap. All defined as F anchor arrays, converted to C internally. 512-bin `LinearSegmentedColormap`
-- **GIF frame lock**: Terrain + pressure levels from first FHR, locked across all subsequent frames
-- **Render semaphore**: `threading.Semaphore(4)` wraps all matplotlib render calls
-- **Admin key**: `WXSECTION_KEY` env var, only gates `/api/request_cycle` downloads
-- **Protected cycles**: `get_protected_cycles()` returns newest 2 + synoptic-protected cycles. Eviction skips these
-- **Synoptic protection**: `_get_synoptic_protected()` keeps newest ready synoptic + previous synoptic during handoff
-- **Interleaved loading**: `_preload_latest_cycles_inner()` round-robins FHRs across all cycles so users get usable data from multiple cycles quickly
-- **Auto-load priority**: Newest cycle first, then synoptic cycles (up to 2), then remaining. Synoptic cycles load all FHRs (F00-F48)
-- **Mmap cache format**: Per-FHR directory under `cache/dashboard/xsect/{model}/`. Individual `.npy` files. 3D fields as float16, geopotential_height as float32. `_complete` marker for atomic creation. `np.load(path, mmap_mode='r')` for zero-copy access
-- **Smoke loading**: eccodes-based, native hybrid levels (50 levels), not interpolated to isobaric
-- **Anomaly engine**: `ClimatologyData` dataclass, coarsened climo arrays, `RegularGridInterpolator` for cross-section path interpolation
-- **Atomic downloads**: `.partial` temp files throughout all download paths
-- **FHR availability gating**: Requires wrfprs AND wrfnat (HRRR) or wrfprs (GFS/RRFS) to exist
-- **Stale cache validation**: Checks pressure levels count and surface pressure on load
-- **Duplicate prevention**: All `loaded_items.append()` sites check before appending
-- **Loading mutex**: `self._loading` prevents overlapping bulk loads
-
-### VHD Archive Infrastructure
-- **VHDX file**: `D:\hrrr-archive.vhdx` (20TB dynamic)
-- **WSL mount**: `wsl --mount --vhd "D:\hrrr-archive.vhdx" --bare` from PowerShell (admin), then `sudo mount /dev/sde /mnt/hrrr` in WSL
-- **Why VHD**: WSL2 9p bottleneck — 19.7 MB/s through 9p vs 183 MB/s direct VHD
-- **Remount after WSL restart**: Required every time
-
-### Key APIs
+### Key Constants (unified_dashboard.py)
 ```python
-# Interactive cross-section
-from core.cross_section_interactive import InteractiveCrossSection
-ixs = InteractiveCrossSection(cache_dir="cache/dashboard/xsect")
-ixs.set_climatology_dir("/mnt/hrrr/climatology")
-ixs.load_forecast_hour(data_dir, forecast_hour)
-img_bytes = ixs.get_cross_section(start_point, end_point, style, forecast_hour, units='km', metadata={...}, anomaly=True)
-
-# Parallel downloads
-from smart_hrrr.orchestrator import download_gribs_parallel
-download_gribs_parallel(model, date_str, cycle_hour, forecast_hours)
-
-# Build climatology
-# python tools/build_climatology.py --archive /mnt/hrrr --output /mnt/hrrr/climatology --month 2 --min-samples 3
+PRELOAD_WORKERS = 20   # Thread workers for cached mmap loads
+GRIB_WORKERS = 4       # Thread workers for GRIB-to-mmap conversion
+CACHE_BASE = '/home/drew/hrrr-maps/cache/xsect'  # NVMe — fast local storage
+CACHE_LIMIT_GB = 670   # ~425GB preload + ~245GB archive headroom
+HRRR_HOURLY_CYCLES = 3
 ```
 
-### Running Dashboard
-```bash
-# Production (all 3 services)
-export WXSECTION_KEY=your_secret
-./deploy/run_production.sh        # start dashboard + auto-update + tunnel
-./deploy/run_production.sh stop   # stop all
+---
 
-# Manual
-WXSECTION_KEY=secret python tools/unified_dashboard.py --port 5559 --preload 2 --production --models hrrr
-python tools/auto_update.py --interval 2 --max-hours 18
-cloudflared tunnel run wxsection
+## Known Issues / TODO
 
-# Test server (different port, same code)
-python tools/unified_dashboard.py --port 5560 --models hrrr,gfs,rrfs
-
-# Remount VHD after WSL restart (PowerShell admin first)
-# wsl --mount --vhd "D:\hrrr-archive.vhdx" --bare
-sudo mount /dev/sde /mnt/hrrr
-```
-
-### Process Management
-Startup order matters — dashboard must bind port 5559 before cloudflared starts forwarding:
-1. Remount VHD if WSL restarted
-2. Start dashboard (binds :5559)
-3. Start cloudflared tunnel (forwards wxsection.com -> localhost:5559)
-4. Start auto_update daemon
-
-Common issue: stale port after crash. Fix: `kill -9 $(lsof -ti:5559)`, wait 3s, then restart dashboard.
-
-Cloudflare tunnel config at `~/.cloudflared/config.yml`:
-```yaml
-tunnel: 13c6556c-b8bb-4a81-8730-f57005819544
-credentials-file: /home/drew/.cloudflared/13c6556c-...json
-ingress:
-  - hostname: wxsection.com
-    service: http://localhost:5559
-  - hostname: www.wxsection.com
-    service: http://localhost:5559
-  - service: http_status:404
-```
-
-### Data Locations
-- **Live GRIB files**: `outputs/hrrr/YYYYMMDD/HHz/F##/` (auto-update writes here, 500GB limit)
-- **Mmap cache**: `cache/dashboard/xsect/{model}/` (per-field .npy dirs, auto-created on load)
-- **OLD mmap cache**: `cache/dashboard/xsect/YYYYMMDD_*` (pre-model-subdirectory format — delete these: `rm -rf cache/dashboard/xsect/202*`)
-- **Archive GRIBs**: `/mnt/hrrr/YYYYMMDD/HHz/F##/` (VHD, bulk_download.py writes here)
-- **Climatology NPZ**: `/mnt/hrrr/climatology/climo_MM_HHz_FNN.npz` (~30MB each)
-- **Favorites**: `data/favorites.json`
-- **Votes**: `data/votes.json`
-- **Feature requests**: `data/requests.json`
-- **Disk metadata**: `data/disk_meta.json`
-
-### Known Issues / TODO
-- **Disk space**: 2TB WSL disk fills up fast. Old-format mmap caches under `cache/dashboard/xsect/202*` must be manually cleaned. GRIB outputs at 500GB limit. Monitor with `df -h /home/drew/`
-- **AWS bulk downloads**: Paused while nailing down 48h cycle + multi-model. Resume when ready
-- **GFS/RRFS verification**: Multi-model code is in place but needs verification on test server before production push
-- **48h cycle verification**: Synoptic handoff logic implemented, needs extended testing
-- **Test-then-prod workflow**: Changes should go to test server (:5560) first, verify, then push to production (:5559). Current session pushed directly to prod
+1. **Delete orphaned VHD cache**: `rm -rf /mnt/hrrr/cache/xsect/` frees ~348GB on VHD (no longer used after NVMe migration)
+2. **cfgrib is the bottleneck**: No WSL2-compatible parallelism solution found. 4 threads = ~23s/FHR on NVMe
+3. **ProcessPoolExecutor broken on WSL2**: folio contention, all workers D-state. Would need native Linux or different GRIB library
+4. **GRIB alternatives**: eccodes Python bindings directly (skip cfgrib/xarray overhead), or cfgrib with `indexpath=''` to skip index
+5. **GFS/RRFS rendering**: Works but needs more testing at extended FHRs
+6. **VHD remount required**: After every WSL/PC restart, run `start.sh` or mount manually
+7. **Background rescan frequency**: HRRR every 30s, others every 60s — could be tunable
+8. **Monitor NVMe space**: Full preload cache = ~400GB, eviction keeps it bounded. Monitor with `df -h /`

@@ -40,6 +40,9 @@ grib_files/
 *.env
 .env.*
 
+# Agent context (local only, not committed)
+AGENT_CONTEXT.md
+
 # OS
 .DS_Store
 Thumbs.db

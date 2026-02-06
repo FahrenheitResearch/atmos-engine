@@ -108,18 +108,59 @@ ANOMALY_STYLES = {
 
 
 # Standalone function for multiprocessing (must be at module level for pickle)
-def _load_hour_process(grib_file: str, forecast_hour: int) -> Optional[ForecastHourData]:
-    """Load a single forecast hour - standalone function for ProcessPoolExecutor."""
-    import cfgrib
+def _load_hour_process(
+    grib_file: str,
+    forecast_hour: int,
+    grib_backend: str = 'cfgrib',
+    sfc_file: Optional[str] = None,
+    nat_file: Optional[str] = None,
+) -> Optional[ForecastHourData]:
+    """Load a single forecast hour for ProcessPoolExecutor workers.
 
-    try:
-        print(f"Loading F{forecast_hour:02d} from {Path(grib_file).name}...")
-        start = time.time()
+    Supports the same backend selection strategy as InteractiveCrossSection:
+    - 'cfgrib': use cfgrib for core fields
+    - 'eccodes': use one-pass eccodes for core fields
+    - 'auto': try eccodes, then fallback to cfgrib
+    """
+
+    fields = {
+        'u': 'u_wind', 'v': 'v_wind', 'r': 'rh', 'w': 'omega',
+        'q': 'specific_humidity', 'gh': 'geopotential_height',
+        'absv': 'vorticity', 'clwmr': 'cloud', 'dpt': 'dew_point',
+    }
+
+    backend = (grib_backend or 'cfgrib').strip().lower()
+    if backend not in {'cfgrib', 'eccodes', 'auto'}:
+        print(f"  Warning: invalid grib backend '{grib_backend}', using cfgrib")
+        backend = 'cfgrib'
+    backend_order = ['eccodes', 'cfgrib'] if backend == 'auto' else [backend]
+
+    resolved_sfc = sfc_file
+    if not resolved_sfc:
+        sfc_guess = Path(grib_file).parent / Path(grib_file).name.replace('wrfprs', 'wrfsfc')
+        resolved_sfc = str(sfc_guess) if sfc_guess.exists() else grib_file
+
+    resolved_nat = nat_file
+    if not resolved_nat:
+        nat_guess = Path(grib_file).parent / Path(grib_file).name.replace('wrfprs', 'wrfnat')
+        resolved_nat = str(nat_guess) if nat_guess.exists() else None
+
+    def _decode_msg_to_2d(msg):
+        import eccodes
+        try:
+            ni = int(eccodes.codes_get(msg, 'Ni'))
+            nj = int(eccodes.codes_get(msg, 'Nj'))
+        except Exception:
+            ni = int(eccodes.codes_get(msg, 'Nx'))
+            nj = int(eccodes.codes_get(msg, 'Ny'))
+        return eccodes.codes_get_values(msg).reshape(nj, ni)
+
+    def _load_core_cfgrib() -> ForecastHourData:
+        import cfgrib
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
 
-            # Load temperature first to get grid info
             ds_t = cfgrib.open_dataset(
                 grib_file,
                 filter_by_keys={'typeOfLevel': 'isobaricInhPa', 'shortName': 't'},
@@ -144,7 +185,7 @@ def _load_hour_process(grib_file: str, forecast_hour: int) -> Optional[ForecastH
             if lons.max() > 180:
                 lons = np.where(lons > 180, lons - 360, lons)
 
-            fhr_data = ForecastHourData(
+            data = ForecastHourData(
                 forecast_hour=forecast_hour,
                 pressure_levels=pressure_levels,
                 lats=lats,
@@ -152,13 +193,6 @@ def _load_hour_process(grib_file: str, forecast_hour: int) -> Optional[ForecastH
                 temperature=t_data.values,
             )
             ds_t.close()
-
-            # Load other fields
-            fields = {
-                'u': 'u_wind', 'v': 'v_wind', 'r': 'rh', 'w': 'omega',
-                'q': 'specific_humidity', 'gh': 'geopotential_height',
-                'absv': 'vorticity', 'clwmr': 'cloud', 'dpt': 'dew_point',
-            }
 
             for grib_key, field_name in fields.items():
                 try:
@@ -168,17 +202,14 @@ def _load_hour_process(grib_file: str, forecast_hour: int) -> Optional[ForecastH
                         backend_kwargs={'indexpath': ''},
                     )
                     if ds and len(ds.data_vars) > 0:
-                        setattr(fhr_data, field_name, ds[list(ds.data_vars)[0]].values)
+                        setattr(data, field_name, ds[list(ds.data_vars)[0]].values)
                     ds.close()
                 except Exception:
                     pass
 
-            # Surface pressure
             try:
-                sfc_file = Path(grib_file).parent / Path(grib_file).name.replace('wrfprs', 'wrfsfc')
-                sp_file = str(sfc_file) if sfc_file.exists() else grib_file
                 ds_sp = cfgrib.open_dataset(
-                    sp_file,
+                    resolved_sfc,
                     filter_by_keys={'typeOfLevel': 'surface', 'shortName': 'sp'},
                     backend_kwargs={'indexpath': ''},
                 )
@@ -186,22 +217,138 @@ def _load_hour_process(grib_file: str, forecast_hour: int) -> Optional[ForecastH
                     sp_data = ds_sp[list(ds_sp.data_vars)[0]].values
                     while sp_data.ndim > 2:
                         sp_data = sp_data[0]
-                    if sp_data.max() > 2000:
+                    if np.isfinite(sp_data).any() and np.nanmax(sp_data) > 2000:
                         sp_data = sp_data / 100.0
-                    fhr_data.surface_pressure = sp_data
+                    data.surface_pressure = sp_data
                 ds_sp.close()
             except Exception:
                 pass
 
-            # Load smoke (MASSDEN) from wrfnat if available — keep on native hybrid levels
+            return data
+
+    def _load_core_eccodes() -> ForecastHourData:
+        import eccodes
+
+        target_keys = {'t', *fields.keys()}
+        by_level = {k: {} for k in target_keys}
+        lats = None
+        lons = None
+
+        with open(grib_file, 'rb') as f:
+            while True:
+                msg = eccodes.codes_grib_new_from_file(f)
+                if msg is None:
+                    break
+                try:
+                    ltype = eccodes.codes_get(msg, 'typeOfLevel')
+                    if ltype != 'isobaricInhPa':
+                        continue
+                    short_name = eccodes.codes_get(msg, 'shortName')
+                    if short_name not in target_keys:
+                        continue
+
+                    level = int(eccodes.codes_get(msg, 'level'))
+                    arr2d = _decode_msg_to_2d(msg).astype(np.float32, copy=False)
+                    by_level[short_name][level] = arr2d
+
+                    if lats is None or lons is None:
+                        lat_vals = np.asarray(eccodes.codes_get_array(msg, 'latitudes'), dtype=np.float32)
+                        lon_vals = np.asarray(eccodes.codes_get_array(msg, 'longitudes'), dtype=np.float32)
+                        lats = lat_vals.reshape(arr2d.shape)
+                        lons = lon_vals.reshape(arr2d.shape)
+                finally:
+                    eccodes.codes_release(msg)
+
+        t_levels = by_level.get('t', {})
+        if not t_levels:
+            raise RuntimeError("missing temperature (shortName='t')")
+
+        levels_sorted = sorted(t_levels.keys(), reverse=True)
+        pressure_levels = np.asarray(levels_sorted, dtype=np.float32)
+        n_levels = len(levels_sorted)
+        sample = t_levels[levels_sorted[0]]
+        ny, nx = sample.shape
+
+        if lats is None or lons is None:
+            raise RuntimeError("missing lat/lon grid")
+        if np.isfinite(lons).any() and np.nanmax(lons) > 180:
+            lons = np.where(lons > 180, lons - 360, lons)
+
+        def _stack(short_name: str) -> Optional[np.ndarray]:
+            field_map = by_level.get(short_name, {})
+            if not field_map:
+                return None
+            arr = np.full((n_levels, ny, nx), np.nan, dtype=np.float32)
+            for idx, lev in enumerate(levels_sorted):
+                lev_arr = field_map.get(lev)
+                if lev_arr is not None:
+                    arr[idx] = lev_arr
+            return arr
+
+        data = ForecastHourData(
+            forecast_hour=forecast_hour,
+            pressure_levels=pressure_levels,
+            lats=lats,
+            lons=lons,
+            temperature=_stack('t'),
+        )
+        for grib_key, field_name in fields.items():
+            arr = _stack(grib_key)
+            if arr is not None:
+                setattr(data, field_name, arr)
+
+        with open(resolved_sfc, 'rb') as f:
+            while True:
+                msg = eccodes.codes_grib_new_from_file(f)
+                if msg is None:
+                    break
+                try:
+                    short_name = eccodes.codes_get(msg, 'shortName')
+                    ltype = eccodes.codes_get(msg, 'typeOfLevel')
+                    if short_name == 'sp' and ltype == 'surface':
+                        sp_data = _decode_msg_to_2d(msg).astype(np.float32, copy=False)
+                        if np.isfinite(sp_data).any() and np.nanmax(sp_data) > 2000:
+                            sp_data = sp_data / 100.0
+                        data.surface_pressure = sp_data
+                        break
+                finally:
+                    eccodes.codes_release(msg)
+
+        return data
+
+    try:
+        print(f"Loading F{forecast_hour:02d} from {Path(grib_file).name}...")
+        start = time.time()
+
+        fhr_data = None
+        backend_used = None
+        backend_errors = []
+
+        for candidate in backend_order:
             try:
-                nat_path = Path(grib_file).parent / Path(grib_file).name.replace('wrfprs', 'wrfnat')
-                nat_file = nat_path
-                if nat_file.exists():
-                    import eccodes
-                    smoke_levels = {}
-                    pres_levels_hyb = {}
-                    fnat = open(str(nat_file), 'rb')
+                if candidate == 'eccodes':
+                    fhr_data = _load_core_eccodes()
+                else:
+                    fhr_data = _load_core_cfgrib()
+                backend_used = candidate
+                break
+            except Exception as e:
+                backend_errors.append((candidate, str(e)))
+                print(f"  Warning: {candidate} core loader failed in worker: {e}")
+                continue
+
+        if fhr_data is None:
+            detail = '; '.join(f"{name}: {err}" for name, err in backend_errors) or "no backend attempted"
+            raise RuntimeError(f"All GRIB backends failed ({detail})")
+
+        # Load smoke (MASSDEN) from wrfnat if available — keep on native hybrid levels
+        try:
+            if resolved_nat and Path(resolved_nat).exists():
+                import eccodes
+
+                smoke_levels = {}
+                pres_levels_hyb = {}
+                with open(str(resolved_nat), 'rb') as fnat:
                     while True:
                         msg = eccodes.codes_grib_new_from_file(fnat)
                         if msg is None:
@@ -213,43 +360,42 @@ def _load_hour_process(grib_file: str, forecast_hour: int) -> Optional[ForecastH
                             lt = eccodes.codes_get(msg, 'typeOfLevel')
                             lev = eccodes.codes_get(msg, 'level')
                             if lt == 'hybrid':
-                                Ni = eccodes.codes_get(msg, 'Ni')
-                                Nj = eccodes.codes_get(msg, 'Nj')
+                                arr2d = _decode_msg_to_2d(msg)
                                 if disc == 0 and cat == 20 and num == 0:
-                                    smoke_levels[lev] = eccodes.codes_get_values(msg).reshape(Nj, Ni)
+                                    smoke_levels[lev] = arr2d
                                 elif disc == 0 and cat == 3 and num == 0 and lev not in pres_levels_hyb:
-                                    pres_levels_hyb[lev] = eccodes.codes_get_values(msg).reshape(Nj, Ni)
+                                    pres_levels_hyb[lev] = arr2d
                         except Exception:
                             pass
-                        eccodes.codes_release(msg)
-                    fnat.close()
+                        finally:
+                            eccodes.codes_release(msg)
 
-                    if smoke_levels and pres_levels_hyb:
-                        levels_sorted = sorted(smoke_levels.keys())
-                        ny, nx = list(smoke_levels.values())[0].shape
-                        n_hyb = len(levels_sorted)
-                        smoke_hyb = np.zeros((n_hyb, ny, nx), dtype=np.float32)
-                        pres_hyb = np.zeros((n_hyb, ny, nx), dtype=np.float32)
-                        for idx, lv in enumerate(levels_sorted):
-                            smoke_hyb[idx] = smoke_levels[lv] * 1e9
-                            if lv in pres_levels_hyb:
-                                pres_hyb[idx] = pres_levels_hyb[lv] / 100.0
-                        fhr_data.smoke_hyb = smoke_hyb
-                        fhr_data.smoke_pres_hyb = pres_hyb
-            except Exception:
-                pass
+                if smoke_levels and pres_levels_hyb:
+                    levels_sorted = sorted(smoke_levels.keys())
+                    ny, nx = list(smoke_levels.values())[0].shape
+                    n_hyb = len(levels_sorted)
+                    smoke_hyb = np.zeros((n_hyb, ny, nx), dtype=np.float32)
+                    pres_hyb = np.zeros((n_hyb, ny, nx), dtype=np.float32)
+                    for idx, lv in enumerate(levels_sorted):
+                        smoke_hyb[idx] = smoke_levels[lv] * 1e9
+                        if lv in pres_levels_hyb:
+                            pres_hyb[idx] = pres_levels_hyb[lv] / 100.0
+                    fhr_data.smoke_hyb = smoke_hyb
+                    fhr_data.smoke_pres_hyb = pres_hyb
+        except Exception:
+            pass
 
-            # Pre-compute theta
-            if fhr_data.temperature is not None:
-                theta = np.zeros_like(fhr_data.temperature)
-                for lev_idx, p in enumerate(pressure_levels):
-                    theta[lev_idx] = fhr_data.temperature[lev_idx] * (1000.0 / p) ** 0.286
-                fhr_data.theta = theta
-                fhr_data.temp_c = fhr_data.temperature - 273.15
+        # Pre-compute theta
+        if fhr_data.temperature is not None:
+            theta = np.zeros_like(fhr_data.temperature)
+            for lev_idx, p in enumerate(fhr_data.pressure_levels):
+                theta[lev_idx] = fhr_data.temperature[lev_idx] * (1000.0 / p) ** 0.286
+            fhr_data.theta = theta
+            fhr_data.temp_c = fhr_data.temperature - 273.15
 
-            duration = time.time() - start
-            print(f"  Loaded F{forecast_hour:02d} in {duration:.1f}s ({fhr_data.memory_usage_mb():.0f} MB)")
-            return fhr_data
+        duration = time.time() - start
+        print(f"  Loaded F{forecast_hour:02d} in {duration:.1f}s ({fhr_data.memory_usage_mb():.0f} MB) using {backend_used}")
+        return fhr_data
 
     except Exception as e:
         print(f"Error loading F{forecast_hour:02d}: {e}")
@@ -258,6 +404,30 @@ def _load_hour_process(grib_file: str, forecast_hour: int) -> Optional[ForecastH
 
 class InteractiveCrossSection:
     """Pre-loads HRRR data for fast interactive cross-section generation."""
+
+    # Cached cartopy feature geometries (class-level, parsed once per process)
+    _cartopy_features_cache = None
+
+    @classmethod
+    def _get_cartopy_features(cls):
+        """Load and cache cartopy feature geometries once per process.
+
+        Parsing Natural Earth shapefiles takes ~2.5s. By caching the resolved
+        geometry lists, subsequent renders skip all shapefile I/O.
+        """
+        if cls._cartopy_features_cache is not None:
+            return cls._cartopy_features_cache
+
+        import cartopy.feature as cfeature
+        cls._cartopy_features_cache = {
+            'land': list(cfeature.LAND.geometries()),
+            'ocean': list(cfeature.OCEAN.geometries()),
+            'lakes': list(cfeature.LAKES.geometries()),
+            'states': list(cfeature.STATES.geometries()),
+            'borders': list(cfeature.BORDERS.geometries()),
+            'coastline': list(cfeature.COASTLINE.geometries()),
+        }
+        return cls._cartopy_features_cache
 
     # Fields to pre-load (covers all 13 styles)
     FIELDS_TO_LOAD = {
@@ -275,8 +445,10 @@ class InteractiveCrossSection:
 
     CACHE_LIMIT_GB = 400  # Max NPZ cache size on disk
 
+    SUPPORTED_GRIB_BACKENDS = {'cfgrib', 'eccodes', 'auto'}
+
     def __init__(self, cache_dir: str = None, min_levels: int = 40,
-                 sfc_resolver=None, nat_resolver=None):
+                 sfc_resolver=None, nat_resolver=None, grib_backend: str = 'cfgrib'):
         """Initialize the interactive cross-section system.
 
         Args:
@@ -285,9 +457,12 @@ class InteractiveCrossSection:
             min_levels: Minimum pressure levels required (40 for HRRR, 20 for GFS).
             sfc_resolver: Callable(prs_path) -> sfc_path. Resolves surface GRIB file.
             nat_resolver: Callable(prs_path) -> nat_path or None. Resolves native GRIB file.
+            grib_backend: Core field loader backend: 'cfgrib' (default), 'eccodes', or
+                         'auto' (try eccodes first, then fallback to cfgrib).
         """
         self.forecast_hours: Dict[int, ForecastHourData] = {}
-        self._interpolator_cache = {}
+        self._kdtree_cache = None  # Cached cKDTree for curvilinear grid interpolation
+        self._kdtree_grid_id = None  # id() of the lats array used to build the tree
         self.cache_dir = Path(cache_dir) if cache_dir else None
         if self.cache_dir:
             self.cache_dir.mkdir(parents=True, exist_ok=True)
@@ -300,10 +475,25 @@ class InteractiveCrossSection:
         # File resolution callbacks
         self._sfc_resolver = sfc_resolver or self._default_sfc_resolver
         self._nat_resolver = nat_resolver or self._default_nat_resolver
+        self.set_grib_backend(grib_backend)
 
         # Climatology for anomaly mode
         self.climatology_dir = None  # Path to climo NPZ directory
         self._climo_cache: Dict[str, ClimatologyData] = {}  # "MM_HHz_FNN" -> data
+
+    def set_grib_backend(self, grib_backend: str):
+        """Set GRIB backend: cfgrib, eccodes, or auto."""
+        backend = (grib_backend or 'cfgrib').strip().lower()
+        if backend not in self.SUPPORTED_GRIB_BACKENDS:
+            allowed = ', '.join(sorted(self.SUPPORTED_GRIB_BACKENDS))
+            raise ValueError(f"Invalid grib_backend '{grib_backend}'. Expected one of: {allowed}")
+        self.grib_backend = backend
+
+    def _grib_backend_order(self) -> List[str]:
+        """Backend resolution order for core GRIB loading."""
+        if self.grib_backend == 'auto':
+            return ['eccodes', 'cfgrib']
+        return [self.grib_backend]
 
     @staticmethod
     def _default_sfc_resolver(prs_file: str) -> str:
@@ -655,6 +845,247 @@ class InteractiveCrossSection:
         except Exception as e:
             print(f"  Warning: Could not backfill smoke: {e}")
 
+    @staticmethod
+    def _grib_msg_to_2d(msg):
+        """Decode one GRIB message into a 2D NumPy array."""
+        import eccodes
+
+        try:
+            ni = int(eccodes.codes_get(msg, 'Ni'))
+            nj = int(eccodes.codes_get(msg, 'Nj'))
+        except Exception:
+            ni = int(eccodes.codes_get(msg, 'Nx'))
+            nj = int(eccodes.codes_get(msg, 'Ny'))
+
+        values = eccodes.codes_get_values(msg)
+        return values.reshape(nj, ni)
+
+    def _load_core_fields_eccodes(
+        self,
+        grib_file: str,
+        forecast_hour: int,
+        cb,
+        total_steps: int,
+        field_labels: Dict[str, str],
+    ) -> ForecastHourData:
+        """Load isobaric fields + surface pressure using one-pass eccodes scans."""
+        import eccodes
+
+        cb(1, total_steps, "Reading Temperature (eccodes)...")
+
+        target_keys = set(self.FIELDS_TO_LOAD.keys())
+        fields_by_level = {k: {} for k in target_keys}  # shortName -> level -> 2D array
+        lats = None
+        lons = None
+        scanned = 0
+        matched = 0
+
+        with open(grib_file, 'rb') as f:
+            while True:
+                try:
+                    msg = eccodes.codes_grib_new_from_file(f)
+                except Exception:
+                    break  # Truncated trailing message — treat as EOF
+                if msg is None:
+                    break
+                scanned += 1
+                try:
+                    ltype = eccodes.codes_get(msg, 'typeOfLevel')
+                    if ltype != 'isobaricInhPa':
+                        continue
+
+                    short_name = eccodes.codes_get(msg, 'shortName')
+                    if short_name not in target_keys:
+                        continue
+
+                    level = int(eccodes.codes_get(msg, 'level'))
+                    arr2d = self._grib_msg_to_2d(msg).astype(np.float32, copy=False)
+                    fields_by_level[short_name][level] = arr2d
+                    matched += 1
+
+                    if lats is None or lons is None:
+                        lat_vals = np.asarray(eccodes.codes_get_array(msg, 'latitudes'), dtype=np.float32)
+                        lon_vals = np.asarray(eccodes.codes_get_array(msg, 'longitudes'), dtype=np.float32)
+                        lats = lat_vals.reshape(arr2d.shape)
+                        lons = lon_vals.reshape(arr2d.shape)
+                finally:
+                    eccodes.codes_release(msg)
+
+        temp_by_level = fields_by_level.get('t', {})
+        if not temp_by_level:
+            raise RuntimeError("eccodes loader missing temperature (shortName='t')")
+
+        levels_sorted = sorted(temp_by_level.keys(), reverse=True)
+        pressure_levels = np.asarray(levels_sorted, dtype=np.float32)
+        n_levels = len(levels_sorted)
+        sample = temp_by_level[levels_sorted[0]]
+        ny, nx = sample.shape
+
+        if lats is None or lons is None:
+            raise RuntimeError("eccodes loader missing grid coordinates")
+
+        if np.isfinite(lons).any() and np.nanmax(lons) > 180:
+            lons = np.where(lons > 180, lons - 360, lons)
+
+        def stack_field(short_name: str) -> Optional[np.ndarray]:
+            level_map = fields_by_level.get(short_name, {})
+            if not level_map:
+                return None
+            stacked = np.full((n_levels, ny, nx), np.nan, dtype=np.float32)
+            missing = 0
+            for idx, lev in enumerate(levels_sorted):
+                lev_arr = level_map.get(lev)
+                if lev_arr is None:
+                    missing += 1
+                    continue
+                stacked[idx] = lev_arr
+            if short_name == 't' and missing > 0:
+                raise RuntimeError(f"eccodes temperature missing {missing}/{n_levels} pressure levels")
+            if missing > 0:
+                print(f"  Warning: eccodes missing {short_name} on {missing}/{n_levels} pressure levels")
+            return stacked
+
+        fhr_data = ForecastHourData(
+            forecast_hour=forecast_hour,
+            pressure_levels=pressure_levels,
+            lats=lats,
+            lons=lons,
+            temperature=stack_field('t'),
+        )
+
+        step = 2
+        for grib_key, field_name in self.FIELDS_TO_LOAD.items():
+            if grib_key == 't':
+                continue
+            cb(step, total_steps, f"Reading {field_labels.get(grib_key, field_name)} (eccodes)...")
+            arr = stack_field(grib_key)
+            if arr is not None:
+                setattr(fhr_data, field_name, arr)
+            step += 1
+
+        cb(11, total_steps, "Reading Surface Pressure...")
+        sp_file = self._sfc_resolver(grib_file)
+        surface_pressure = None
+        sp_scanned = 0
+        with open(sp_file, 'rb') as f:
+            while True:
+                try:
+                    msg = eccodes.codes_grib_new_from_file(f)
+                except Exception:
+                    break  # Truncated trailing message — treat as EOF
+                if msg is None:
+                    break
+                sp_scanned += 1
+                try:
+                    short_name = eccodes.codes_get(msg, 'shortName')
+                    ltype = eccodes.codes_get(msg, 'typeOfLevel')
+                    if short_name == 'sp' and ltype == 'surface':
+                        surface_pressure = self._grib_msg_to_2d(msg).astype(np.float32, copy=False)
+                        break
+                finally:
+                    eccodes.codes_release(msg)
+
+        if surface_pressure is not None:
+            if np.isfinite(surface_pressure).any() and np.nanmax(surface_pressure) > 2000:
+                surface_pressure = surface_pressure / 100.0
+            fhr_data.surface_pressure = surface_pressure
+        else:
+            print("  Warning: Could not load surface pressure via eccodes")
+
+        print(f"  eccodes core scan: prs_msgs={scanned}, matched={matched}, sfc_msgs={sp_scanned}")
+        return fhr_data
+
+    def _load_core_fields_cfgrib(
+        self,
+        grib_file: str,
+        forecast_hour: int,
+        cb,
+        total_steps: int,
+        field_labels: Dict[str, str],
+    ) -> ForecastHourData:
+        """Load isobaric fields + surface pressure via cfgrib (legacy path)."""
+        import cfgrib
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+
+            cb(1, total_steps, "Reading Temperature...")
+            ds_t = cfgrib.open_dataset(
+                grib_file,
+                filter_by_keys={'typeOfLevel': 'isobaricInhPa', 'shortName': 't'},
+                backend_kwargs={'indexpath': ''},
+            )
+
+            var_name = list(ds_t.data_vars)[0]
+            t_data = ds_t[var_name]
+
+            if 'isobaricInhPa' in t_data.dims:
+                pressure_levels = t_data.isobaricInhPa.values
+            else:
+                pressure_levels = t_data.level.values
+
+            if 'latitude' in t_data.coords:
+                lats = t_data.latitude.values
+                lons = t_data.longitude.values
+            else:
+                lats = t_data.lat.values
+                lons = t_data.lon.values
+
+            if lons.max() > 180:
+                lons = np.where(lons > 180, lons - 360, lons)
+
+            fhr_data = ForecastHourData(
+                forecast_hour=forecast_hour,
+                pressure_levels=pressure_levels,
+                lats=lats,
+                lons=lons,
+                temperature=t_data.values,
+            )
+            ds_t.close()
+
+            step = 2
+            for grib_key, field_name in self.FIELDS_TO_LOAD.items():
+                if grib_key == 't':
+                    continue
+
+                cb(step, total_steps, f"Reading {field_labels.get(grib_key, field_name)}...")
+                try:
+                    ds = cfgrib.open_dataset(
+                        grib_file,
+                        filter_by_keys={'typeOfLevel': 'isobaricInhPa', 'shortName': grib_key},
+                        backend_kwargs={'indexpath': ''},
+                    )
+                    if ds and len(ds.data_vars) > 0:
+                        var = list(ds.data_vars)[0]
+                        setattr(fhr_data, field_name, ds[var].values)
+                    ds.close()
+                except Exception as e:
+                    print(f"  Warning: Could not load {grib_key}: {e}")
+                step += 1
+
+            cb(11, total_steps, "Reading Surface Pressure...")
+            try:
+                sp_file = self._sfc_resolver(grib_file)
+
+                ds_sp = cfgrib.open_dataset(
+                    sp_file,
+                    filter_by_keys={'typeOfLevel': 'surface', 'shortName': 'sp'},
+                    backend_kwargs={'indexpath': ''},
+                )
+                if ds_sp and len(ds_sp.data_vars) > 0:
+                    sp_var = list(ds_sp.data_vars)[0]
+                    sp_data = ds_sp[sp_var].values
+                    while sp_data.ndim > 2:
+                        sp_data = sp_data[0]
+                    if sp_data.max() > 2000:
+                        sp_data = sp_data / 100.0
+                    fhr_data.surface_pressure = sp_data
+                ds_sp.close()
+            except Exception as e:
+                print(f"  Warning: Could not load surface pressure: {e}")
+
+        return fhr_data
+
     def load_forecast_hour(self, grib_file: str, forecast_hour: int, progress_callback=None) -> bool:
         """Load all fields for a forecast hour.
 
@@ -736,151 +1167,93 @@ class InteractiveCrossSection:
         total_steps = 13  # 10 fields + surface pressure + smoke + derived
 
         try:
-            import cfgrib
-            from scipy.spatial import cKDTree
-
             print(f"Loading F{forecast_hour:02d} from {Path(grib_file).name}...")
             start = time.time()
+            fhr_data = None
+            backend_used = None
+            backend_errors = []
 
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-
-                # First, get grid info and pressure levels from temperature
-                cb(1, total_steps, "Reading Temperature...")
-                ds_t = cfgrib.open_dataset(
-                    grib_file,
-                    filter_by_keys={'typeOfLevel': 'isobaricInhPa', 'shortName': 't'},
-                    backend_kwargs={'indexpath': ''},
-                )
-
-                var_name = list(ds_t.data_vars)[0]
-                t_data = ds_t[var_name]
-
-                # Get pressure levels
-                if 'isobaricInhPa' in t_data.dims:
-                    pressure_levels = t_data.isobaricInhPa.values
-                else:
-                    pressure_levels = t_data.level.values
-
-                # Get lat/lon grid
-                if 'latitude' in t_data.coords:
-                    lats = t_data.latitude.values
-                    lons = t_data.longitude.values
-                else:
-                    lats = t_data.lat.values
-                    lons = t_data.lon.values
-
-                # Convert lons to -180 to 180
-                if lons.max() > 180:
-                    lons = np.where(lons > 180, lons - 360, lons)
-
-                # Create data holder
-                fhr_data = ForecastHourData(
-                    forecast_hour=forecast_hour,
-                    pressure_levels=pressure_levels,
-                    lats=lats,
-                    lons=lons,
-                    temperature=t_data.values,
-                )
-                ds_t.close()
-
-                # Load all other fields
-                step = 2
-                for grib_key, field_name in self.FIELDS_TO_LOAD.items():
-                    if grib_key == 't':
-                        continue  # Already loaded
-
-                    cb(step, total_steps, f"Reading {field_labels.get(grib_key, field_name)}...")
-                    try:
-                        ds = cfgrib.open_dataset(
-                            grib_file,
-                            filter_by_keys={'typeOfLevel': 'isobaricInhPa', 'shortName': grib_key},
-                            backend_kwargs={'indexpath': ''},
+            for backend in self._grib_backend_order():
+                try:
+                    if backend == 'eccodes':
+                        fhr_data = self._load_core_fields_eccodes(
+                            grib_file=grib_file,
+                            forecast_hour=forecast_hour,
+                            cb=cb,
+                            total_steps=total_steps,
+                            field_labels=field_labels,
                         )
-                        if ds and len(ds.data_vars) > 0:
-                            var = list(ds.data_vars)[0]
-                            setattr(fhr_data, field_name, ds[var].values)
-                        ds.close()
-                    except Exception as e:
-                        print(f"  Warning: Could not load {grib_key}: {e}")
-                    step += 1
-
-                # Load surface pressure
-                cb(11, total_steps, "Reading Surface Pressure...")
-                try:
-                    # Use resolver to find surface file (model-agnostic)
-                    sp_file = self._sfc_resolver(grib_file)
-
-                    ds_sp = cfgrib.open_dataset(
-                        sp_file,
-                        filter_by_keys={'typeOfLevel': 'surface', 'shortName': 'sp'},
-                        backend_kwargs={'indexpath': ''},
-                    )
-                    if ds_sp and len(ds_sp.data_vars) > 0:
-                        sp_var = list(ds_sp.data_vars)[0]
-                        sp_data = ds_sp[sp_var].values
-                        while sp_data.ndim > 2:
-                            sp_data = sp_data[0]
-                        # Convert Pa to hPa
-                        if sp_data.max() > 2000:
-                            sp_data = sp_data / 100.0
-                        fhr_data.surface_pressure = sp_data
-                    ds_sp.close()
+                    else:
+                        fhr_data = self._load_core_fields_cfgrib(
+                            grib_file=grib_file,
+                            forecast_hour=forecast_hour,
+                            cb=cb,
+                            total_steps=total_steps,
+                            field_labels=field_labels,
+                        )
+                    backend_used = backend
+                    break
                 except Exception as e:
-                    print(f"  Warning: Could not load surface pressure: {e}")
+                    backend_errors.append((backend, str(e)))
+                    print(f"  Warning: {backend} core loader failed: {e}")
+                    continue
 
-                # Load smoke (MASSDEN PM2.5) from native file if available
-                cb(12, total_steps, "Reading Smoke (PM2.5)...")
+            if fhr_data is None:
+                detail = '; '.join(f"{name}: {err}" for name, err in backend_errors) or "no backend attempted"
+                raise RuntimeError(f"All GRIB backends failed ({detail})")
+
+            # Load smoke (MASSDEN PM2.5) from native file if available
+            cb(12, total_steps, "Reading Smoke (PM2.5)...")
+            try:
+                nat_path = self._nat_resolver(grib_file)
+                if nat_path and Path(nat_path).exists():
+                    nat_file = Path(nat_path)
+                    result = self._load_smoke_from_wrfnat(str(nat_file))
+                    if result is not None:
+                        fhr_data.smoke_hyb, fhr_data.smoke_pres_hyb = result
+                        print(f"  Loaded PM2.5 smoke on {fhr_data.smoke_hyb.shape[0]} hybrid levels "
+                              f"(max={np.nanmax(fhr_data.smoke_hyb):.1f} μg/m³)")
+            except Exception as e:
+                print(f"  Warning: Could not load smoke from wrfnat: {e}")
+
+            # Pre-compute theta and temp_c
+            cb(13, total_steps, "Computing derived fields...")
+            if fhr_data.temperature is not None:
+                P_ref = 1000.0
+                kappa = 0.286
+                theta = np.zeros_like(fhr_data.temperature)
+                for lev_idx, p in enumerate(fhr_data.pressure_levels):
+                    theta[lev_idx] = fhr_data.temperature[lev_idx] * (P_ref / p) ** kappa
+                fhr_data.theta = theta
+                fhr_data.temp_c = fhr_data.temperature - 273.15
+
+            # Validate before storing — don't cache incomplete data
+            err = self._validate_fhr_data(fhr_data)
+            if err:
+                print(f"  WARNING: {err} — GRIB may be incomplete, skipping")
+                return False
+
+            # Store
+            self.forecast_hours[forecast_hour] = fhr_data
+
+            duration = time.time() - start
+            mem_mb = fhr_data.memory_usage_mb()
+            print(f"  Loaded F{forecast_hour:02d} in {duration:.1f}s ({mem_mb:.0f} MB) using {backend_used}")
+
+            # Save to mmap cache, then reload as mmap to free RAM
+            if mmap_dir:
                 try:
-                    nat_path = self._nat_resolver(grib_file)
-                    if nat_path and Path(nat_path).exists():
-                        nat_file = Path(nat_path)
-                        result = self._load_smoke_from_wrfnat(str(nat_file))
-                        if result is not None:
-                            fhr_data.smoke_hyb, fhr_data.smoke_pres_hyb = result
-                            print(f"  Loaded PM2.5 smoke on {fhr_data.smoke_hyb.shape[0]} hybrid levels "
-                                  f"(max={np.nanmax(fhr_data.smoke_hyb):.1f} μg/m³)")
+                    self._save_to_mmap_cache(fhr_data, mmap_dir)
+                    fhr_mmap = self._load_from_mmap_cache(mmap_dir)
+                    if fhr_mmap is not None:
+                        self.forecast_hours[forecast_hour] = fhr_mmap
+                        print(f"  Cached to {mmap_dir.name}/ (mmap, {fhr_mmap.memory_usage_mb():.0f} MB heap)")
+                    else:
+                        print(f"  Cached to {mmap_dir.name}/ (mmap)")
                 except Exception as e:
-                    print(f"  Warning: Could not load smoke from wrfnat: {e}")
+                    print(f"  Warning: Could not cache: {e}")
 
-                # Pre-compute theta and temp_c
-                cb(13, total_steps, "Computing derived fields...")
-                if fhr_data.temperature is not None:
-                    P_ref = 1000.0
-                    kappa = 0.286
-                    theta = np.zeros_like(fhr_data.temperature)
-                    for lev_idx, p in enumerate(pressure_levels):
-                        theta[lev_idx] = fhr_data.temperature[lev_idx] * (P_ref / p) ** kappa
-                    fhr_data.theta = theta
-                    fhr_data.temp_c = fhr_data.temperature - 273.15
-
-                # Validate before storing — don't cache incomplete data
-                err = self._validate_fhr_data(fhr_data)
-                if err:
-                    print(f"  WARNING: {err} — GRIB may be incomplete, skipping")
-                    return False
-
-                # Store
-                self.forecast_hours[forecast_hour] = fhr_data
-
-                duration = time.time() - start
-                mem_mb = fhr_data.memory_usage_mb()
-                print(f"  Loaded F{forecast_hour:02d} in {duration:.1f}s ({mem_mb:.0f} MB)")
-
-                # Save to mmap cache, then reload as mmap to free RAM
-                if mmap_dir:
-                    try:
-                        self._save_to_mmap_cache(fhr_data, mmap_dir)
-                        fhr_mmap = self._load_from_mmap_cache(mmap_dir)
-                        if fhr_mmap is not None:
-                            self.forecast_hours[forecast_hour] = fhr_mmap
-                            print(f"  Cached to {mmap_dir.name}/ (mmap, {fhr_mmap.memory_usage_mb():.0f} MB heap)")
-                        else:
-                            print(f"  Cached to {mmap_dir.name}/ (mmap)")
-                    except Exception as e:
-                        print(f"  Warning: Could not cache: {e}")
-
-                return True
+            return True
 
         except Exception as e:
             print(f"Error loading F{forecast_hour:02d}: {e}")
@@ -948,7 +1321,14 @@ class InteractiveCrossSection:
 
             with ProcessPoolExecutor(max_workers=workers) as executor:
                 futures = {
-                    executor.submit(_load_hour_process, grib_file, fhr): fhr
+                    executor.submit(
+                        _load_hour_process,
+                        grib_file,
+                        fhr,
+                        self.grib_backend,
+                        self._sfc_resolver(grib_file),
+                        self._nat_resolver(grib_file),
+                    ): fhr
                     for grib_file, fhr in files_to_load
                 }
 
@@ -1420,9 +1800,15 @@ class InteractiveCrossSection:
 
         # Build interpolator (curvilinear vs regular grid)
         if lats_grid.ndim == 2:
-            # Curvilinear grid - use KDTree
-            src_pts = np.column_stack([lats_grid.ravel(), lons_grid.ravel()])
-            tree = cKDTree(src_pts)
+            # Curvilinear grid - use KDTree (cached per grid)
+            grid_id = id(lats_grid)
+            if self._kdtree_cache is not None and self._kdtree_grid_id == grid_id:
+                tree = self._kdtree_cache
+            else:
+                src_pts = np.column_stack([lats_grid.ravel(), lons_grid.ravel()])
+                tree = cKDTree(src_pts)
+                self._kdtree_cache = tree
+                self._kdtree_grid_id = grid_id
             tgt_pts = np.column_stack([path_lats, path_lons])
             _, indices = tree.query(tgt_pts, k=1)
 
@@ -2500,7 +2886,7 @@ class InteractiveCrossSection:
         # Add professional inset map showing cross-section path
         try:
             import cartopy.crs as ccrs
-            import cartopy.feature as cfeature
+            from cartopy.feature import ShapelyFeature
 
             # Calculate extent with padding
             lon_min, lon_max = min(lons) - 2, max(lons) + 2
@@ -2523,33 +2909,31 @@ class InteractiveCrossSection:
             inset_height = 0.12
 
             # Place inset map above plot, right-aligned (in the top margin)
+            pc = ccrs.PlateCarree()
             axins = fig.add_axes([0.88 - inset_width, 0.83, inset_width, inset_height],
-                                projection=ccrs.PlateCarree())
-            axins.set_extent([lon_min, lon_max, lat_min, lat_max], crs=ccrs.PlateCarree())
+                                projection=pc)
+            axins.set_extent([lon_min, lon_max, lat_min, lat_max], crs=pc)
 
-            # Add terrain/imagery background
-            try:
-                axins.stock_img()  # Natural Earth terrain
-            except:
-                # Fallback to simple features
-                axins.add_feature(cfeature.LAND, facecolor='#C4B896', zorder=0)
-                axins.add_feature(cfeature.OCEAN, facecolor='#97B6C8', zorder=0)
+            # Use cached geometries (parsed once per process, not per render)
+            cached = self._get_cartopy_features()
 
-            # Add map features
-            axins.add_feature(cfeature.LAKES, facecolor='#97B6C8', edgecolor='#6090A0', linewidth=0.3, zorder=1)
-            axins.add_feature(cfeature.STATES, edgecolor='#666666', linewidth=0.4, zorder=2)
-            axins.add_feature(cfeature.BORDERS, edgecolor='#333333', linewidth=0.6, zorder=2)
-            axins.add_feature(cfeature.COASTLINE, edgecolor='#444444', linewidth=0.5, zorder=2)
+            # Add terrain background from cached geometries
+            axins.add_feature(ShapelyFeature(cached['land'], pc, facecolor='#C4B896', edgecolor='none'), zorder=0)
+            axins.add_feature(ShapelyFeature(cached['ocean'], pc, facecolor='#97B6C8', edgecolor='none'), zorder=0)
+            axins.add_feature(ShapelyFeature(cached['lakes'], pc, facecolor='#97B6C8', edgecolor='#6090A0', linewidth=0.3), zorder=1)
+            axins.add_feature(ShapelyFeature(cached['states'], pc, facecolor='none', edgecolor='#666666', linewidth=0.4), zorder=2)
+            axins.add_feature(ShapelyFeature(cached['borders'], pc, facecolor='none', edgecolor='#333333', linewidth=0.6), zorder=2)
+            axins.add_feature(ShapelyFeature(cached['coastline'], pc, facecolor='none', edgecolor='#444444', linewidth=0.5), zorder=2)
 
             # Draw cross-section path
-            axins.plot(lons, lats, 'r-', linewidth=2.5, transform=ccrs.PlateCarree(), zorder=10)
+            axins.plot(lons, lats, 'r-', linewidth=2.5, transform=pc, zorder=10)
             # Start point - A label
-            axins.text(lons[0], lats[0], 'A', transform=ccrs.PlateCarree(), zorder=11,
+            axins.text(lons[0], lats[0], 'A', transform=pc, zorder=11,
                       fontsize=10, fontweight='bold', ha='center', va='center',
                       color='white', bbox=dict(boxstyle='round,pad=0.15', facecolor='#38bdf8',
                                                edgecolor='white', linewidth=1.5))
             # End point - B label
-            axins.text(lons[-1], lats[-1], 'B', transform=ccrs.PlateCarree(), zorder=11,
+            axins.text(lons[-1], lats[-1], 'B', transform=pc, zorder=11,
                       fontsize=10, fontweight='bold', ha='center', va='center',
                       color='white', bbox=dict(boxstyle='round,pad=0.15', facecolor='#f87171',
                                                edgecolor='white', linewidth=1.5))

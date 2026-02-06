@@ -128,12 +128,10 @@ class ModelRegistry:
             domain='conus'
         )
         
-        # RRFS Configuration (SHELVED until operational release in 2026)
-        # The experimental RRFS data structure changes too frequently to maintain
-        # This configuration is preserved for future use when RRFS becomes operational
+        # RRFS Configuration (experimental but actively downloading)
         models['rrfs'] = ModelConfig(
             name='rrfs',
-            full_name='Rapid Refresh Forecast System (Experimental - Not Active)',
+            full_name='Rapid Refresh Forecast System',
             resolution='3km',
             file_types={
                 'pressure': 'prslev',

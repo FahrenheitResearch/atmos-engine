@@ -44,7 +44,8 @@ VOTES_FILE = Path(__file__).parent.parent / 'data' / 'votes.json'
 REQUESTS_FILE = Path(__file__).parent.parent / 'data' / 'requests.json'
 FAVORITES_FILE = Path(__file__).parent.parent / 'data' / 'favorites.json'
 DISK_META_FILE = Path(__file__).parent.parent / 'data' / 'disk_meta.json'
-DISK_LIMIT_GB = 500  # Max disk usage for HRRR data
+DISK_LIMIT_GB = 500  # Max disk usage for HRRR data (GRIB source on VHD)
+CACHE_LIMIT_GB = 670  # Max NVMe cache (~425GB preload + ~245GB for archive requests)
 CLIMATOLOGY_DIR = Path('/mnt/hrrr/climatology')
 
 # Styles that support anomaly mode (must match ANOMALY_STYLES in cross_section_interactive.py)
@@ -261,6 +262,116 @@ def disk_evict_least_popular(target_gb=None):
 
     save_disk_meta(meta)
 
+
+def get_cache_usage_gb(managers: dict) -> float:
+    """Get total NVMe cache usage across all models in GB."""
+    total = 0
+    for model_name, mgr in managers.items():
+        cache_dir = Path(mgr.CACHE_BASE) / model_name
+        if cache_dir.exists():
+            total += sum(f.stat().st_size for f in cache_dir.rglob("*") if f.is_file())
+    return total / (1024 ** 3)
+
+
+def _evict_cache_dirs(dirs, label):
+    """Delete a list of cache directories."""
+    import shutil
+    for d in dirs:
+        try:
+            shutil.rmtree(d)
+        except Exception as e:
+            logger.warning(f"Cache evict failed for {d.name}: {e}")
+    total_gb = len(dirs) * 2.3
+    logger.info(f"Cache evict: {label} — removed {len(dirs)} FHRs (~{total_gb:.0f}GB)")
+
+
+def cache_evict_old_cycles(managers: dict):
+    """Two-tier NVMe cache eviction.
+
+    Tier 1 (always): Rotated preload cycles — if a cycle falls out of the target
+    window and wasn't an archive request, delete its cache immediately regardless
+    of disk space.
+
+    Tier 2 (size-based): Archive request caches — only evict when total cache
+    exceeds CACHE_LIMIT_GB (670GB). Oldest archive caches go first.
+    """
+    import re
+
+    for model_name, mgr in managers.items():
+        cache_dir = Path(mgr.CACHE_BASE) / model_name
+        if not cache_dir.exists():
+            continue
+
+        # Build key sets
+        target_keys = {c['cycle_key'] for c in mgr._get_target_cycles()}
+        with mgr._lock:
+            loaded_keys = {ck for ck, _ in mgr.loaded_items}
+
+        # Scan cache dirs and group by cycle key (format: YYYYMMDD_HHz_F##_...)
+        cycle_dirs = {}
+        for entry in cache_dir.iterdir():
+            if not entry.is_dir():
+                continue
+            m = re.match(r'(\d{8}_\d{2}z)_', entry.name)
+            if m:
+                ck = m.group(1)
+                cycle_dirs.setdefault(ck, []).append(entry)
+
+        # Tier 1: Always evict rotated preload cycles (not target, not loaded, not archive)
+        for ck, dirs in cycle_dirs.items():
+            if ck in target_keys or ck in loaded_keys or ck in ARCHIVE_CACHE_KEYS:
+                continue
+            _evict_cache_dirs(dirs, f"{model_name} {ck} (rotated out)")
+
+    # Tier 2: Size-based eviction of archive caches
+    usage_gb = get_cache_usage_gb(managers)
+    if usage_gb <= CACHE_LIMIT_GB:
+        return
+
+    logger.info(f"Cache usage {usage_gb:.0f}GB > {CACHE_LIMIT_GB}GB limit, evicting archive caches...")
+    import re
+    target_gb = CACHE_LIMIT_GB * 0.85
+
+    # Collect all evictable archive caches across models, sorted oldest first
+    evictable = []
+    for model_name, mgr in managers.items():
+        cache_dir = Path(mgr.CACHE_BASE) / model_name
+        if not cache_dir.exists():
+            continue
+        target_keys = {c['cycle_key'] for c in mgr._get_target_cycles()}
+        with mgr._lock:
+            loaded_keys = {ck for ck, _ in mgr.loaded_items}
+
+        for entry in cache_dir.iterdir():
+            if not entry.is_dir():
+                continue
+            m = re.match(r'(\d{8}_\d{2}z)_', entry.name)
+            if not m:
+                continue
+            ck = m.group(1)
+            if ck in target_keys or ck in loaded_keys:
+                continue
+            evictable.append((ck, entry, model_name))
+
+    # Sort by cycle key (oldest first)
+    evictable.sort(key=lambda x: x[0])
+
+    removed_keys = set()
+    for ck, d, model_name in evictable:
+        if get_cache_usage_gb(managers) <= target_gb:
+            break
+        try:
+            import shutil
+            shutil.rmtree(d)
+        except Exception as e:
+            logger.warning(f"Cache evict failed for {d.name}: {e}")
+        if ck not in removed_keys:
+            logger.info(f"Cache evict: {model_name} {ck} (archive, over size limit)")
+            removed_keys.add(ck)
+    # Clean up ARCHIVE_CACHE_KEYS for fully evicted cycles
+    ARCHIVE_CACHE_KEYS.difference_update(removed_keys)
+
+
 CONUS_BOUNDS = {
     'south': 21.14, 'north': 52.62,
     'west': -134.10, 'east': -60.92,
@@ -355,10 +466,11 @@ def rate_limit(f):
 # PROGRESS TRACKING
 # =============================================================================
 
-PROGRESS = {}  # Global progress dict: op_id -> {op, label, step, total, detail, started, done, done_at}
+PROGRESS = {}  # Global progress dict: op_id -> {op, label, step, total, detail, started, done, done_at, ...}
 
 def progress_update(op_id, step, total, detail, label=None):
     """Update progress for an operation."""
+    now = time.time()
     if op_id not in PROGRESS:
         PROGRESS[op_id] = {
             'op': op_id.split(':')[0],
@@ -366,16 +478,27 @@ def progress_update(op_id, step, total, detail, label=None):
             'step': step,
             'total': total,
             'detail': detail,
-            'started': time.time(),
+            'started': now,
             'done': False,
             'done_at': None,
+            'last_step_at': now,
+            'rate_history': [],  # (timestamp, step) for rate estimation
         }
     else:
+        prev_step = PROGRESS[op_id]['step']
         PROGRESS[op_id]['step'] = step
         PROGRESS[op_id]['total'] = total
         PROGRESS[op_id]['detail'] = detail
         if label:
             PROGRESS[op_id]['label'] = label
+        # Track rate for ETA
+        if step > prev_step:
+            PROGRESS[op_id]['last_step_at'] = now
+            hist = PROGRESS[op_id]['rate_history']
+            hist.append((now, step))
+            # Keep last 20 data points
+            if len(hist) > 20:
+                PROGRESS[op_id]['rate_history'] = hist[-20:]
 
 def progress_done(op_id):
     """Mark an operation as complete."""
@@ -390,11 +513,32 @@ def progress_remove(op_id):
     PROGRESS.pop(op_id, None)
 
 def progress_cleanup():
-    """Remove entries that finished more than 5s ago."""
+    """Remove entries that finished more than 8s ago."""
     now = time.time()
-    to_remove = [k for k, v in PROGRESS.items() if v.get('done') and v.get('done_at') and now - v['done_at'] > 5]
+    to_remove = [k for k, v in PROGRESS.items() if v.get('done') and v.get('done_at') and now - v['done_at'] > 8]
     for k in to_remove:
         del PROGRESS[k]
+    # Also clean up stale cancel flags
+    for k in list(CANCEL_FLAGS.keys()):
+        if k not in PROGRESS:
+            CANCEL_FLAGS.pop(k, None)
+
+CANCEL_FLAGS = {}  # op_id -> True when cancellation requested
+ARCHIVE_CACHE_KEYS = set()  # cycle keys (YYYYMMDD_HHz) from archive requests — persist on NVMe
+
+def cancel_request(op_id):
+    """Request cancellation of an operation."""
+    CANCEL_FLAGS[op_id] = True
+    if op_id in PROGRESS and not PROGRESS[op_id].get('done'):
+        PROGRESS[op_id]['detail'] = 'Cancelling...'
+
+def is_cancelled(op_id):
+    """Check if an operation has been cancelled."""
+    return CANCEL_FLAGS.get(op_id, False)
+
+# =============================================================================
+# PROCESS POOL WORKER — runs in separate process, own GIL, true parallelism
+# =============================================================================
 
 # =============================================================================
 # DATA MANAGER - On-Demand Loading for Memory Efficiency
@@ -413,9 +557,9 @@ MODEL_SFC_PATTERNS = {
 }
 MODEL_NEEDS_SEPARATE_SFC = {'hrrr'}  # Only HRRR has separate wrfsfc
 MODEL_FORECAST_HOURS = {
-    'hrrr': list(range(19)),      # F00-F18 (base; synoptic cycles extend to F48)
-    'gfs':  list(range(49)),      # F00-F48
-    'rrfs': list(range(19)),      # F00-F18
+    'hrrr': list(range(19)),                # F00-F18 (base; synoptic cycles extend to F48)
+    'gfs':  list(range(0, 385, 6)),         # F00-F384 every 6 hours
+    'rrfs': list(range(19)),                # F00-F18
 }
 SYNOPTIC_HOURS = {0, 6, 12, 18}
 
@@ -425,6 +569,12 @@ def get_max_fhr_for_cycle(model_name: str, cycle_hour: int) -> int:
         return 48
     base = MODEL_FORECAST_HOURS.get(model_name, list(range(19)))
     return base[-1] if base else 18
+
+def get_model_fhr_list(model_name: str, cycle_hour: int = None) -> list:
+    """Return the actual FHR list for a model+cycle (handles sparse GFS FHRs)."""
+    if model_name == 'hrrr' and cycle_hour is not None and cycle_hour in SYNOPTIC_HOURS:
+        return list(range(49))  # F00-F48 every hour
+    return MODEL_FORECAST_HOURS.get(model_name, list(range(19)))
 MODEL_MIN_LEVELS = {
     'hrrr': 40,
     'gfs':  20,  # GFS has ~34 pressure levels
@@ -445,7 +595,10 @@ class CrossSectionManager:
     Parameterized by model_name for multi-model support.
     """
 
-    PRELOAD_WORKERS = 4  # Parallel workers for loading FHRs (~2.3GB temp RAM each during GRIB→mmap)
+    PRELOAD_WORKERS = 20  # Thread workers for mmap loads (fast, ~14ms each)
+    GRIB_WORKERS = 4      # Workers for GRIB conversion
+    CACHE_BASE = '/home/drew/hrrr-maps/cache/xsect'  # NVMe — faster I/O, no VHD folio contention
+
     PRELOAD_CYCLES = 0  # Don't pre-load; load on demand
 
     def __init__(self, model_name: str = 'hrrr', mem_limit_mb: int = 48000, mem_evict_mb: int = 46000):
@@ -497,74 +650,103 @@ class CrossSectionManager:
             return str(nat) if nat.exists() else None
         return None  # GFS has no native levels
 
-    def get_protected_cycles(self) -> set:
-        """Return cycle keys that should never be evicted.
+    # ── Smart cycle selection ──
+    # HRRR: newest synoptic (48h) + 5 most recent hourly (18h each)
+    #        Keep previous synoptic during handoff until new one is ready.
+    # GFS/RRFS: newest cycle only; keep previous during handoff.
+    HRRR_HOURLY_CYCLES = 3   # Number of recent hourly cycles to keep
+    GFS_CYCLES = 1            # GFS cycles to keep (+ 1 during handoff)
+    RRFS_CYCLES = 1           # RRFS cycles to keep (+ 1 during handoff)
 
-        Protects:
-        - The 2 newest cycles (hourly or synoptic)
-        - The latest synoptic cycle that is "mostly loaded" (has F00-F18)
-        - If a newer synoptic cycle exists but is NOT mostly loaded yet,
-          also protect the previous synoptic cycle so we always have a
-          48h cycle available during the handoff period.
+    def _get_target_cycles(self) -> list:
+        """Return the list of cycles we WANT loaded, in priority order (newest first).
+
+        HRRR: newest synoptic (48h) + N most recent hourly cycles.
+              During handoff, also includes previous synoptic.
+        GFS/RRFS: newest cycle. During handoff, also includes previous.
         """
-        protected = set()
-        if len(self.available_cycles) >= 2:
-            protected = {self.available_cycles[0]['cycle_key'], self.available_cycles[1]['cycle_key']}
-        elif self.available_cycles:
-            protected = {self.available_cycles[0]['cycle_key']}
+        if not self.available_cycles:
+            return []
 
-        # Synoptic handoff: always keep a 48h cycle on hand
         if self.model_name == 'hrrr':
-            protected |= self._get_synoptic_protected()
+            return self._get_hrrr_target_cycles()
+        else:
+            return self._get_simple_target_cycles()
 
-        return protected
+    def _get_hrrr_target_cycles(self) -> list:
+        """HRRR: latest init first, then newest synoptic, then recent hourlies.
 
-    def _get_synoptic_protected(self) -> set:
-        """Determine which synoptic cycles to protect for 48h handoff.
-
-        Logic: We always want a 48h synoptic cycle available. If the newest
-        synoptic cycle is still loading (doesn't have F00-F18 loaded yet),
-        keep the previous synoptic cycle protected until the new one is ready.
+        Priority order:
+          1. Latest init cycle (whatever it is) — always #1
+          2. Newest synoptic (48h) — if not already the latest init
+          3. Previous synoptic during handoff
+          4. N most recent hourly cycles
         """
-        synoptic_cycles = [c for c in self.available_cycles if c.get('is_synoptic')]
-        if not synoptic_cycles:
-            return set()
+        targets = []
+        seen = set()
 
-        protected = set()
+        newest = self.available_cycles[0]  # Overall newest init
+        synoptics = [c for c in self.available_cycles if c.get('is_synoptic')]
 
-        # Find newest synoptic cycle that has F00-F18 mostly loaded in memory
-        newest_ready = None
-        newest_not_ready = None
-        for c in synoptic_cycles:
-            ck = c['cycle_key']
-            loaded_fhrs = {fhr for ckey, fhr in self.loaded_items if ckey == ck}
-            base_fhrs = set(range(0, 19))
-            has_base = len(loaded_fhrs & base_fhrs) >= 15  # 15 of 19 = "mostly loaded"
-            if has_base:
-                if newest_ready is None:
-                    newest_ready = c
-            else:
-                if newest_not_ready is None and (newest_ready is None):
-                    newest_not_ready = c
+        # 1. Latest init — always first, period
+        targets.append(newest)
+        seen.add(newest['cycle_key'])
 
-        if newest_ready:
-            # We have a ready synoptic cycle — protect it
-            protected.add(newest_ready['cycle_key'])
-        elif newest_not_ready:
-            # Newest synoptic is still loading — protect it AND the previous ready one
-            protected.add(newest_not_ready['cycle_key'])
-            # Find the next-oldest synoptic that IS ready
-            for c in synoptic_cycles:
-                if c['cycle_key'] == newest_not_ready['cycle_key']:
-                    continue
-                ck = c['cycle_key']
-                loaded_fhrs = {fhr for ckey, fhr in self.loaded_items if ckey == ck}
-                base_fhrs = set(range(0, 19))
-                if len(loaded_fhrs & base_fhrs) >= 15:
-                    protected.add(ck)
+        # 2. Newest synoptic (if it's not already the latest init)
+        if synoptics and synoptics[0]['cycle_key'] not in seen:
+            targets.append(synoptics[0])
+            seen.add(synoptics[0]['cycle_key'])
+
+        # 3. Handoff: keep previous synoptic if newest synoptic isn't mostly loaded
+        if synoptics:
+            newest_syn_ck = synoptics[0]['cycle_key']
+            loaded_fhrs = {fhr for ck, fhr in self.loaded_items if ck == newest_syn_ck}
+            if len(loaded_fhrs & set(range(19))) < 15 and len(synoptics) > 1:
+                if synoptics[1]['cycle_key'] not in seen:
+                    targets.append(synoptics[1])
+                    seen.add(synoptics[1]['cycle_key'])
+
+        # 4. Recent hourly cycles (up to N)
+        count = 0
+        for c in self.available_cycles:
+            if c['cycle_key'] not in seen:
+                targets.append(c)
+                seen.add(c['cycle_key'])
+                count += 1
+                if count >= self.HRRR_HOURLY_CYCLES:
                     break
 
-        return protected
+        return targets
+
+    def _get_simple_target_cycles(self) -> list:
+        """GFS/RRFS: newest cycle + handoff previous."""
+        targets = [self.available_cycles[0]]
+
+        # Handoff: if newest cycle isn't mostly loaded, keep previous
+        max_target = self.GFS_CYCLES if self.model_name == 'gfs' else self.RRFS_CYCLES
+        newest_ck = self.available_cycles[0]['cycle_key']
+        loaded_fhrs = {fhr for ck, fhr in self.loaded_items if ck == newest_ck}
+        base_count = min(10, len(self.FORECAST_HOURS))  # "mostly loaded" threshold
+        if len(loaded_fhrs) < base_count and len(self.available_cycles) > 1:
+            targets.append(self.available_cycles[1])
+
+        return targets
+
+    def get_protected_cycles(self) -> set:
+        """Return cycle keys that should never be evicted — matches target cycle strategy."""
+        return {c['cycle_key'] for c in self._get_target_cycles()}
+
+    @staticmethod
+    def _priority_sort_fhrs(fhrs: list) -> list:
+        """Sort FHRs by temporal priority: every 6h, then 3h fill, then hourly.
+
+        Users see the full time range at coarse resolution fast, then it fills in.
+        E.g. for F00-F48: [0,6,12,18,24,30,36,42,48, 3,9,15,21,27,33,39,45, 1,2,4,5,7,8,...]
+        """
+        tier1 = [f for f in fhrs if f % 6 == 0]  # Every 6h
+        tier2 = [f for f in fhrs if f % 3 == 0 and f % 6 != 0]  # Every 3h fill
+        tier3 = [f for f in fhrs if f % 3 != 0]  # Hourly fill
+        return tier1 + tier2 + tier3
 
     def is_archive_cycle(self, cycle_key: str) -> bool:
         """Return True if cycle_key is NOT one of the 2 latest (i.e. it's archive/old)."""
@@ -605,18 +787,28 @@ class CrossSectionManager:
         """Initialize the cross-section engine if needed."""
         if self.xsect is None:
             from core.cross_section_interactive import InteractiveCrossSection
-            cache_dir = f'cache/dashboard/xsect/{self.model_name}'
-            self.xsect = InteractiveCrossSection(
-                cache_dir=cache_dir,
-                min_levels=self._min_levels,
-                sfc_resolver=lambda prs: self._sfc_file_from_prs(prs),
-                nat_resolver=lambda prs: self._nat_file_from_prs(prs),
-            )
+            cache_dir = f'{self.CACHE_BASE}/{self.model_name}'
+            grib_backend = os.environ.get('XSECT_GRIB_BACKEND', 'cfgrib').strip().lower()
+            try:
+                self.xsect = InteractiveCrossSection(
+                    cache_dir=cache_dir,
+                    min_levels=self._min_levels,
+                    sfc_resolver=lambda prs: self._sfc_file_from_prs(prs),
+                    nat_resolver=lambda prs: self._nat_file_from_prs(prs),
+                    grib_backend=grib_backend,
+                )
+            except ValueError:
+                logger.warning(f"Invalid XSECT_GRIB_BACKEND='{grib_backend}', falling back to 'cfgrib'")
+                self.xsect = InteractiveCrossSection(
+                    cache_dir=cache_dir,
+                    min_levels=self._min_levels,
+                    sfc_resolver=lambda prs: self._sfc_file_from_prs(prs),
+                    nat_resolver=lambda prs: self._nat_file_from_prs(prs),
+                    grib_backend='cfgrib',
+                )
             self.xsect.model = self.model_name.upper()
-            # Climatology is HRRR-only for now
-            if self.model_name == 'hrrr' and CLIMATOLOGY_DIR.exists():
-                self.xsect.set_climatology_dir(str(CLIMATOLOGY_DIR))
-                logger.info(f"Climatology dir set: {CLIMATOLOGY_DIR}")
+            logger.info(f"Cross-section GRIB backend: {self.xsect.grib_backend}")
+            # Climatology/anomaly mode disabled for now
 
     def scan_available_cycles(self):
         """Scan for all available cycles on disk WITHOUT loading data."""
@@ -647,7 +839,8 @@ class CrossSectionManager:
                 available_fhrs = []
                 cycle_hour_int = int(hour)
                 max_fhr = get_max_fhr_for_cycle(self.model_name, cycle_hour_int)
-                for fhr in range(max_fhr + 1):
+                expected_fhrs = get_model_fhr_list(self.model_name, cycle_hour_int)
+                for fhr in expected_fhrs:
                     fhr_dir = hour_dir / f"F{fhr:02d}"
                     if fhr_dir.exists():
                         has_prs = [f for f in fhr_dir.glob(self._prs_pattern)
@@ -676,12 +869,37 @@ class CrossSectionManager:
                         'display': f"{self._display_prefix} - {init_dt.strftime('%b %d %HZ')}",
                         'max_fhr': max_fhr,
                         'is_synoptic': cycle_hour_int in SYNOPTIC_HOURS,
+                        'expected_fhrs': expected_fhrs,
                     })
 
         return self.available_cycles
 
     def get_cycles_for_ui(self):
-        """Return cycles formatted for UI dropdown, grouped by date."""
+        """Return cycles formatted for UI dropdown.
+
+        Only includes cycles that are either:
+          - In the preload target window (recent inits the dashboard manages)
+          - Have loaded data (e.g. from archive requests)
+          - Have an active download/load in progress
+        Older cycles on disk are hidden until explicitly requested via archive.
+        """
+        target_keys = {c['cycle_key'] for c in self._get_target_cycles()}
+        loaded_keys = {ck for ck, _ in self.loaded_items}
+
+        # Include cycles with active download/load operations
+        # op_id format: "download:hrrr:20250618/15z" or "load:hrrr:20250618/15z"
+        active_keys = set()
+        for op_id, info in PROGRESS.items():
+            if info.get('done'):
+                continue
+            parts = op_id.split(':')
+            if len(parts) >= 3 and parts[1] == self.model_name:
+                # Convert "20250618/15z" -> "20250618_15z"
+                ck = parts[2].replace('/', '_')
+                active_keys.add(ck)
+
+        visible_keys = target_keys | loaded_keys | active_keys
+
         return [
             {
                 'key': c['cycle_key'],
@@ -690,11 +908,13 @@ class CrossSectionManager:
                 'hour': c['hour'],
                 'fhrs': c['available_fhrs'],
                 'fhr_count': len(c['available_fhrs']),
-                'loaded': any(ck == c['cycle_key'] for ck, _ in self.loaded_items),
+                'loaded': c['cycle_key'] in loaded_keys,
                 'max_fhr': c.get('max_fhr', 18),
                 'is_synoptic': c.get('is_synoptic', False),
+                'expected_fhrs': c.get('expected_fhrs', None),
             }
             for c in self.available_cycles
+            if c['cycle_key'] in visible_keys
         ]
 
     def preload_latest_cycles(self, n_cycles: int = None):
@@ -708,20 +928,10 @@ class CrossSectionManager:
     def _preload_latest_cycles_inner(self, n_cycles):
         self.init_engine()
 
-        # Build interleaved FHR list across all cycles (round-robin)
-        # so both the latest hourly AND synoptic cycle load in parallel
-        cycles_to_load = self.available_cycles[:n_cycles]
-        # Also include synoptic cycles in top positions if not already there
-        if self.model_name == 'hrrr':
-            seen = {c['cycle_key'] for c in cycles_to_load}
-            for c in self.available_cycles:
-                if c.get('is_synoptic') and c['cycle_key'] not in seen:
-                    cycles_to_load.append(c)
-                    seen.add(c['cycle_key'])
-                    if len(cycles_to_load) >= n_cycles + 2:
-                        break
+        # Smart cycle selection: load only what matters
+        cycles_to_load = self._get_target_cycles()
 
-        # Build per-cycle FHR queues
+        # Build per-cycle FHR queues, priority-sorted within each cycle
         cycle_queues = []
         for cycle in cycles_to_load:
             cycle_key = cycle['cycle_key']
@@ -730,25 +940,48 @@ class CrossSectionManager:
             with self._lock:
                 fhrs = [fhr for fhr in allowed if (cycle_key, fhr) not in self.loaded_items]
             if fhrs:
+                fhrs = self._priority_sort_fhrs(fhrs)
                 cycle_queues.append((cycle, fhrs))
 
         if not cycle_queues:
             return
 
-        # Interleave: round-robin across cycles so all get FHRs loaded concurrently
+        # Build flat list, newest-first, priority-sorted within each cycle
         interleaved = []
-        max_len = max(len(fhrs) for _, fhrs in cycle_queues)
-        for i in range(max_len):
-            for cycle, fhrs in cycle_queues:
-                if i < len(fhrs):
-                    interleaved.append((cycle, fhrs[i]))
+        for cycle, fhrs in cycle_queues:
+            for fhr in fhrs:
+                interleaved.append((cycle, fhr))
 
-        total = len(interleaved)
+        # Partition into cached (instant mmap load) vs uncached (slow GRIB conversion).
+        # Cached items load first so users see rapid progress instead of waiting
+        # for GRIB conversions before anything appears.
+        cache_dir = Path(f'{self.CACHE_BASE}/{self.model_name}')
+        cached_items = []
+        uncached_items = []
+        for cycle, fhr in interleaved:
+            prs_files = list((Path(cycle['path']) / f"F{fhr:02d}").glob(self._prs_pattern))
+            if prs_files:
+                stem = self.xsect._get_cache_stem(str(prs_files[0]))
+                if stem and (cache_dir / stem).is_dir():
+                    cached_items.append((cycle, fhr))
+                else:
+                    uncached_items.append((cycle, fhr))
+            else:
+                uncached_items.append((cycle, fhr))
+
+        # Load cached first, then uncached
+        ordered = cached_items + uncached_items
+        n_cached = len(cached_items)
+
+        total = len(ordered)
         done = [0]
         op_id = "preload:startup"
-        cycle_names = ', '.join(c['display'] for c, _ in cycle_queues)
-        progress_update(op_id, 0, total, "Starting...", label=f"Pre-loading {cycle_names}")
-        logger.info(f"Pre-loading {len(interleaved)} FHRs across {len(cycle_queues)} cycles ({self.PRELOAD_WORKERS} workers, interleaved)...")
+        n_cyc = len(cycle_queues)
+
+        cycle_list = ', '.join(c['cycle_key'] for c, _ in cycle_queues)
+        progress_update(op_id, 0, total, "Starting...",
+                        label=f"Pre-loading {n_cyc} cycles ({total} FHRs, {n_cached} cached)")
+        logger.info(f"Pre-loading {total} FHRs across {n_cyc} cycles: [{cycle_list}] ({n_cached} cached, {total - n_cached} need GRIB)")
 
         def _make_loader(c):
             def _load_one(fhr):
@@ -770,28 +1003,71 @@ class CrossSectionManager:
                 return ck, fhr, False
             return _load_one
 
-        with ThreadPoolExecutor(max_workers=self.PRELOAD_WORKERS) as pool:
-            futures = {}
-            for cycle, fhr in interleaved:
-                loader = _make_loader(cycle)
-                futures[pool.submit(loader, fhr)] = (cycle['cycle_key'], fhr)
+        # Phase 1: Load cached items (fast — mmap loads in <0.1s each)
+        cancelled = False
+        if cached_items:
+            logger.info(f"  Phase 1: Loading {n_cached} cached FHRs...")
+            with ThreadPoolExecutor(max_workers=self.PRELOAD_WORKERS) as pool:
+                futures = {}
+                for cycle, fhr in cached_items:
+                    loader = _make_loader(cycle)
+                    futures[pool.submit(loader, fhr)] = (cycle['cycle_key'], fhr)
 
-            for future in as_completed(futures):
-                try:
-                    ck, fhr, ok = future.result()
-                    done[0] += 1
-                    if ok:
-                        logger.info(f"  Loaded {ck} F{fhr:02d}")
-                        progress_update(op_id, done[0], total, f"Loaded {ck} F{fhr:02d}")
-                    else:
-                        progress_update(op_id, done[0], total, f"Failed {ck} F{fhr:02d}")
-                except Exception as e:
-                    done[0] += 1
-                    logger.warning(f"  Failed to load FHR: {e}")
+                for future in as_completed(futures):
+                    if is_cancelled(op_id):
+                        for f in futures:
+                            f.cancel()
+                        cancelled = True
+                        break
+                    try:
+                        ck, fhr, ok = future.result()
+                        done[0] += 1
+                        if ok:
+                            logger.info(f"  Loaded {ck} F{fhr:02d} (cached)")
+                            progress_update(op_id, done[0], total, f"Loaded {ck} F{fhr:02d} (cached)")
+                        else:
+                            progress_update(op_id, done[0], total, f"Failed {ck} F{fhr:02d}")
+                    except Exception as e:
+                        done[0] += 1
+                        logger.warning(f"  Failed to load FHR: {e}")
+
+            logger.info(f"  Phase 1 done: {done[0]}/{n_cached} cached FHRs loaded")
+
+        # Phase 2: Convert uncached items from GRIB (ThreadPool — avoids WSL2 folio contention)
+        if uncached_items and not cancelled:
+            logger.info(f"  Phase 2: Converting {len(uncached_items)} FHRs from GRIB ({self.GRIB_WORKERS} workers)...")
+            with ThreadPoolExecutor(max_workers=self.GRIB_WORKERS) as pool:
+                futures = {}
+                for cycle, fhr in uncached_items:
+                    loader = _make_loader(cycle)
+                    futures[pool.submit(loader, fhr)] = (cycle['cycle_key'], fhr)
+
+                for future in as_completed(futures):
+                    if is_cancelled(op_id):
+                        for f in futures:
+                            f.cancel()
+                        cancelled = True
+                        break
+                    try:
+                        ck, fhr, ok = future.result()
+                        done[0] += 1
+                        if ok:
+                            logger.info(f"  Loaded {ck} F{fhr:02d} (GRIB)")
+                            progress_update(op_id, done[0], total, f"Loaded {ck} F{fhr:02d} (GRIB)")
+                        else:
+                            progress_update(op_id, done[0], total, f"Failed {ck} F{fhr:02d}")
+                    except Exception as e:
+                        done[0] += 1
+                        logger.warning(f"  Failed to load FHR: {e}")
 
         mem_mb = self.xsect.get_memory_usage()
-        logger.info(f"  Pre-load done ({mem_mb:.0f} MB total)")
+        if cancelled:
+            logger.info(f"  Pre-load CANCELLED at {done[0]}/{total} ({mem_mb:.0f} MB)")
+            PROGRESS[op_id]['detail'] = 'Cancelled'
+        else:
+            logger.info(f"  Pre-load done ({mem_mb:.0f} MB total)")
         progress_done(op_id)
+        CANCEL_FLAGS.pop(op_id, None)
 
     def auto_load_latest(self):
         """Load new FHRs from disk, newest cycle first (priority)."""
@@ -807,27 +1083,21 @@ class CrossSectionManager:
         if not self.xsect or not self.available_cycles:
             return
 
-        # Build priority order:
-        #   1. Newest cycle (always first)
-        #   2. Newest synoptic cycle (if different from #1) — needs 48h
-        #   3. Previous synoptic cycle (handoff: keep it until newest synoptic is ready)
-        #   4. Remaining cycles in chronological order
-        newest = self.available_cycles[0]
-        seen = {newest['cycle_key']}
-        priority_cycles = [newest]
+        # Use the same smart cycle selection as preload — only load target cycles
+        priority_cycles = self._get_target_cycles()
 
-        if self.model_name == 'hrrr':
-            synoptics = [c for c in self.available_cycles if c.get('is_synoptic')]
-            for syn in synoptics[:2]:  # Up to 2 newest synoptic cycles
-                if syn['cycle_key'] not in seen:
-                    priority_cycles.append(syn)
-                    seen.add(syn['cycle_key'])
+        # Evict FHRs from cycles that are no longer targeted
+        target_keys = {c['cycle_key'] for c in priority_cycles}
+        with self._lock:
+            to_evict = [(ck, fhr) for ck, fhr in self.loaded_items if ck not in target_keys]
+        for ck, fhr in to_evict:
+            logger.info(f"  Evicting {ck} F{fhr:02d} (no longer in target cycles)")
+            with self._lock:
+                if (ck, fhr) in self.loaded_items:
+                    self.loaded_items.remove((ck, fhr))
+            self._unload_item(ck, fhr)
 
-        for c in self.available_cycles[1:]:
-            if c['cycle_key'] not in seen:
-                priority_cycles.append(c)
-                seen.add(c['cycle_key'])
-
+        newest = priority_cycles[0] if priority_cycles else None
         for cycle in priority_cycles:
             cycle_key = cycle['cycle_key']
             run_path = Path(cycle['path'])
@@ -847,7 +1117,24 @@ class CrossSectionManager:
             if not fhrs_to_load:
                 continue
 
+            fhrs_to_load = self._priority_sort_fhrs(fhrs_to_load)
             is_newest = (cycle_key == newest['cycle_key'])
+
+            # Partition into cached (fast) vs uncached (slow GRIB) — load cached first
+            cache_dir = Path(f'{self.CACHE_BASE}/{self.model_name}')
+            cached_fhrs = []
+            uncached_fhrs = []
+            for fhr in fhrs_to_load:
+                prs_files = list((Path(cycle['path']) / f"F{fhr:02d}").glob(self._prs_pattern))
+                if prs_files:
+                    stem = self.xsect._get_cache_stem(str(prs_files[0]))
+                    if stem and (cache_dir / stem).is_dir():
+                        cached_fhrs.append(fhr)
+                    else:
+                        uncached_fhrs.append(fhr)
+                else:
+                    uncached_fhrs.append(fhr)
+            fhrs_to_load = cached_fhrs + uncached_fhrs
 
             def _make_loader(c, ck):
                 def _load_one(fhr):
@@ -870,20 +1157,34 @@ class CrossSectionManager:
 
             _load_one = _make_loader(cycle, cycle_key)
 
-            fhr_list = ', '.join(f'F{f:02d}' for f in fhrs_to_load)
+            n_cached = len(cached_fhrs)
             priority = " [PRIORITY]" if is_newest else ""
             synoptic_tag = " [48h SYNOPTIC]" if is_synoptic and any(f >= 19 for f in fhrs_to_load) else ""
-            logger.info(f"Auto-loading{priority}{synoptic_tag} {cycle['display']} [{fhr_list}]...")
+            logger.info(f"Auto-loading{priority}{synoptic_tag} {cycle['display']} ({n_cached} cached, {len(uncached_fhrs)} GRIB)")
 
-            with ThreadPoolExecutor(max_workers=self.PRELOAD_WORKERS) as pool:
-                futures = {pool.submit(_load_one, fhr): fhr for fhr in fhrs_to_load}
-                for future in as_completed(futures):
-                    try:
-                        fhr, ok = future.result()
-                        if ok:
-                            logger.info(f"  Auto-loaded {cycle_key} F{fhr:02d}")
-                    except Exception as e:
-                        logger.warning(f"  Auto-load failed: {e}")
+            # Phase 1: Load cached (fast, thread pool)
+            if cached_fhrs:
+                with ThreadPoolExecutor(max_workers=self.PRELOAD_WORKERS) as pool:
+                    futures = {pool.submit(_load_one, fhr): fhr for fhr in cached_fhrs}
+                    for future in as_completed(futures):
+                        try:
+                            fhr, ok = future.result()
+                            if ok:
+                                logger.info(f"  Auto-loaded {cycle_key} F{fhr:02d} (cached)")
+                        except Exception as e:
+                            logger.warning(f"  Auto-load failed: {e}")
+
+            # Phase 2: Convert uncached from GRIB (ThreadPool — avoids WSL2 folio contention)
+            if uncached_fhrs:
+                with ThreadPoolExecutor(max_workers=self.GRIB_WORKERS) as pool:
+                    futures = {pool.submit(_load_one, fhr): fhr for fhr in uncached_fhrs}
+                    for future in as_completed(futures):
+                        try:
+                            fhr, ok = future.result()
+                            if ok:
+                                logger.info(f"  Auto-loaded {cycle_key} F{fhr:02d} (GRIB)")
+                        except Exception as e:
+                            logger.warning(f"  Auto-load failed: {e}")
 
     def get_loaded_status(self):
         """Return current memory status."""
@@ -975,9 +1276,15 @@ class CrossSectionManager:
 
         logger.info(f"Loading {cycle['display']} ({len(fhrs_to_load)} FHRs, {self.PRELOAD_WORKERS} workers)...")
 
+        cancelled = False
         with ThreadPoolExecutor(max_workers=self.PRELOAD_WORKERS) as pool:
             futures = {pool.submit(_load_one, fhr): fhr for fhr in fhrs_to_load}
             for future in as_completed(futures):
+                if is_cancelled(op_id):
+                    for f in futures:
+                        f.cancel()
+                    cancelled = True
+                    break
                 try:
                     fhr, ok = future.result()
                     if ok:
@@ -990,8 +1297,13 @@ class CrossSectionManager:
         with self._lock:
             self.loaded_cycles.add(cycle_key)
         mem_mb = self.xsect.get_memory_usage()
-        logger.info(f"Loaded {cycle['display']} ({loaded_count[0]} FHRs, {mem_mb:.0f} MB total)")
+        if cancelled:
+            logger.info(f"Load CANCELLED for {cycle['display']} at {loaded_count[0]}/{total_fhrs} ({mem_mb:.0f} MB)")
+            PROGRESS[op_id]['detail'] = 'Cancelled'
+        else:
+            logger.info(f"Loaded {cycle['display']} ({loaded_count[0]} FHRs, {mem_mb:.0f} MB total)")
         progress_done(op_id)
+        CANCEL_FLAGS.pop(op_id, None)
 
         return {
             'success': True,
@@ -1275,29 +1587,43 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         #map { flex: 1; }
         #controls {
             background: var(--panel);
-            padding: 12px 16px;
+            padding: 8px 12px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 6px;
             border-bottom: 1px solid var(--border);
         }
         .control-row {
             display: flex;
-            gap: 16px;
+            gap: 8px;
             align-items: center;
             flex-wrap: wrap;
         }
-        .control-group { display: flex; align-items: center; gap: 8px; }
-        label { color: var(--muted); font-size: 13px; font-weight: 500; }
+        .control-group { display: flex; align-items: center; gap: 4px; }
+        .control-row-secondary {
+            display: none;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .control-row-secondary.visible {
+            display: flex;
+        }
+        #more-toggle {
+            background: none; border: 1px solid var(--border); color: var(--muted);
+            padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;
+        }
+        #more-toggle:hover { color: var(--text); border-color: var(--accent); }
+        label { color: var(--muted); font-size: 12px; font-weight: 500; }
         select {
             background: var(--card);
             color: var(--text);
             border: 1px solid var(--border);
-            padding: 8px 12px;
+            padding: 5px 8px;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 14px;
-            min-width: 180px;
+            font-size: 13px;
+            min-width: 120px;
         }
         select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 
@@ -1570,13 +1896,15 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             border: 1px solid var(--border);
             border-radius: 10px;
             padding: 0;
-            min-width: 320px;
-            max-width: 400px;
+            min-width: 340px;
+            max-width: 420px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.4);
             display: none;
             overflow: hidden;
         }
         #progress-panel.visible { display: block; animation: slideUp 0.3s ease; }
+        #progress-panel.collapsed .progress-items,
+        #progress-panel.collapsed .progress-footer { display: none; }
         .progress-header {
             padding: 8px 14px;
             font-size: 11px;
@@ -1586,8 +1914,35 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             color: var(--muted);
             border-bottom: 1px solid var(--border);
             background: rgba(255,255,255,0.03);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
         }
-        .progress-items { padding: 6px 0; max-height: 300px; overflow-y: auto; }
+        .progress-header:hover { background: rgba(255,255,255,0.06); }
+        .progress-header-left { display: flex; align-items: center; gap: 8px; }
+        .progress-badge {
+            background: var(--accent);
+            color: #fff;
+            font-size: 10px;
+            font-weight: 700;
+            min-width: 18px;
+            height: 18px;
+            border-radius: 9px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 5px;
+        }
+        .progress-badge.done-badge { background: var(--success); }
+        .progress-collapse-icon {
+            font-size: 10px;
+            color: var(--muted);
+            transition: transform 0.2s ease;
+        }
+        #progress-panel.collapsed .progress-collapse-icon { transform: rotate(180deg); }
+        .progress-items { padding: 4px 0; max-height: 320px; overflow-y: auto; }
         .progress-item {
             padding: 8px 14px;
             border-bottom: 1px solid rgba(255,255,255,0.04);
@@ -1600,6 +1955,17 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             align-items: center;
             margin-bottom: 4px;
         }
+        .cancel-op-btn {
+            background: none;
+            border: none;
+            color: #f66;
+            cursor: pointer;
+            font-size: 13px;
+            padding: 0 0 0 6px;
+            line-height: 1;
+            opacity: 0.7;
+        }
+        .cancel-op-btn:hover { opacity: 1; }
         .progress-label {
             font-size: 12px;
             font-weight: 500;
@@ -1607,7 +1973,14 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 200px;
+            max-width: 220px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .progress-label .op-icon {
+            font-size: 11px;
+            flex-shrink: 0;
         }
         .progress-stats {
             font-size: 11px;
@@ -1628,12 +2001,32 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             background: var(--accent);
         }
         .progress-item.done .progress-bar-fill { background: var(--success); }
+        .progress-item[data-op="preload"] .progress-bar-fill { background: #6366f1; }
+        .progress-item[data-op="download"] .progress-bar-fill { background: #f59e0b; }
+        .progress-item[data-op="prerender"] .progress-bar-fill { background: #8b5cf6; }
         .progress-detail {
             font-size: 11px;
             color: var(--muted);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            display: flex;
+            justify-content: space-between;
+        }
+        .progress-detail .eta {
+            color: var(--accent);
+            font-weight: 500;
+            flex-shrink: 0;
+            margin-left: 8px;
+        }
+        .progress-footer {
+            padding: 6px 14px;
+            font-size: 11px;
+            color: var(--muted);
+            border-top: 1px solid var(--border);
+            background: rgba(255,255,255,0.02);
+            display: flex;
+            justify-content: space-between;
         }
 
         button {
@@ -1881,6 +2274,16 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             justify-content: center;
         }
         #request-modal.visible { display: flex; }
+        #run-request-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 10002;
+            align-items: center;
+            justify-content: center;
+        }
+        #run-request-modal.visible { display: flex; }
         .request-form {
             display: flex;
             flex-direction: column;
@@ -1982,9 +2385,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     <select id="model-select"></select>
                 </div>
                 <div class="control-group">
-                    <label>Model Run:</label>
+                    <label>Run:</label>
                     <select id="cycle-select"></select>
-                    <button id="request-cycle-btn" title="Request a specific init cycle" style="padding:4px 8px;font-size:13px;">📅</button>
                 </div>
                 <div class="control-group">
                     <label>Style:</label>
@@ -1995,8 +2397,18 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <option value="white_zero">White at 0°C</option>
                         <option value="green_purple">Green-Purple</option>
                     </select>
-                    <button class="help-btn" id="help-btn" title="Style explanations & feedback">?</button>
                 </div>
+                <div class="control-group favorites-group">
+                    <select id="favorites-select">
+                        <option value="">Favorites</option>
+                    </select>
+                    <button id="save-favorite-btn" title="Save current view" style="padding:3px 6px;font-size:12px;">Save</button>
+                </div>
+                <button id="swap-btn" title="Swap start/end points" style="padding:3px 8px;font-size:12px;">Swap</button>
+                <button id="clear-btn" style="padding:3px 8px;font-size:12px;">Clear</button>
+                <button id="more-toggle" title="Show/hide more options">More &#9660;</button>
+            </div>
+            <div class="control-row-secondary" id="secondary-controls">
                 <div class="control-group" id="anomaly-group" style="display:none">
                     <label>Mode:</label>
                     <div class="toggle-group">
@@ -2013,7 +2425,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 </div>
                 <div class="control-group">
                     <label>V-Scale:</label>
-                    <select id="vscale-select">
+                    <select id="vscale-select" style="min-width:60px;">
                         <option value="0.5">0.5x</option>
                         <option value="1.0" selected>1x</option>
                         <option value="1.5">1.5x</option>
@@ -2022,7 +2434,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 </div>
                 <div class="control-group">
                     <label>Top:</label>
-                    <select id="ytop-select">
+                    <select id="ytop-select" style="min-width:80px;">
                         <option value="100" selected>100 hPa</option>
                         <option value="200">200 hPa</option>
                         <option value="300">300 hPa</option>
@@ -2032,49 +2444,43 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 </div>
                 <div class="control-group">
                     <label>Units:</label>
-                    <select id="units-select">
+                    <select id="units-select" style="min-width:55px;">
                         <option value="km" selected>km</option>
                         <option value="mi">mi</option>
                     </select>
                 </div>
-                <div class="control-group favorites-group">
-                    <select id="favorites-select">
-                        <option value="">⭐ Favorites</option>
-                    </select>
-                    <button id="save-favorite-btn" title="Save current view">💾</button>
-                </div>
-                <button id="swap-btn" title="Swap start/end points">⇄ Swap</button>
-                <button id="gif-btn" title="Generate animated GIF of all loaded FHRs">GIF</button>
-                <select id="gif-speed" title="GIF speed">
+                <button class="help-btn" id="help-btn" title="Style explanations & feedback">?</button>
+                <button id="request-cycle-btn" title="Request a specific init cycle" style="padding:3px 8px;font-size:12px;">Request Run</button>
+                <button id="gif-btn" title="Generate animated GIF" style="padding:3px 8px;font-size:12px;">GIF</button>
+                <select id="gif-speed" title="GIF speed" style="min-width:55px;">
                     <option value="1">1x</option>
                     <option value="0.75">0.75x</option>
                     <option value="0.5" selected>0.5x</option>
                     <option value="0.25">0.25x</option>
                 </select>
-                <button id="clear-btn">Clear Line</button>
-                <button id="admin-key-btn" title="Enter admin key for archive access" style="padding:4px 8px;font-size:13px;">🔒</button>
-                <button id="load-all-btn" title="Load all FHRs for current cycle" style="padding:4px 8px;font-size:12px;">Load All</button>
-                <button id="compare-btn" title="Compare two init cycles side-by-side" style="padding:4px 8px;font-size:12px;">Compare</button>
+                <button id="load-all-btn" title="Load all FHRs for current cycle" style="padding:3px 8px;font-size:12px;">Load All</button>
+                <button id="compare-btn" title="Compare two init cycles" style="padding:3px 8px;font-size:12px;">Compare</button>
+                <button id="admin-key-btn" title="Enter admin key" style="padding:3px 8px;font-size:12px;">Admin</button>
                 <div id="memory-status">
                     <span id="mem-text">0 MB</span>
                     <div class="mem-bar"><div class="mem-fill" id="mem-fill" style="width:0%"></div></div>
                 </div>
             </div>
             <div class="control-row">
-                <label>Forecast Hours:</label>
+                <label>FHR:</label>
                 <div class="chip-group" id="fhr-chips"></div>
             </div>
             <div class="control-row" id="slider-row" style="display:none;">
-                <button id="play-btn" title="Auto-play through loaded frames" style="padding:4px 10px;font-size:16px;min-width:36px;">&#9654;</button>
+                <button id="play-btn" title="Auto-play" style="padding:3px 8px;font-size:14px;min-width:32px;">&#9654;</button>
                 <input type="range" id="fhr-slider" min="0" max="18" value="0" style="flex:1;">
-                <span id="slider-label" style="font-size:12px;color:var(--muted);min-width:36px;text-align:center;">F00</span>
-                <select id="play-speed" title="Playback speed" style="min-width:55px;font-size:11px;">
+                <span id="slider-label" style="font-size:11px;color:var(--muted);min-width:32px;text-align:center;">F00</span>
+                <select id="play-speed" title="Playback speed" style="min-width:50px;font-size:11px;">
                     <option value="2000">0.5x</option>
                     <option value="1000" selected>1x</option>
                     <option value="500">2x</option>
                     <option value="250">4x</option>
                 </select>
-                <button id="prerender-btn" title="Pre-render all loaded frames for smooth playback" style="padding:4px 8px;font-size:11px;">Pre-render</button>
+                <button id="prerender-btn" title="Pre-render all frames" style="padding:3px 6px;font-size:11px;">Pre-render</button>
             </div>
         </div>
         <div id="map"></div>
@@ -2113,8 +2519,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
     </div>
     <div id="toast-container"></div>
     <div id="progress-panel">
-        <div class="progress-header">Activity</div>
+        <div class="progress-header" id="progress-header">
+            <span class="progress-header-left">Activity <span class="progress-badge" id="progress-badge">0</span></span>
+            <span class="progress-collapse-icon">&#9660;</span>
+        </div>
         <div class="progress-items" id="progress-items"></div>
+        <div class="progress-footer" id="progress-footer"></div>
     </div>
 
     <!-- Explainer Modal -->
@@ -2146,6 +2556,46 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <div class="request-list" id="request-list">
                     <!-- Populated by JavaScript -->
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="run-request-modal">
+        <div class="modal-content" style="max-width:340px;padding:20px;">
+            <div class="modal-header" style="margin-bottom:12px;">
+                <h2 style="font-size:16px;margin:0;">Request Archive Run</h2>
+                <button class="modal-close" id="req-cancel">&times;</button>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+                <div>
+                    <label style="font-size:12px;color:var(--text-dim);display:block;margin-bottom:3px;">Date</label>
+                    <input type="date" id="req-date" style="width:100%;padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:14px;">
+                </div>
+                <div>
+                    <label style="font-size:12px;color:var(--text-dim);display:block;margin-bottom:3px;">Init Hour (UTC)</label>
+                    <select id="req-hour" style="width:100%;padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:14px;">
+                        <option value="0">00z</option><option value="1">01z</option><option value="2">02z</option>
+                        <option value="3">03z</option><option value="4">04z</option><option value="5">05z</option>
+                        <option value="6">06z</option><option value="7">07z</option><option value="8">08z</option>
+                        <option value="9">09z</option><option value="10">10z</option><option value="11">11z</option>
+                        <option value="12" selected>12z</option><option value="13">13z</option><option value="14">14z</option>
+                        <option value="15">15z</option><option value="16">16z</option><option value="17">17z</option>
+                        <option value="18">18z</option><option value="19">19z</option><option value="20">20z</option>
+                        <option value="21">21z</option><option value="22">22z</option><option value="23">23z</option>
+                    </select>
+                </div>
+                <div style="display:flex;gap:8px;align-items:end;">
+                    <div style="flex:1;">
+                        <label style="font-size:12px;color:var(--text-dim);display:block;margin-bottom:3px;">FHR Start</label>
+                        <input type="number" id="req-fhr-start" value="0" min="0" max="48" style="width:100%;padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:14px;">
+                    </div>
+                    <span style="padding-bottom:8px;color:var(--text-dim);">to</span>
+                    <div style="flex:1;">
+                        <label style="font-size:12px;color:var(--text-dim);display:block;margin-bottom:3px;">FHR End <span id="req-fhr-max-hint" style="opacity:0.6;">(max 18)</span></label>
+                        <input type="number" id="req-fhr-end" value="18" min="0" max="48" style="width:100%;padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:14px;">
+                    </div>
+                </div>
+                <button id="req-submit" style="padding:8px;background:var(--accent,#4a9eff);border:none;border-radius:4px;color:#fff;font-size:14px;cursor:pointer;font-weight:500;margin-top:4px;">Download & Load</button>
             </div>
         </div>
     </div>
@@ -2347,7 +2797,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         tempCmapSelect.onchange = generateCrossSection;
 
         // =========================================================================
-        // Anomaly Mode Toggle
+        // Anomaly Mode — disabled (kept for future use, always false)
         // =========================================================================
         let anomalyMode = false;
         let anomalyStyles = new Set();
@@ -2356,46 +2806,16 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         const anomalyOffBtn = document.getElementById('anomaly-off');
         const anomalyOnBtn = document.getElementById('anomaly-on');
 
-        anomalyOffBtn.onclick = () => {
-            if (!anomalyMode) return;
-            anomalyMode = false;
-            anomalyOffBtn.classList.add('active');
-            anomalyOnBtn.classList.remove('active', 'anomaly-active');
-            generateCrossSection();
-        };
-        anomalyOnBtn.onclick = () => {
-            if (anomalyMode) return;
-            anomalyMode = true;
-            anomalyOffBtn.classList.remove('active');
-            anomalyOnBtn.classList.add('active', 'anomaly-active');
-            generateCrossSection();
-        };
+        // Handlers kept but anomaly group is permanently hidden
+        anomalyOffBtn.onclick = () => {};
+        anomalyOnBtn.onclick = () => {};
 
         function updateAnomalyVisibility() {
-            const style = styleSelect.value;
-            if (climatologyAvailable && anomalyStyles.has(style)) {
-                anomalyGroup.style.display = '';
-            } else {
-                anomalyGroup.style.display = 'none';
-                if (anomalyMode) {
-                    anomalyMode = false;
-                    anomalyOffBtn.classList.add('active');
-                    anomalyOnBtn.classList.remove('active', 'anomaly-active');
-                }
-            }
+            // Anomaly mode disabled — always hidden
+            anomalyGroup.style.display = 'none';
         }
 
-        // Check climatology availability on load
-        fetch('/api/climatology_status')
-            .then(r => r.json())
-            .then(data => {
-                climatologyAvailable = data.available;
-                if (data.anomaly_styles) {
-                    anomalyStyles = new Set(data.anomaly_styles);
-                }
-                updateAnomalyVisibility();
-            })
-            .catch(() => {});
+        // Climatology fetch skipped — anomaly mode disabled
 
         // =========================================================================
         // Y-Axis Toggle (Pressure / Height)
@@ -2566,63 +2986,68 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         loadFavorites();
 
         // =========================================================================
-        // Request Custom Date/Cycle
+        // Request Custom Date/Cycle — Modal Dialog
         // =========================================================================
-        document.getElementById('request-cycle-btn').onclick = async function() {
-            const dateStr = prompt('Request a specific init cycle (F00-F18)\\nEnter date (YYYYMMDD):', new Date().toISOString().slice(0,10).replace(/-/g,''));
-            if (!dateStr || dateStr.length !== 8) return;
-
-            const hourStr = prompt('Enter init hour (0-23):', '12');
-            if (hourStr === null) return;
-            const hour = parseInt(hourStr);
-            if (isNaN(hour) || hour < 0 || hour > 23) {
-                showToast('Invalid hour (0-23)', 'error');
+        document.getElementById('request-cycle-btn').onclick = function() {
+            if (!isAdmin) {
+                showToast('Admin key required', 'error');
                 return;
             }
+            document.getElementById('run-request-modal').classList.add('visible');
+            // Set date default to today
+            const today = new Date().toISOString().slice(0, 10);
+            document.getElementById('req-date').value = today;
+            updateMaxFhr();
+        };
+        document.getElementById('req-cancel').onclick = function() {
+            document.getElementById('run-request-modal').classList.remove('visible');
+        };
+        // Close on backdrop click
+        document.getElementById('run-request-modal').addEventListener('click', function(e) {
+            if (e.target === this) this.classList.remove('visible');
+        });
 
-            const toast = showToast(`Requesting ${dateStr}/${String(hour).padStart(2,'0')}z F00-F18...`);
+        // Update max FHR when hour changes (HRRR synoptic = 48)
+        function updateMaxFhr() {
+            const hour = parseInt(document.getElementById('req-hour').value) || 0;
+            const isSynoptic = [0, 6, 12, 18].includes(hour);
+            const model = currentModel;
+            let maxFhr = 18;
+            if (model === 'hrrr' && isSynoptic) maxFhr = 48;
+            else if (model === 'gfs') maxFhr = 384;
+            const endInput = document.getElementById('req-fhr-end');
+            endInput.max = maxFhr;
+            if (parseInt(endInput.value) > maxFhr) endInput.value = maxFhr;
+            document.getElementById('req-fhr-max-hint').textContent = `(max ${maxFhr})`;
+        }
+        document.getElementById('req-hour').addEventListener('change', updateMaxFhr);
+
+        // Submit request
+        document.getElementById('req-submit').onclick = async function() {
+            const dateStr = document.getElementById('req-date').value.replace(/-/g, '');
+            const hour = parseInt(document.getElementById('req-hour').value);
+            const fhrStart = parseInt(document.getElementById('req-fhr-start').value);
+            const fhrEnd = parseInt(document.getElementById('req-fhr-end').value);
+
+            if (!dateStr || dateStr.length !== 8) { showToast('Invalid date', 'error'); return; }
+            if (isNaN(hour)) { showToast('Select an init hour', 'error'); return; }
+            if (fhrStart > fhrEnd) { showToast('Start FHR must be <= End FHR', 'error'); return; }
+
+            document.getElementById('run-request-modal').classList.remove('visible');
+            const label = `${dateStr}/${String(hour).padStart(2,'0')}z F${String(fhrStart).padStart(2,'0')}-F${String(fhrEnd).padStart(2,'0')}`;
+            showToast(`Requesting ${label}...`, 'success', 3000);
+
             try {
-                const res = await fetch(`/api/request_cycle?date=${dateStr}&hour=${hour}${modelParam()}${adminParam()}`, {method: 'POST'});
+                const res = await fetch(
+                    `/api/request_cycle?date=${dateStr}&hour=${hour}&fhr_start=${fhrStart}&fhr_end=${fhrEnd}${modelParam()}${adminParam()}`,
+                    {method: 'POST'}
+                );
                 const data = await res.json();
-                toast.remove();
-                if (data.success) {
-                    // Show persistent progress toast
-                    const progressToast = showToast(`📡 ${data.cycle_key}: downloading 0/19 FHRs from ${data.source}...`);
-                    let lastCount = 0;
-
-                    const pollInterval = setInterval(async () => {
-                        await refreshCycleList();
-                        const found = cycles.find(c => c.key === data.cycle_key);
-                        const count = found ? found.fhrs.length : 0;
-
-                        if (count !== lastCount) {
-                            lastCount = count;
-                            const pct = Math.round(count / 19 * 100);
-                            const bar = '█'.repeat(Math.round(pct / 5)) + '░'.repeat(20 - Math.round(pct / 5));
-                            progressToast.querySelector('span').textContent =
-                                `📡 ${data.cycle_key}: ${count}/19 FHRs [${bar}] ${pct}%`;
-                        }
-
-                        if (count >= 19) {
-                            clearInterval(pollInterval);
-                            progressToast.remove();
-                            showToast(`${data.cycle_key} ready! All 19 forecast hours downloaded.`, 'success');
-                        }
-                    }, 10000);
-
-                    // Stop polling after est + 10 min
-                    setTimeout(() => {
-                        clearInterval(pollInterval);
-                        if (lastCount < 19) {
-                            progressToast.remove();
-                            showToast(`${data.cycle_key}: ${lastCount}/19 FHRs downloaded (timed out polling, download may still be running)`, 'error');
-                        }
-                    }, ((data.est_minutes || 10) + 10) * 60000);
-                } else {
+                if (!data.success) {
                     showToast(data.error || 'Request failed', 'error');
                 }
+                // Progress is shown in the progress panel now — no need for separate polling
             } catch (e) {
-                toast.remove();
                 showToast('Request failed', 'error');
             }
         };
@@ -2743,12 +3168,32 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         setInterval(() => { refreshCycleList(); refreshLoadedStatus(); }, 60000);
 
         // === Progress Panel ===
+        const OP_ICONS = {
+            preload: '\\u25B6',  // play triangle
+            load: '\\u2191',     // up arrow
+            prerender: '\\u25CF',// filled circle
+            download: '\\u2193', // down arrow
+        };
+
+        function fmtTime(sec) {
+            if (sec >= 3600) return `${Math.floor(sec/3600)}h ${Math.floor((sec%3600)/60)}m`;
+            if (sec >= 60) return `${Math.floor(sec/60)}m ${sec%60}s`;
+            return `${sec}s`;
+        }
+
+        // Collapse/expand toggle
+        document.getElementById('progress-header').addEventListener('click', () => {
+            document.getElementById('progress-panel').classList.toggle('collapsed');
+        });
+
         async function pollProgress() {
             try {
                 const res = await fetch('/api/progress');
                 const data = await res.json();
                 const panel = document.getElementById('progress-panel');
                 const container = document.getElementById('progress-items');
+                const footer = document.getElementById('progress-footer');
+                const badge = document.getElementById('progress-badge');
                 const entries = Object.entries(data);
 
                 if (entries.length === 0) {
@@ -2759,26 +3204,71 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 panel.classList.add('visible');
                 container.innerHTML = '';
 
+                let activeCount = 0;
+                let allDone = true;
+
                 for (const [opId, info] of entries) {
+                    if (!info.done) { activeCount++; allDone = false; }
+
                     const item = document.createElement('div');
                     item.className = 'progress-item' + (info.done ? ' done' : '');
+                    item.setAttribute('data-op', info.op || '');
 
-                    const elapsed = info.elapsed;
-                    const min = Math.floor(elapsed / 60);
-                    const sec = elapsed % 60;
-                    const timeStr = min > 0 ? `${min}m ${sec}s` : `${sec}s`;
+                    const icon = OP_ICONS[info.op] || '\\u2022';  // bullet default
+                    const timeStr = fmtTime(info.elapsed);
+
+                    // ETA string
+                    let etaStr = '';
+                    if (info.eta && !info.done) {
+                        etaStr = `<span class="eta">${fmtTime(info.eta)} left</span>`;
+                    } else if (info.done) {
+                        etaStr = `<span class="eta" style="color:var(--success)">done</span>`;
+                    }
+
+                    // Rate string
+                    let rateStr = '';
+                    if (info.rate && !info.done) {
+                        rateStr = ` · ${info.rate.toFixed(1)}/s`;
+                    }
+
+                    // If detail is "Starting..." and elapsed > 10s, show converting hint
+                    let detailText = info.detail;
+                    if (detailText === 'Starting...' && info.elapsed > 10 && !info.done) {
+                        detailText = 'Converting GRIB files to cache...';
+                    }
+
+                    // Cancel button for admins on active pre-render and download jobs
+                    let cancelBtn = '';
+                    if (isAdmin && !info.done && info.detail !== 'Cancelling...' && (info.op === 'prerender' || info.op === 'download')) {
+                        cancelBtn = `<button class="cancel-op-btn" data-op="${opId}" title="Cancel">\u2715</button>`;
+                    }
 
                     item.innerHTML = `
                         <div class="progress-item-header">
-                            <span class="progress-label">${info.label}</span>
-                            <span class="progress-stats">${info.step}/${info.total} (${info.pct}%) · ${timeStr}</span>
+                            <span class="progress-label"><span class="op-icon">${icon}</span>${info.label}</span>
+                            <span class="progress-stats">${info.step}/${info.total}${rateStr} · ${timeStr}${cancelBtn}</span>
                         </div>
                         <div class="progress-bar-bg">
                             <div class="progress-bar-fill" style="width:${info.pct}%"></div>
                         </div>
-                        <div class="progress-detail">${info.detail}</div>
+                        <div class="progress-detail"><span>${detailText}</span>${etaStr}</div>
                     `;
                     container.appendChild(item);
+                }
+
+                // Badge
+                badge.textContent = activeCount > 0 ? activeCount : '\\u2713';
+                badge.className = 'progress-badge' + (allDone ? ' done-badge' : '');
+
+                // Footer summary
+                try {
+                    const statusRes = await fetch(`/api/status?model=${currentModel}`);
+                    const status = await statusRes.json();
+                    const loadedCount = (status.loaded || []).length;
+                    const memMb = Math.round(status.memory_mb || 0);
+                    footer.innerHTML = `<span>${loadedCount} FHRs loaded</span><span>${memMb} MB</span>`;
+                } catch(e) {
+                    footer.innerHTML = '';
                 }
 
                 // Also update memory display from any active load
@@ -2787,8 +3277,22 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 // Silent fail
             }
         }
-        setInterval(pollProgress, 2000);
+        setInterval(pollProgress, 1500);
         pollProgress();
+
+        // Cancel button handler (delegated)
+        document.getElementById('progress-items').addEventListener('click', async (e) => {
+            const btn = e.target.closest('.cancel-op-btn');
+            if (!btn) return;
+            const opId = btn.dataset.op;
+            btn.disabled = true;
+            btn.textContent = '...';
+            try {
+                await fetch(`/api/cancel?op_id=${encodeURIComponent(opId)}&key=${encodeURIComponent(getAdminKey())}`, {method: 'POST'});
+            } catch(err) {
+                console.error('Cancel failed:', err);
+            }
+        });
 
         cycleSelect.onchange = async () => {
             const selected = cycleSelect.options[cycleSelect.selectedIndex];
@@ -2857,28 +3361,43 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const container = document.getElementById('fhr-chips');
             container.innerHTML = '';
 
-            // Determine max FHR from current cycle metadata
+            // Determine expected FHRs from current cycle metadata
             const cycleInfo = cycles.find(c => c.key === currentCycle);
             const maxFhr = (cycleInfo && cycleInfo.max_fhr) || 18;
             const isSynoptic = cycleInfo && cycleInfo.is_synoptic;
+            const expectedFhrs = (cycleInfo && cycleInfo.expected_fhrs) || null;
 
-            // Standard range: F00-F18
-            const standardMax = Math.min(maxFhr, 18);
-            for (let fhr = 0; fhr <= standardMax; fhr++) {
-                container.appendChild(createFhrChip(fhr, availableFhrs));
-            }
-
-            // Extended range: F19-F48 (synoptic cycles only)
-            if (isSynoptic && maxFhr > 18) {
-                const divider = document.createElement('span');
-                divider.className = 'chip-divider';
-                divider.textContent = '|';
-                container.appendChild(divider);
-
-                for (let fhr = 19; fhr <= maxFhr; fhr++) {
+            if (expectedFhrs) {
+                // Use the model's actual FHR list (handles GFS every-6h, etc.)
+                let addedDivider = false;
+                for (const fhr of expectedFhrs) {
+                    // Add divider before extended range (HRRR synoptic only)
+                    if (!addedDivider && isSynoptic && fhr > 18) {
+                        const divider = document.createElement('span');
+                        divider.className = 'chip-divider';
+                        divider.textContent = '|';
+                        container.appendChild(divider);
+                        addedDivider = true;
+                    }
                     const chip = createFhrChip(fhr, availableFhrs);
-                    chip.classList.add('extended');
+                    if (fhr > 18 && isSynoptic) chip.classList.add('extended');
                     container.appendChild(chip);
+                }
+            } else {
+                // Fallback: F00-F18 + extended F19-maxFhr for synoptic
+                for (let fhr = 0; fhr <= Math.min(maxFhr, 18); fhr++) {
+                    container.appendChild(createFhrChip(fhr, availableFhrs));
+                }
+                if (isSynoptic && maxFhr > 18) {
+                    const divider = document.createElement('span');
+                    divider.className = 'chip-divider';
+                    divider.textContent = '|';
+                    container.appendChild(divider);
+                    for (let fhr = 19; fhr <= maxFhr; fhr++) {
+                        const chip = createFhrChip(fhr, availableFhrs);
+                        chip.classList.add('extended');
+                        container.appendChild(chip);
+                    }
                 }
             }
 
@@ -3490,6 +4009,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             }
         }
 
+        // More toggle — show/hide secondary controls
+        document.getElementById('more-toggle').onclick = function() {
+            const sec = document.getElementById('secondary-controls');
+            const vis = sec.classList.toggle('visible');
+            this.innerHTML = vis ? 'Less &#9650;' : 'More &#9660;';
+        };
+
         // Clear button
         document.getElementById('clear-btn').onclick = () => {
             if (startMarker) { map.removeLayer(startMarker); startMarker = null; }
@@ -3883,19 +4409,67 @@ def api_status():
 def api_progress():
     """Return all active progress operations."""
     progress_cleanup()
+    now = time.time()
     result = {}
     for op_id, info in PROGRESS.items():
-        elapsed = time.time() - info['started']
-        result[op_id] = {
+        elapsed = now - info['started']
+        step = info['step']
+        total = info['total']
+        pct = round(100 * step / max(total, 1))
+
+        # Compute rate and ETA from history
+        rate = None  # items/sec
+        eta = None   # seconds remaining
+        hist = info.get('rate_history', [])
+        last_step_at = info.get('last_step_at', info['started'])
+        stalled = (now - last_step_at) > 10  # no progress for 10s
+        if step > 0 and not info['done']:
+            if stalled:
+                # Use overall rate when stalled (more accurate long-term estimate)
+                rate = step / elapsed if elapsed > 0 else None
+            elif len(hist) >= 2:
+                t0, s0 = hist[0]
+                t1, s1 = hist[-1]
+                dt = t1 - t0
+                ds = s1 - s0
+                if dt > 0 and ds > 0:
+                    rate = ds / dt
+            if rate and rate > 0:
+                remaining = total - step
+                eta = round(remaining / rate)
+
+        entry = {
             'label': info['label'],
-            'step': info['step'],
-            'total': info['total'],
+            'op': info['op'],
+            'step': step,
+            'total': total,
             'detail': info['detail'],
-            'pct': round(100 * info['step'] / max(info['total'], 1)),
+            'pct': pct,
             'elapsed': round(elapsed),
             'done': info['done'],
         }
+        if rate is not None:
+            entry['rate'] = round(rate, 2)
+        if eta is not None:
+            entry['eta'] = eta
+        result[op_id] = entry
     return jsonify(result)
+
+@app.route('/api/cancel', methods=['POST'])
+def api_cancel():
+    """Cancel an active progress operation. Requires admin key."""
+    if not check_admin_key():
+        return jsonify({'error': 'Admin key required'}), 403
+    op_id = request.args.get('op_id', '')
+    if not op_id:
+        return jsonify({'error': 'op_id required'}), 400
+    if op_id not in PROGRESS:
+        return jsonify({'error': 'Operation not found'}), 404
+    if PROGRESS[op_id].get('done'):
+        return jsonify({'error': 'Operation already finished'}), 400
+    cancel_request(op_id)
+    logger.info(f"Cancel requested for {op_id}")
+    return jsonify({'ok': True, 'op_id': op_id})
 
 @app.route('/api/load', methods=['POST'])
 @rate_limit
@@ -4125,6 +4699,11 @@ def api_prerender():
 
         rendered = 0
         for i, frame in enumerate(frames):
+            if is_cancelled(session_id):
+                logger.info(f"Pre-render CANCELLED at {rendered}/{total}")
+                PROGRESS[session_id]['detail'] = 'Cancelled'
+                break
+
             ck = frame['cycle']
             fhr = int(frame['fhr'])
             cache_key = frame_cache_key(model, ck, fhr, style, start, end, y_axis, vscale, y_top, units, temp_cmap, anomaly)
@@ -4163,6 +4742,7 @@ def api_prerender():
             progress_update(session_id, rendered, total, f"F{fhr:02d} rendered")
 
         progress_done(session_id)
+        CANCEL_FLAGS.pop(session_id, None)
 
     threading.Thread(target=_render_batch, daemon=True).start()
 
@@ -4420,13 +5000,14 @@ def api_request():
 @app.route('/api/request_cycle', methods=['POST'])
 @rate_limit
 def api_request_cycle():
-    """Download F00-F18 for a specific date/init cycle. Requires admin key."""
+    """Download specific FHR range for a date/init cycle. Requires admin key."""
     if not check_admin_key():
         return jsonify({'error': 'Admin key required to download archive data'}), 403
 
     date_str = request.args.get('date', '')  # YYYYMMDD
     hour = int(request.args.get('hour', -1))
-    max_fhr = int(request.args.get('max_fhr', 18))
+    fhr_start = int(request.args.get('fhr_start', 0))
+    fhr_end = int(request.args.get('fhr_end', request.args.get('max_fhr', 18)))
 
     if not date_str:
         return jsonify({'error': 'date required (YYYYMMDD)'}), 400
@@ -4448,24 +5029,39 @@ def api_request_cycle():
     age_hours = (datetime.now(timezone.utc) - date_dt).total_seconds() / 3600
     source = "AWS archive" if age_hours > 48 else "NOMADS"
 
-    # Download in background with progress tracking
+    # Download in background with progress tracking — load each FHR as it arrives
     def download_cycle():
         from smart_hrrr.orchestrator import download_gribs_parallel
         from smart_hrrr.io import create_output_structure
 
         op_id = f"download:{model_name}:{cycle_key}"
-        fhrs = list(range(max_fhr + 1))
+        fhrs = list(range(fhr_start, fhr_end + 1))
         completed = [0]
+        downloaded_fhrs = []
+        in_flight = set()
+
+        def on_fhr_start(fhr):
+            in_flight.add(fhr)
+            active = ', '.join(f'F{f:02d}' for f in sorted(in_flight))
+            progress_update(op_id, completed[0], len(fhrs),
+                            f"Downloading {active} from {source}...")
 
         def on_fhr_done(fhr, ok):
+            in_flight.discard(fhr)
             completed[0] += 1
-            status = f"F{fhr:02d} {'OK' if ok else 'FAILED'}"
-            progress_update(op_id, completed[0], len(fhrs), status)
+            if ok:
+                downloaded_fhrs.append(fhr)
+            active = ', '.join(f'F{f:02d}' for f in sorted(in_flight))
+            detail = f"F{fhr:02d} {'OK' if ok else 'FAILED'}"
+            if active:
+                detail += f" — downloading {active}"
+            progress_update(op_id, completed[0], len(fhrs), detail)
 
         try:
             create_output_structure(model_name, date_str, hour)
-            progress_update(op_id, 0, len(fhrs), f"Downloading from {source}...",
-                            label=f"Downloading {model_name.upper()} {cycle_key}")
+            fhr_label = f"F{fhr_start:02d}-F{fhr_end:02d}" if fhr_start != 0 or fhr_end != 18 else f"{len(fhrs)} FHRs"
+            progress_update(op_id, 0, len(fhrs), f"Connecting to {source}...",
+                            label=f"Downloading {model_name.upper()} {cycle_key} ({fhr_label})")
             results = download_gribs_parallel(
                 model=model_name,
                 date_str=date_str,
@@ -4473,10 +5069,35 @@ def api_request_cycle():
                 forecast_hours=fhrs,
                 max_threads=4,
                 on_complete=on_fhr_done,
+                on_start=on_fhr_start,
+                should_cancel=lambda: is_cancelled(op_id),
             )
+            if is_cancelled(op_id):
+                logger.info(f"Download CANCELLED for {model_name} {cycle_key}")
+                PROGRESS[op_id]['detail'] = 'Cancelled'
+                progress_done(op_id)
+                CANCEL_FLAGS.pop(op_id, None)
+                return
+
             success = sum(1 for ok in results.values() if ok)
             logger.info(f"Cycle request {model_name} {cycle_key}: {success}/{len(fhrs)} forecast hours downloaded")
-            mgr.scan_available_cycles()
+
+            # Immediately load the downloaded FHRs into memory
+            if downloaded_fhrs:
+                mgr.scan_available_cycles()
+                ck = f"{date_str}_{hour:02d}z"
+                ARCHIVE_CACHE_KEYS.add(ck)
+                load_id = f"load:{model_name}:{cycle_key}"
+                progress_update(load_id, 0, len(downloaded_fhrs), "Loading...",
+                                label=f"Loading {model_name.upper()} {cycle_key}")
+                for i, fhr in enumerate(sorted(downloaded_fhrs)):
+                    try:
+                        mgr.ensure_loaded(ck, fhr)
+                        progress_update(load_id, i + 1, len(downloaded_fhrs), f"Loaded F{fhr:02d}")
+                    except Exception as e:
+                        logger.warning(f"Failed to load {ck} F{fhr:02d}: {e}")
+                progress_done(load_id)
+                logger.info(f"Loaded {len(downloaded_fhrs)} FHRs for {model_name} {cycle_key}")
         except Exception as e:
             logger.warning(f"Cycle request {model_name} {cycle_key} failed: {e}")
         finally:
@@ -4485,13 +5106,16 @@ def api_request_cycle():
     t = threading.Thread(target=download_cycle, daemon=True)
     t.start()
 
-    est_minutes = 5 if age_hours <= 48 else 15
+    n_fhrs = fhr_end - fhr_start + 1
+    est_minutes = max(2, n_fhrs * (0.3 if age_hours <= 48 else 0.8))
     return jsonify({
         'success': True,
-        'message': f'Downloading {cycle_key} F00-F{max_fhr:02d} from {source} (~{est_minutes} min)',
+        'message': f'Downloading {cycle_key} F{fhr_start:02d}-F{fhr_end:02d} from {source} (~{est_minutes:.0f} min)',
         'cycle_key': cycle_key,
         'source': source,
-        'est_minutes': est_minutes,
+        'est_minutes': round(est_minutes),
+        'fhr_start': fhr_start,
+        'fhr_end': fhr_end,
     })
 
 @app.route('/api/favorites')
@@ -4590,7 +5214,10 @@ def main():
     if args.preload > 0:
         def _startup_preload():
             time.sleep(2)  # Let Flask bind first
-            for model_name, mgr in model_registry.managers.items():
+            # HRRR always loads first — it's the primary product
+            ordered = sorted(model_registry.managers.items(),
+                             key=lambda x: (0 if x[0] == 'hrrr' else 1, x[0]))
+            for model_name, mgr in ordered:
                 if mgr.available_cycles:
                     logger.info(f"Background: Pre-loading latest {args.preload} {model_name.upper()} cycles...")
                     try:
@@ -4599,19 +5226,28 @@ def main():
                         logger.warning(f"{model_name.upper()} preload failed: {e}")
         threading.Thread(target=_startup_preload, daemon=True).start()
 
-    # Background re-scan thread: periodically check for newly downloaded data + disk eviction
+    # Background re-scan thread: HRRR scans every 30s, others every 60s
     def background_rescan():
+        tick = 0
         while True:
-            time.sleep(60)  # Re-scan every 60 seconds
+            time.sleep(30)
+            tick += 1
+            # HRRR every tick (30s), others every other tick (60s)
             for model_name, mgr in model_registry.managers.items():
+                if model_name != 'hrrr' and tick % 2 != 0:
+                    continue
                 try:
                     mgr.scan_available_cycles()
                     mgr.auto_load_latest()
                 except Exception as e:
                     logger.warning(f"Background rescan failed for {model_name}: {e}")
 
-            # Check disk usage every 10 minutes (use modulo on minute)
+            # Evict old NVMe cache + check GRIB disk usage every 10 minutes
             if int(time.time()) % 600 < 60:
+                try:
+                    cache_evict_old_cycles(model_registry.managers)
+                except Exception as e:
+                    logger.warning(f"Cache eviction failed: {e}")
                 try:
                     usage = get_disk_usage_gb()
                     if usage > DISK_LIMIT_GB:

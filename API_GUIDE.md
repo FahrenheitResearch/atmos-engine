@@ -1,6 +1,6 @@
 # wxsection.com Cross-Section API
 
-Generate HRRR atmospheric cross-section images between any two points in the continental US. Returns publication-quality PNG images.
+Generate atmospheric cross-section images from HRRR, GFS, and RRFS weather models between any two points. Returns publication-quality PNG images.
 
 **Base URL:** `https://wxsection.com`
 
@@ -40,8 +40,9 @@ Returns a PNG image of a vertical atmospheric cross-section.
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `product` | string | `temperature` | Atmospheric product to visualize (see [Products](#products)) |
+| `model` | string | `hrrr` | Weather model: `hrrr`, `gfs`, or `rrfs` |
 | `cycle` | string | `latest` | Model cycle key (e.g. `20260205_19z`) or `latest` |
-| `fhr` | int | `0` | Forecast hour (0-18) |
+| `fhr` | int | `0` | Forecast hour (0-48 for synoptic HRRR, 0-18 for others) |
 | `y_axis` | string | `pressure` | Vertical axis: `pressure` (hPa) or `height` (km) |
 | `y_top` | int | `100` | Top of plot in hPa: `100`, `200`, `300`, `500`, or `700` |
 | `units` | string | `km` | Distance axis: `km` or `mi` |
@@ -56,11 +57,17 @@ Returns a PNG image of a vertical atmospheric cross-section.
 **Examples:**
 
 ```bash
-# Temperature from Denver to Chicago (latest data, analysis hour)
+# Temperature from Denver to Chicago (latest HRRR data, analysis hour)
 curl -o xsect.png "https://wxsection.com/api/v1/cross-section?start_lat=39.74&start_lon=-104.99&end_lat=41.88&end_lon=-87.63"
 
 # Wind speed, 6-hour forecast, lower atmosphere only
 curl -o wind.png "https://wxsection.com/api/v1/cross-section?start_lat=33.45&start_lon=-112.07&end_lat=40.71&end_lon=-74.01&product=wind_speed&fhr=6&y_top=500"
+
+# GFS model cross-section
+curl -o gfs.png "https://wxsection.com/api/v1/cross-section?start_lat=30.0&start_lon=-95.0&end_lat=45.0&end_lon=-85.0&product=rh&model=gfs"
+
+# RRFS model cross-section
+curl -o rrfs.png "https://wxsection.com/api/v1/cross-section?start_lat=39.74&start_lon=-104.99&end_lat=41.88&end_lon=-87.63&model=rrfs&product=wind_speed"
 
 # Specific model cycle
 curl -o rh.png "https://wxsection.com/api/v1/cross-section?start_lat=30.0&start_lon=-95.0&end_lat=45.0&end_lon=-85.0&product=rh&cycle=20260205_12z"
@@ -112,9 +119,10 @@ Returns the list of available atmospheric products.
 
 ```
 GET /api/v1/cycles
+GET /api/v1/cycles?model=gfs
 ```
 
-Returns available model cycles and their forecast hours.
+Returns available model cycles and their forecast hours. Use `model` parameter to query a specific model (default: hrrr).
 
 **Response:**
 ```json
@@ -181,11 +189,14 @@ All products include terrain shading, wind barbs, theta contours, and the 0C fre
 
 ## Coverage
 
-- **Model:** HRRR (High-Resolution Rapid Refresh), 3km resolution
-- **Domain:** Continental United States (CONUS)
+| Model | Resolution | Domain | Cycles | Forecast Hours |
+|-------|-----------|--------|--------|----------------|
+| **HRRR** | 3km | CONUS | Hourly (24/day) | F00-F18 (F00-F48 for 00/06/12/18z) |
+| **GFS** | 0.25deg | Global | 4x/day (00/06/12/18z) | F00-F48 |
+| **RRFS** | 3km | CONUS | Hourly (24/day) | F00-F18 |
+
 - **Vertical:** 40 pressure levels, 1000 hPa to 50 hPa
-- **Cycles:** Updated hourly, typically 12+ recent cycles available
-- **Forecast hours:** F00 (analysis) through F18
+- Typically 12+ recent cycles available per model
 
 ## Rate Limits
 
@@ -196,9 +207,9 @@ All products include terrain shading, wind barbs, theta contours, and the 0C fre
 
 ## Notes
 
-- Cross-section renders take ~1 second when data is loaded
-- First request for an unloaded cycle may take 10-30 seconds (one-time data load)
+- Cross-section renders take ~0.5 seconds when data is loaded (prerendered cache: ~20ms)
+- First request for an unloaded cycle may take 10-30 seconds (one-time GRIB-to-mmap conversion)
 - Subsequent requests for the same cycle are fast
 - Images are 1700x1100 PNG, typically 300-500 KB
 - The `cycle=latest` default is recommended for most use cases
-- Both points must be within the HRRR CONUS domain
+- HRRR/RRFS: points must be within the CONUS domain. GFS: global coverage

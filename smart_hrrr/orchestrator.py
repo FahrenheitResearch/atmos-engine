@@ -98,11 +98,15 @@ def download_gribs_parallel(
     max_threads: int = 8,
     file_types: List[str] = None,
     on_complete=None,
+    on_start=None,
+    should_cancel=None,
 ) -> Dict[int, bool]:
     """Download GRIB files for multiple forecast hours in parallel.
 
     Args:
         on_complete: Optional callback(fhr, success) called as each FHR finishes.
+        on_start: Optional callback(fhr) called when each FHR starts downloading.
+        should_cancel: Optional callable() returning True to abort remaining downloads.
     Returns dict mapping forecast_hour -> success status.
     """
 
@@ -111,6 +115,11 @@ def download_gribs_parallel(
         output_base_dir = output_dirs['run']
 
     def download_single(fhr: int) -> tuple:
+        # Skip if cancelled before starting
+        if should_cancel and should_cancel():
+            return fhr, False
+        if on_start:
+            on_start(fhr)
         fhr_dir = get_forecast_hour_dir(output_base_dir, fhr)
         start = time.time()
         ok = download_forecast_hour(model, date_str, cycle_hour, fhr, fhr_dir, file_types)
@@ -127,6 +136,11 @@ def download_gribs_parallel(
             results[fhr] = ok
             if on_complete:
                 on_complete(fhr, ok)
+            # Cancel remaining futures
+            if should_cancel and should_cancel():
+                for f in futures:
+                    f.cancel()
+                break
 
     return results
 

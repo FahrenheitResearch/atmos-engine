@@ -1,6 +1,6 @@
-# HRRR Cross-Section Generator
+# Multi-Model Cross-Section Generator
 
-Interactive vertical atmospheric cross-section visualization from HRRR (High-Resolution Rapid Refresh) weather model data. Draw a line on a map, get an instant cross-section showing the vertical structure of the atmosphere.
+Interactive vertical atmospheric cross-section visualization from HRRR, GFS, and RRFS weather model data. Draw a line on a map, get an instant cross-section showing the vertical structure of the atmosphere.
 
 **Live:** [wxsection.com](https://wxsection.com)
 
@@ -21,114 +21,74 @@ Cross-sections slice through the atmosphere along a path between two geographic 
 # Install dependencies
 pip install -r requirements.txt
 
-# Production startup (dashboard + auto-update + Cloudflare tunnel)
-export WXSECTION_KEY=your_admin_key
-./deploy/run_production.sh
+# Production startup (mount VHD, start auto-update + dashboard + cloudflared)
+cd ~/hrrr-maps && ./start.sh
 
 # Or run manually:
-python tools/auto_update.py --interval 2 --max-hours 18 &
-python tools/unified_dashboard.py --port 5559 --preload 24
+sudo mount /dev/sde /mnt/hrrr
+python tools/auto_update.py --interval 2 --models hrrr,gfs,rrfs &
+XSECT_GRIB_BACKEND=cfgrib WXSECTION_KEY=your_key python tools/unified_dashboard.py --port 5561 --models hrrr,gfs,rrfs
 ```
 
 ## Features
 
 ### Interactive Web Dashboard
 - **Leaflet map** with click-to-place markers and draggable endpoints
+- **Multi-model support**: HRRR (3km), GFS (0.25deg), RRFS (3km) with model selector dropdown
 - **15 visualization styles** via dropdown with community voting
-- **19 forecast hours** (F00-F18) with color-coded chip system:
+- **Up to 48 forecast hours** with color-coded chip system (synoptic HRRR cycles: F00-F48, others: F00-F18):
   - **Grey** = on disk, not opened (click to open via mmap, ~14ms if cached)
   - **Green** = opened (mmap handles ready, click for instant view)
   - **Blue** = currently viewing
   - **Yellow pulse** = loading in progress
   - **Shift+click** to unload (prevents accidental unloads)
-- **Model run picker** grouped by date with `<optgroup>`, shows load status and FHR count
+- **Model run picker** filtered to preload window + loaded archive cycles
 - **Height/pressure toggle** - view Y-axis as hPa or km
 - **Vertical scaling** - 0.5x, 1x, 1.5x, 2x exaggeration
 - **Vertical range selector** - full atmosphere (100 hPa), mid (300), low (500), boundary layer (700)
 - **Distance units toggle** - km or miles
 - **Community favorites** - save/load cross-section configs by name, auto-expire after 12h
-- **GIF animation** - animated GIF with 4 speed options (0.25x/0.5x/0.75x/1x), Pillow rendering with `disposal=2` for Discord compatibility. All loaded FHRs included (up to 19 frames)
-- **Temperature colormap picker** - 3 color tables (Green-Purple, White at 0°C, NWS Classic) switchable on the fly
-- **Anomaly/departure toggle** - "Raw / 5yr Dep" mode subtracts 5-year HRRR climatological mean from current forecast. RdBu_r diverging colormap centered at 0. Works for 10 styles (temp, wind_speed, rh, omega, theta_e, q, vorticity, shear, lapse_rate, wetbulb). Toggle auto-hides when climatology unavailable for current month/style
-- **Admin key system** - lock icon (🔒) for custom date downloads only, stored in browser localStorage
+- **GIF animation** - animated GIF with speed options, Pillow rendering with `disposal=2` for Discord compatibility
+- **Temperature colormap picker** - 4 color tables (Standard, Green-Purple, White at 0C, NWS Classic)
+- **Time slider + auto-play** - play/pause with 0.5x-4x speed, pre-render for instant scrubbing
+- **Cycle comparison mode** - side-by-side Same FHR or Valid Time matching across different init cycles
+- **Cancel operations** - admin can cancel pre-render and download jobs via X button in progress panel
+- **Archive request modal** - calendar date picker, hour selector, FHR range for downloading historical data
 - **Load All button** - loads all FHRs for the current cycle at once (available to all users)
 
-### Plot Annotations
-- **A/B endpoint labels** on the cross-section and inset map
-- **City/location labels** along the x-axis (~100+ US cities, 120km search radius, deduplicated)
-- **Lat/lon coordinates** on a secondary x-axis below the main plot
-- **Legend box** with color-coded entries for theta, freezing level, and terrain
-- **Inset map** with matplotlib (no external tile dependency) showing the cross-section path with A/B badges
-- **Credit text** with producer and contributor attribution
+### Performance
+- **0.5s warm renders** - cartopy geometry cache + KDTree cache eliminate repeated I/O
+- **~23s GRIB-to-mmap conversion** on NVMe (was ~50s on VHD)
+- **<0.1s cached FHR loads** - mmap from NVMe, instant page faults
+- **Frame prerender cache** - 500-entry server-side cache, ~20ms cached vs ~0.5s live render
+- **Two-phase preload**: cached FHRs load instantly (Phase 1), GRIB conversions run in background (Phase 2)
+- **Render semaphore** - caps concurrent matplotlib renders at 4
 
-### Continuous Auto-Updating
-- **Progressive download daemon** (`auto_update.py`) checks every 2 minutes
-- Maintains latest 2 init cycles with F00-F18 (full forecast set)
-- Client-side auto-refresh polls every 60s for newly available data
-- Background server rescan detects new downloads without restart
-- **Auto-load**: new FHRs for all available cycles automatically opened as they're downloaded (every 60s check)
-- **Parallel loading** with 2 worker threads for preloading and on-demand cycle loads
-- **Loading mutex** prevents overlapping bulk loads (preload, auto-load, and Load All queue instead of fighting)
-- **Startup progress bar** shows preload progress in the UI as FHRs load after restart
+### Mmap Cache Architecture
+- **Memory-mapped cache on NVMe** - per-field raw arrays, ~2.3GB per FHR on disk
+- **Tiny RAM footprint** - mmap only pages in accessed slices (~100MB resident per FHR, ~29MB heap)
+- **174 FHRs in preload window** = ~400GB on NVMe, ~17GB in RAM
+- **Two-tier NVMe eviction**:
+  - Tier 1: Rotated preload cycles always evicted from cache when they leave target window
+  - Tier 2: Archive request caches persist up to 670GB limit, oldest evicted first when over
+- **Per-model memory budgets**: HRRR 48GB, GFS 8GB, RRFS 8GB
 
-### Memory Management (Mmap Cache)
-- **Memory-mapped cache** - per-field `.npy` files in float16, opened via `np.load(mmap_mode='r')`. OS page cache manages physical RAM automatically
-- **All FHRs preloaded** - latest 24 cycles × all 19 FHRs opened at startup (~29MB heap each, ~13GB total vs old 111GB for 30 FHRs)
-- **143x faster cache load** - ~14ms mmap open vs ~2s old NPZ decompress
-- **38% less disk** - float16 fields at ~2.3GB/FHR vs ~3.7GB old NPZ
-- **Legacy migration** - old `.npz` caches auto-convert to mmap on first load, then are deleted
-- **LRU eviction** starting at 115 GB heap, hard cap at 117 GB (rarely triggers with mmap)
-- **Render semaphore** - caps concurrent matplotlib renders at 4 to prevent CPU/memory thrash under load
+### HRRR-Priority Auto-Update
+- **Interleaved downloads** - HRRR always first, GFS/RRFS round-robin when HRRR idle
+- **Re-checks HRRR** every 2 non-HRRR downloads for newly published FHRs
+- **Extended 48h** for HRRR synoptic cycles (00/06/12/18z)
 
 ### Admin Key System
 - Set via `WXSECTION_KEY` environment variable (never stored in code)
-- **Required for**: downloading custom dates from NOMADS/AWS (`/api/request_cycle`)
-- **Not required for**: loading/unloading any cycle, Load All, full-frame GIF, viewing cross-sections
-- UI: click 🔒 icon, enter key, saved to browser localStorage
-- Validates via `/api/check_key` endpoint
+- **Required for**: downloading archive data, cancelling operations
+- **Not required for**: loading/unloading, Load All, GIF, viewing cross-sections
+- UI: click lock icon, enter key, saved to browser localStorage
 
 ### Disk Storage
-- **Mmap cache** with configurable limit (default 400 GB) - per-field `.npy` directories, separate from GRIB storage
-- **GRIB disk limit** of 500 GB with space-based eviction
-- **Popularity tracking** via `data/disk_meta.json` (last accessed time + access count)
-- Protected cycles: latest 2 auto-update targets + anything accessed in last 2 hours
-- Disk usage checked every 10 minutes, evicts least-recently-accessed first
-
-### Custom Date Requests
-- **Calendar button** (📅) lets admin users download F00-F18 for any date/init cycle
-- Downloads from NOMADS (recent, <48h) or AWS archive (older data)
-- **Live progress toast** showing per-FHR download count (e.g., "7/19 FHRs — F06 OK") with progress bar
-- **Download progress callback** reports each FHR completion in real time
-
-### Climatology & Anomaly Pipeline
-- **Climatology builder** (`tools/build_climatology.py`) computes monthly mean fields from archived HRRR on VHD
-- **Coarsened grid** - every 5th point (212x360 vs 1059x1799, ~15km resolution), ~30MB per NPZ file
-- **Per-init, per-FHR files** - `climo_MM_HHz_FNN.npz` (e.g., `climo_02_00z_F03.npz` for February 00z F03)
-- **Nearest-FHR fallback** - engine finds closest available FHR file (FHR 01 uses F00's climo, FHR 02 uses F03's)
-- **Anomaly rendering** - RdBu_r diverging colormap, symmetric auto-scaling (98th percentile of |anomaly|), 41 contour levels centered at 0
-- **Subtitle** - "Departure from N-yr HRRR Mean (Month, n=samples)" in dark red italic when anomaly mode active
-- **10 eligible styles** - temp, wind_speed, rh, omega, theta_e, q, vorticity, shear, lapse_rate, wetbulb (cloud/icing/frontogenesis/smoke excluded)
-
-### Performance
-- **Sub-second generation** (~0.9s typical with mmap, same as RAM-loaded)
-- **Mmap caching** - first GRIB load ~25s (saves to mmap cache), subsequent opens ~14ms (memory-mapped, no data read)
-- **Float16 storage** - 3D fields stored as float16 for ~38% disk savings, cast to float32 on-the-fly during interpolation
-- **Parallel GRIB download** with configurable thread count
-- Non-blocking startup - Flask serves immediately while data opens in background
-- **Render semaphore** prevents server overload under concurrent use
-
-### Production Ready
-- Rate limiting (60 req/min) for public deployment
-- REST API for programmatic access
-- Named Cloudflare Tunnel (wxsection.com) for permanent public access
-- Startup script (`deploy/run_production.sh`) manages all 3 services
-- Batch generation for animations
-
-### VHD Archive Infrastructure
-- **20TB dynamic VHDX** on external HDD (`D:\hrrr-archive.vhdx`), mounted at `/mnt/hrrr` in WSL
-- **Bypasses 9p bottleneck** - WSL2 writing to Windows drives (`/mnt/d/`) via 9p/DrvFS: 19.7 MB/s. VHD as direct SCSI device: 183 MB/s (9x faster)
-- **Remount after WSL restart**: PowerShell admin `wsl --mount --vhd "D:\hrrr-archive.vhdx" --bare`, then `sudo mount /dev/sde /mnt/hrrr`
-- Holds historical GRIB archive + climatology NPZ files
+- **GRIB sources on VHD** (`/mnt/hrrr/`) - 20TB external VHDX, 500GB GRIB limit with LRU eviction
+- **Mmap cache on NVMe** (`cache/xsect/{model}/`) - ~400GB preload + ~245GB archive headroom
+- **GRIB disk limit** of 500GB with popularity-based eviction
+- **NVMe cache limit** of 670GB with two-tier eviction
 
 ## Visualization Styles
 
@@ -136,7 +96,7 @@ python tools/unified_dashboard.py --port 5559 --preload 24
 | Style | Shows | Use For |
 |-------|-------|---------|
 | `wind_speed` | Horizontal wind (kt) | Jet streams, wind maxima |
-| `temp` | Temperature (°C) with 3 selectable colormaps | Inversions, frontal zones |
+| `temp` | Temperature (C) with 4 selectable colormaps | Inversions, frontal zones |
 | `theta_e` | Equivalent potential temp (K) | Warm/cold advection, instability |
 | `omega` | Vertical velocity | Rising (blue) / sinking (red) motion |
 | `vorticity` | Absolute vorticity | Cyclonic/anticyclonic patterns |
@@ -152,167 +112,116 @@ python tools/unified_dashboard.py --port 5559 --preload 24
 ### Smoke & Air Quality
 | Style | Shows | Use For |
 |-------|-------|---------|
-| `smoke` | PM2.5 concentration (μg/m³) | **Wildfire smoke plumes, air quality** |
-
-Smoke data comes from HRRR-Smoke MASSDEN field in wrfnat files (~670MB each), read via eccodes (cfgrib can't identify this field). Smoke is kept on **native hybrid levels** (50 levels) rather than interpolated to isobaric — this preserves the fine vertical resolution (~10-15 levels in the lowest 2 km) where smoke concentrates. Each column has its own pressure coordinate that follows terrain. Auto-scaled colormap adjusts to fire intensity with 50 smooth contour levels. Requires wrfnat GRIB files — downloaded automatically alongside wrfprs/wrfsfc.
+| `smoke` | PM2.5 concentration (ug/m3) | Wildfire smoke plumes, air quality |
 
 ### Winter Weather & Aviation
 | Style | Shows | Use For |
 |-------|-------|---------|
-| `frontogenesis` | Petterssen frontogenesis | **Snow banding potential** |
-| `wetbulb` | Wet-bulb temperature (°C) | Rain/snow transition |
+| `frontogenesis` | Petterssen frontogenesis | Snow banding potential |
+| `wetbulb` | Wet-bulb temperature (C) | Rain/snow transition |
 | `icing` | Supercooled liquid water | Aircraft icing hazard |
 | `shear` | Wind shear (1/s) | Turbulence, jet cores |
-| `lapse_rate` | Temp lapse rate (°C/km) | Stability analysis |
+| `lapse_rate` | Temp lapse rate (C/km) | Stability analysis |
 
 ### All Styles Include
 - **Theta contours** (black lines) - atmospheric stability, masked below terrain
 - **Wind barbs** with actual U and V components, masked below terrain
-- **Freezing level** (magenta line) - 0°C isotherm, masked below terrain
+- **Freezing level** (magenta line) - 0C isotherm, masked below terrain
 - **Terrain fill** (brown) - hi-res ~1.5km sampling with bilinear interpolation
-- **Legend box** identifying overlays
 - **A/B endpoint markers** on plot and inset map
 - **City labels** with lat/lon and distance along path
 
-### Temperature Colormaps
-Three selectable color tables (dropdown appears when Temperature style is active):
+## Architecture
 
-| Colormap | 0°C (32°F) | Cold End | Hot End | Best For |
-|----------|-----------|----------|---------|----------|
-| **Green-Purple** | Green | Blue-teal | Deep purple | General use, intuitive warm/cold |
-| **White at 0°C** | White | Purple tones | Deep purple (hot) | Freezing boundary emphasis |
-| **NWS Classic** | Yellow | Indigo/blue | Deep purple | Traditional NWS style |
+```
+start.sh                             # Production startup (mount VHD, start all services)
+model_config.py                      # Model registry (HRRR/GFS/RRFS metadata)
 
-All defined with °F anchor points, converted to °C internally. 512-bin interpolation with 2°C contour steps (even numbers, 0°C always a contour level).
+tools/
+├── unified_dashboard.py             # Flask server + Leaflet UI + data management
+│   ├── CrossSectionManager          # Loading, eviction, engine key mapping
+│   ├── Two-phase preload            # Cache-first (Phase 1) + GRIB conversion (Phase 2)
+│   ├── Two-tier NVMe eviction       # Preload rotation + size-based archive eviction
+│   ├── Cancel system                # CANCEL_FLAGS + admin API for pre-render/download abort
+│   ├── Archive request modal        # Calendar + hour + FHR range, download + auto-load
+│   ├── Progress tracking            # Real-time in-flight FHR display
+│   ├── Frame prerender cache        # 500-entry server-side PNG cache
+│   ├── Community favorites          # Save/load/delete with 12h expiry
+│   └── Admin key system             # WXSECTION_KEY env var
+│
+├── auto_update.py                   # HRRR-priority interleaved download daemon
+│   ├── Interleaved scheduling       # HRRR always first, round-robin GFS/RRFS
+│   ├── Extended 48h                 # Synoptic HRRR cycles get F19-F48
+│   └── Space-based cleanup          # Evicts least-popular when disk full
+│
+├── build_climatology.py             # Build monthly climatology NPZ from archived HRRR
+└── bulk_download.py                 # Bulk HRRR archive downloader for VHD
+
+core/
+├── cross_section_interactive.py     # Fast interactive engine (0.5s warm renders)
+│   ├── Cartopy geometry cache       # Parsed once per process
+│   ├── KDTree cache                 # Per-grid, reused across all FHRs/paths
+│   ├── Mmap-based field loading     # ~14ms per FHR from NVMe cache
+│   ├── City label proximity matching
+│   ├── 4 temperature colormaps
+│   └── Smoke on native hybrid levels (50 levels)
+│
+└── cross_section_production.py      # Batch processing
+
+smart_hrrr/
+├── orchestrator.py                  # Parallel GRIB downloads (on_complete, on_start, should_cancel)
+├── availability.py                  # Check NOMADS/AWS for available cycles
+├── io.py                            # Output directory structure
+└── utils.py                         # Shared utilities
+
+data/
+├── favorites.json                   # Community favorites
+├── votes.json                       # Style votes
+├── requests.json                    # Feature requests
+└── disk_meta.json                   # Disk usage tracking
+```
+
+### Disk Layout
+```
+/dev/sdd (2TB NVMe VHD) mounted at /
+  ~/hrrr-maps/                       — code
+  ~/hrrr-maps/cache/xsect/          — ACTIVE mmap cache (NVMe)
+
+/dev/sde (20TB external VHD) mounted at /mnt/hrrr
+  /mnt/hrrr/hrrr-live/              — live HRRR GRIBs
+  /mnt/hrrr/gfs/                    — live GFS GRIBs
+  /mnt/hrrr/rrfs/                   — live RRFS GRIBs
+  /mnt/hrrr/YYYYMMDD/              — archived HRRR GRIBs
+  /mnt/hrrr/climatology/           — monthly mean NPZ files
+```
 
 ## API Endpoints
 
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
 | `/` | GET | | Dashboard UI |
-| `/api/cycles` | GET | | List available cycles (grouped by date) |
+| `/api/v1/cross-section` | GET | | Generate cross-section PNG (agent-friendly) |
+| `/api/v1/products` | GET | | List available products |
+| `/api/v1/cycles` | GET | | List available cycles |
+| `/api/v1/status` | GET | | Server health check |
+| `/api/xsect` | GET | | Generate cross-section PNG (internal) |
+| `/api/xsect_gif` | GET | | Generate animated GIF |
+| `/api/cycles` | GET | | List available cycles |
 | `/api/status` | GET | | Memory/load status |
-| `/api/progress` | GET | | Loading progress for UI progress bar |
-| `/api/check_key` | GET | | Validate admin key, get protected cycles |
-| `/api/load` | POST | Archive* | Load specific cycle + forecast hour |
-| `/api/load_cycle` | POST | Archive* | Load entire cycle (all FHRs) |
+| `/api/progress` | GET | | Loading progress |
+| `/api/load` | POST | Archive* | Load specific cycle + FHR |
+| `/api/load_cycle` | POST | Archive* | Load entire cycle |
 | `/api/unload` | POST | Protected* | Unload a forecast hour |
-| `/api/xsect` | GET | | Generate cross-section PNG |
-| `/api/xsect_gif` | GET | Admin* | Generate animated GIF (admin: all FHRs, regular: every-3rd-hour) |
-| `/api/climatology_status` | GET | | Available climatology months/inits and anomaly-eligible styles |
-| `/api/request_cycle` | POST | Admin | Request download of a specific date/init |
+| `/api/request_cycle` | POST | Admin | Download archive cycle with FHR range |
+| `/api/cancel` | POST | Admin | Cancel pre-render or download operation |
+| `/api/prerender` | POST | | Pre-render frames for time slider |
 | `/api/favorites` | GET | | List community favorites |
 | `/api/favorite` | POST | | Save a favorite |
-| `/api/favorite/<id>` | DELETE | | Delete a favorite |
-| `/api/votes` | GET | | Style vote counts |
-| `/api/vote` | POST | | Vote for a style |
+| `/api/check_key` | GET | | Validate admin key |
 
-*Archive = admin key required only for non-latest-2 cycles. Protected = admin key required to unload latest 2 cycles.
+*Archive = admin key required for non-target cycles. Protected = admin required to unload target cycles.
 
-### Generate Cross-Section via API
-
-```
-GET /api/xsect?start_lat=40.0&start_lon=-100.0&end_lat=35.0&end_lon=-90.0&style=frontogenesis&cycle=20260204_04z&fhr=6&y_axis=pressure&vscale=1.5&y_top=300&units=km
-```
-
-Parameters:
-- `start_lat`, `start_lon`, `end_lat`, `end_lon` - Cross-section endpoints
-- `style` - Visualization style (see table above)
-- `cycle` - Init cycle key (e.g., `20260204_04z`)
-- `fhr` - Forecast hour (0-18)
-- `y_axis` - `pressure` (hPa) or `height` (km)
-- `vscale` - Vertical exaggeration (0.5, 1.0, 1.5, 2.0)
-- `y_top` - Top of plot in hPa (100, 200, 300, 500, 700)
-- `units` - Distance axis units (`km` or `mi`)
-- `temp_cmap` - Temperature colormap (`green_purple`, `white_zero`, `nws_ndfd`)
-- `anomaly` - Set to `1` for departure-from-normal mode (requires climatology data)
-
-## Architecture
-
-```
-deploy/
-└── run_production.sh        # Start/stop all 3 services (dashboard + auto-update + tunnel)
-
-tools/
-├── unified_dashboard.py      # Flask server + Leaflet UI + data management
-│   ├── CrossSectionManager   # Handles loading, eviction, engine key mapping
-│   ├── Memory management     # 117GB cap, LRU eviction at 115GB, protected cycles
-│   ├── Disk management       # 500GB GRIB + 400GB NPZ cache limits
-│   ├── Admin key system      # WXSECTION_KEY env var, gates archive access
-│   ├── Render semaphore      # Caps concurrent matplotlib renders at 4
-│   ├── Auto-load             # Background thread loads new FHRs for latest 2 cycles
-│   ├── Loading mutex          # Prevents overlapping preload/auto-load/load_cycle
-│   ├── Anomaly toggle        # Raw/5yr Dep mode, CLIMATOLOGY_DIR, ANOMALY_STYLES
-│   ├── Community favorites   # Save/load/delete with 12h expiry
-│   ├── FHR chip system       # Color-coded load states, shift+click unload
-│   └── Thread-safe parallel loading (2 workers)
-│
-├── auto_update.py            # Continuous download daemon
-│   ├── Progressive download  # Latest 2 cycles, F00-F18 (wrfprs + wrfsfc + wrfnat)
-│   └── Space-based cleanup   # Evicts least-popular when disk full
-│
-├── build_climatology.py      # Build monthly climatology NPZ from archived HRRR
-│   ├── Coarsened grid        # Every 5th point (~15km), ~30MB per file
-│   ├── Per-init, per-FHR     # climo_MM_HHz_FNN.npz output files
-│   ├── Configurable          # --month, --inits, --fhrs, --min-samples, --force
-│   └── Archives all fields   # temperature, u/v wind, RH, omega, q, heights, vorticity
-│
-└── bulk_download.py          # Bulk HRRR archive downloader for VHD
-    ├── Date range iteration  # --start YYYYMMDD --end YYYYMMDD
-    ├── Resumable             # Skips already-downloaded files
-    ├── Parallel threads      # Configurable --threads (default 4)
-    └── Dry run mode          # --dry-run to preview without downloading
-
-core/
-├── cross_section_interactive.py  # Fast interactive engine
-│   ├── Pre-loads 3D fields into RAM
-│   ├── NPZ caching layer (400GB limit with eviction)
-│   ├── <1s cross-section generation
-│   ├── City label proximity matching (120km radius)
-│   ├── A/B endpoint labels and legend
-│   ├── km/mi unit conversion at render time
-│   ├── Progress callback for field-level tracking
-│   ├── 3 selectable temperature colormaps (Green-Purple, White-Zero, NWS)
-│   ├── Terrain masking for contour lines (theta, freezing, isotherms)
-│   ├── Smoke on native hybrid levels (50 levels, not isobaric)
-│   ├── Smoke backfill: auto-loads from wrfnat when cache is stale
-│   ├── Stale cache detection: discards NPZ with <35 pressure levels
-│   ├── GIF animation with terrain + pressure-level-locked frames
-│   ├── Climatology loading + caching (ClimatologyData dataclass)
-│   ├── Anomaly computation: interpolates climo to path, subtracts from forecast
-│   └── Anomaly rendering: RdBu_r, symmetric auto-scaling, per-style labels
-│
-└── cross_section_production.py   # Batch processing
-
-smart_hrrr/
-├── orchestrator.py    # Parallel GRIB download coordination (with on_complete callback)
-├── availability.py    # Check NOMADS/AWS for available cycles
-├── io.py              # Output directory structure
-└── utils.py           # Shared utilities
-
-data/
-├── favorites.json     # Community favorites
-├── votes.json         # Style votes
-├── requests.json      # Feature requests
-└── disk_meta.json     # Disk usage tracking (access times, counts)
-
-/mnt/hrrr/             # VHD archive (20TB dynamic VHDX on external HDD)
-├── YYYYMMDD/HHz/F##/  # Archived GRIB files (bulk_download.py)
-└── climatology/       # Monthly mean NPZ files (build_climatology.py)
-```
-
-## Memory Usage
-
-| Loaded | RAM Usage |
-|--------|-----------|
-| 1 forecast hour (without smoke) | ~3.7 GB |
-| 1 forecast hour (with smoke/wrfnat) | ~4.4 GB |
-| Every-3rd FHR, 1 cycle (F00,F03,...,F18) | ~26-31 GB |
-| Every-3rd FHR, 2 cycles (preloaded) | ~52-62 GB |
-| Max before eviction | 115 GB |
-| Hard cap | 117 GB |
-
-The dashboard pre-loads every 3rd forecast hour (F00, F03, F06, F09, F12, F15, F18) from the latest 2 cycles at startup using 2 parallel workers with a progress bar. A loading mutex prevents preload, auto-load, and Load All from overlapping — they queue instead of fighting for resources. As the auto-update daemon downloads new FHRs, the background auto-load thread picks them up within 60 seconds. Other hours load on-demand (~15s from NPZ cache). Admin users can click "Load All" to load every FHR for the current cycle. LRU eviction kicks in at 115 GB but skips the latest 2 protected cycles. Smoke adds ~0.76 GB per FHR (50 hybrid levels × 2 arrays) when wrfnat files are available — a 21% increase over base.
+See [API_GUIDE.md](API_GUIDE.md) for the full v1 API documentation.
 
 ## Command Line Options
 
@@ -320,12 +229,9 @@ The dashboard pre-loads every 3rd forecast hour (F00, F03, F06, F09, F12, F15, F
 ```
 WXSECTION_KEY=secret python tools/unified_dashboard.py [OPTIONS]
 
---port PORT          Server port (default: 5559)
+--port PORT          Server port (default: 5561)
 --host HOST          Server host (default: 0.0.0.0)
---preload N          Cycles to pre-load at startup (default: 24, mmap makes this cheap)
---production         Enable rate limiting
---auto-update        Download latest data before starting
---max-hours N        Max forecast hour to download
+--models M           Comma-separated models (default: hrrr)
 ```
 
 ### Auto-Update Daemon
@@ -334,82 +240,20 @@ python tools/auto_update.py [OPTIONS]
 
 --interval N         Check interval in minutes (default: 2)
 --max-hours N        Max forecast hour (default: 18)
+--models M           Comma-separated models (default: hrrr) e.g. hrrr,gfs,rrfs
 --once               Run once and exit
 --no-cleanup         Don't clean up old data
 ```
 
-### Bulk Archive Download
-```bash
-# Download all of January 2025 to VHD
-python tools/bulk_download.py --start 20250101 --end 20250131 --output /mnt/hrrr
-
-# Download full 6-year archive (2 threads recommended alongside other downloads)
-python tools/bulk_download.py --start 20200101 --end 20260204 --output /mnt/hrrr --threads 2
-
-# Dry run to preview
-python tools/bulk_download.py --start 20250101 --end 20250107 --output /mnt/hrrr --dry-run
-
---start DATE         Start date YYYYMMDD
---end DATE           End date YYYYMMDD
---output DIR         Output directory (e.g. /mnt/hrrr)
---inits H [H ...]    Init hours (default: 0 6 12 18)
---fhrs F [F ...]     Forecast hours (default: 0 3 6 9 12 15 18)
---include-smoke      Include wrfnat files (~7x more data)
---threads N          Parallel download threads (default: 4)
---dry-run            Preview without downloading
-```
-
-Downloads wrfprs + wrfsfc by default (no smoke/wrfnat). Resumable — re-running skips existing files. Directory structure matches dashboard layout: `{output}/YYYYMMDD/HHz/F##/`. HRRRv4 data available from Dec 2020 onward.
-
-### Build Climatology
-```bash
-# Build February climatology from archived HRRR (all 4 inits, 7 FHRs)
-python tools/build_climatology.py --archive /mnt/hrrr --output /mnt/hrrr/climatology --month 2
-
-# Require at least 3 years of samples, force rebuild
-python tools/build_climatology.py --archive /mnt/hrrr --output /mnt/hrrr/climatology --month 2 --min-samples 3 --force
-
---archive DIR        Archive root with YYYYMMDD/ subdirs
---output DIR         Output directory for climatology NPZ files
---month N            Month number (1-12)
---inits H [H ...]    Init hours (default: 0 6 12 18)
---fhrs F [F ...]     Forecast hours (default: 0 3 6 9 12 15 18)
---min-samples N      Minimum days required per file (default: 3)
---force              Rebuild even if output file exists
-```
-
-Outputs `climo_MM_HHz_FNN.npz` files (~30MB each). Dashboard auto-detects these at startup via `CLIMATOLOGY_DIR`.
-
-### Production Startup
-```bash
-export WXSECTION_KEY=your_secret
-./deploy/run_production.sh        # Start all services
-./deploy/run_production.sh stop   # Stop all services
-```
-
-## Data Requirements
-
-HRRR GRIB2 files with pressure-level data:
+## Dependencies
 
 ```
-# Live data (auto-update writes here, 500GB limit)
-outputs/hrrr/{YYYYMMDD}/{HH}z/F{XX}/
-├── hrrr.t{HH}z.wrfprsf{XX}.grib2  # Pressure levels (required)
-├── hrrr.t{HH}z.wrfsfcf{XX}.grib2  # Surface (for terrain)
-└── hrrr.t{HH}z.wrfnatf{XX}.grib2  # Native levels (for smoke, ~670MB)
-
-# Archive (VHD, bulk_download.py writes here)
-/mnt/hrrr/{YYYYMMDD}/{HH}z/F{XX}/
-└── (same file structure)
-
-# Climatology (build_climatology.py output)
-/mnt/hrrr/climatology/
-└── climo_{MM}_{HH}z_F{NN}.npz     # ~30MB each, coarsened 212x360 grid
+numpy, scipy, matplotlib, cfgrib, eccodes, flask, imageio, Pillow
 ```
 
-Required fields: Temperature, U/V wind, RH, geopotential height, specific humidity, vorticity, cloud water, dew point on isobaric levels. Surface pressure from surface file for terrain. MASSDEN (smoke PM2.5, GRIB2 disc=0/cat=20/num=0) from native-level file for smoke style — read via eccodes because cfgrib can't identify this field (shows as `unknown` with paramId=0). Stored on native hybrid levels with per-column pressure, not interpolated to isobaric.
+Install with: `pip install -r requirements.txt`
 
-Data is automatically downloaded from NOAA NOMADS (recent, <48h) or AWS archive (older) by the auto-update daemon or on-demand via the calendar request button (admin key required).
+For public access: `cloudflared` (Cloudflare Tunnel client)
 
 ## Credits
 
@@ -417,25 +261,9 @@ Produced by drewsny
 
 Contributors: @jasonbweather, justincat66, Sequoiagrove, California Wildfire Tracking & others
 
-## Dependencies
-
-```
-numpy
-scipy
-matplotlib
-cfgrib
-eccodes
-flask
-imageio
-Pillow
-```
-
-Install with: `pip install -r requirements.txt`
-
-For public access: `cloudflared` (Cloudflare Tunnel client)
-
 ## References
 
 - [HRRR Model](https://rapidrefresh.noaa.gov/hrrr/) - NOAA's 3km CONUS model
-- [Petterssen Frontogenesis](https://glossary.ametsoc.org/wiki/Frontogenesis) - AMS Glossary
+- [GFS Model](https://www.ncei.noaa.gov/products/weather-climate-models/global-forecast) - NOAA's 0.25deg global model
+- [RRFS Model](https://gsl.noaa.gov/focus-areas/unified_forecast_system) - NOAA's next-gen 3km CONUS model
 - [cfgrib](https://github.com/ecmwf/cfgrib) - GRIB file reader

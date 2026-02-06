@@ -56,10 +56,15 @@ MODEL_FILE_TYPES = {
     'rrfs': ['pressure'],                        # prslev (has surface data in it)
 }
 
-# Per-model: default max FHR for non-synoptic cycles
+# Per-model: which FHRs to download
+MODEL_FORECAST_HOURS = {
+    'hrrr': list(range(19)),                          # F00-F18 every hour (synoptic extends to F48)
+    'gfs':  list(range(0, 385, 6)),                   # F00-F384 every 6 hours (65 FHRs)
+    'rrfs': list(range(19)),                          # F00-F18 every hour
+}
 MODEL_DEFAULT_MAX_FHR = {
     'hrrr': 18,
-    'gfs':  48,   # We only grab first 48h for cross-sections (full run is 384h)
+    'gfs':  384,
     'rrfs': 18,
 }
 
@@ -111,7 +116,15 @@ def get_latest_two_cycles(model='hrrr'):
     return cycles
 
 
-def get_downloaded_fhrs(model, date_str, hour, max_fhr=18):
+def get_model_fhrs(model, max_fhr=None):
+    """Get the list of FHRs this model should download."""
+    fhrs = MODEL_FORECAST_HOURS.get(model, list(range(19)))
+    if max_fhr is not None:
+        fhrs = [f for f in fhrs if f <= max_fhr]
+    return fhrs
+
+
+def get_downloaded_fhrs(model, date_str, hour, max_fhr=None):
     """Check which forecast hours are already downloaded for a cycle.
 
     Uses per-model required patterns to determine completeness.
@@ -120,8 +133,9 @@ def get_downloaded_fhrs(model, date_str, hour, max_fhr=18):
     run_dir = base_dir / date_str / f"{hour:02d}z"
     patterns = MODEL_REQUIRED_PATTERNS.get(model, ['*.grib2'])
 
+    fhrs_to_check = get_model_fhrs(model, max_fhr)
     downloaded = []
-    for fhr in range(max_fhr + 1):
+    for fhr in fhrs_to_check:
         fhr_dir = run_dir / f"F{fhr:02d}"
         if not fhr_dir.exists():
             continue
@@ -154,8 +168,10 @@ def download_missing_fhrs(model, date_str, hour, max_hours=18):
     from smart_hrrr.orchestrator import download_gribs_parallel
     from smart_hrrr.io import create_output_structure
 
+    target_fhrs = get_model_fhrs(model, max_fhr=max_hours)
     downloaded = get_downloaded_fhrs(model, date_str, hour, max_fhr=max_hours)
-    needed = [f for f in range(max_hours + 1) if f not in downloaded]
+    downloaded_set = set(downloaded)
+    needed = [f for f in target_fhrs if f not in downloaded_set]
 
     if not needed:
         return 0
@@ -182,6 +198,63 @@ def download_missing_fhrs(model, date_str, hour, max_hours=18):
         logger.info(f"  [{model.upper()}] Downloaded {new_count}/{len(needed)} new hours for {date_str}/{hour:02d}z")
 
     return new_count
+
+
+def get_pending_work(model, max_hours=None):
+    """Get list of (date_str, hour, fhr) tuples that need downloading for a model.
+
+    Returns items sorted by cycle (newest first), then FHR ascending.
+    """
+    if max_hours is None:
+        max_hours = MODEL_DEFAULT_MAX_FHR.get(model, 18)
+
+    cycles = get_latest_two_cycles(model)
+    if not cycles:
+        return []
+
+    work = []
+    for date_str, hour in cycles:
+        target_fhrs = get_model_fhrs(model, max_fhr=max_hours)
+        downloaded = set(get_downloaded_fhrs(model, date_str, hour, max_fhr=max_hours))
+        needed = [f for f in target_fhrs if f not in downloaded]
+        for fhr in needed:
+            work.append((date_str, hour, fhr))
+
+    # Extended HRRR: F19-F48 for latest synoptic cycle (lower priority, appended after base)
+    if model == 'hrrr':
+        syn = get_latest_synoptic_cycle()
+        if syn:
+            syn_date, syn_hour = syn
+            existing = set(get_downloaded_fhrs(model, syn_date, syn_hour, max_fhr=48))
+            # Deduplicate: only add FHRs not already in work list
+            work_set = {(d, h, f) for d, h, f in work}
+            extended_needed = [f for f in range(19, 49) if f not in existing]
+            for fhr in extended_needed:
+                if (syn_date, syn_hour, fhr) not in work_set:
+                    work.append((syn_date, syn_hour, fhr))
+
+    return work
+
+
+def download_single_fhr(model, date_str, hour, fhr):
+    """Download a single forecast hour for a model/cycle.
+
+    Returns True if successfully downloaded, False otherwise.
+    """
+    from smart_hrrr.orchestrator import download_gribs_parallel
+    from smart_hrrr.io import create_output_structure
+
+    create_output_structure(model, date_str, hour)
+    file_types = MODEL_FILE_TYPES.get(model, ['pressure'])
+    results = download_gribs_parallel(
+        model=model,
+        date_str=date_str,
+        cycle_hour=hour,
+        forecast_hours=[fhr],
+        max_threads=4,
+        file_types=file_types,
+    )
+    return results.get(fhr, False)
 
 
 DISK_LIMIT_GB = 500
@@ -383,28 +456,113 @@ def main():
         logger.info(f"Downloaded {total} new forecast hours total")
         return
 
+    # --------------- Interleaved priority download loop ---------------
+    # Instead of blocking on each model sequentially, we interleave
+    # downloads one FHR at a time with HRRR getting priority:
+    #   - Refresh HRRR work queue after every non-HRRR download
+    #   - HRRR always goes first when it has pending work
+    #   - Other models share remaining bandwidth round-robin
+    # This ensures HRRR never waits for slow GFS/RRFS downloads.
+
+    HRRR_RECHECK_INTERVAL = 2  # Re-scan HRRR work after this many non-HRRR downloads
+    hrrr_max_fhr = args.max_hours if args.max_hours else None
+
     while running:
         try:
-            total_new = 0
+            # Build work queues per model
+            work_queues = {}
             for model in models:
-                cycles = get_latest_two_cycles(model)
-                if cycles:
-                    logger.info(f"[{model.upper()}] Tracking: {', '.join(f'{d}/{h:02d}z' for d, h in cycles)}")
+                mfhr = hrrr_max_fhr if model == 'hrrr' else None
+                pending = get_pending_work(model, mfhr)
+                if pending:
+                    work_queues[model] = pending
+                    cycles_str = set(f"{d}/{h:02d}z" for d, h, _ in pending)
+                    logger.info(f"[{model.upper()}] Pending: {len(pending)} FHRs across {', '.join(sorted(cycles_str))}")
 
-                mfhr = args.max_hours if (args.max_hours and model == 'hrrr') else None
-                new = run_update_cycle_for_model(model, mfhr)
-                total_new += new
+            if not work_queues:
+                logger.info("All models up to date")
+                # Sleep and re-check
+                for _ in range(args.interval * 60):
+                    if not running:
+                        break
+                    time.sleep(1)
+                continue
+
+            total_new = 0
+            non_hrrr_since_recheck = 0
+            other_models = [m for m in models if m != 'hrrr']
+            other_idx = 0  # Round-robin index for non-HRRR models
+
+            while running and work_queues:
+                # --- HRRR always goes first if it has work ---
+                if 'hrrr' in work_queues:
+                    date_str, hour, fhr = work_queues['hrrr'].pop(0)
+                    logger.info(f"[HRRR] Downloading {date_str}/{hour:02d}z F{fhr:02d} "
+                                f"({len(work_queues['hrrr'])} remaining)")
+                    try:
+                        ok = download_single_fhr('hrrr', date_str, hour, fhr)
+                        if ok:
+                            total_new += 1
+                    except Exception as e:
+                        logger.warning(f"[HRRR] Failed {date_str}/{hour:02d}z F{fhr:02d}: {e}")
+                    if not work_queues['hrrr']:
+                        del work_queues['hrrr']
+                        # Re-check HRRR — new FHRs may have appeared on NOMADS
+                        new_hrrr = get_pending_work('hrrr', hrrr_max_fhr)
+                        if new_hrrr:
+                            work_queues['hrrr'] = new_hrrr
+                            logger.info(f"[HRRR] Refreshed: {len(new_hrrr)} new pending FHRs")
+                    continue
+
+                # --- No HRRR work: download one FHR from next non-HRRR model ---
+                if not other_models:
+                    break
+
+                # Find next non-HRRR model with work
+                tried = 0
+                while tried < len(other_models):
+                    model = other_models[other_idx % len(other_models)]
+                    other_idx += 1
+                    if model in work_queues:
+                        break
+                    tried += 1
+                else:
+                    break  # No non-HRRR models have work
+
+                date_str, hour, fhr = work_queues[model].pop(0)
+                logger.info(f"[{model.upper()}] Downloading {date_str}/{hour:02d}z F{fhr:02d} "
+                            f"({len(work_queues[model])} remaining)")
+                try:
+                    ok = download_single_fhr(model, date_str, hour, fhr)
+                    if ok:
+                        total_new += 1
+                except Exception as e:
+                    logger.warning(f"[{model.upper()}] Failed {date_str}/{hour:02d}z F{fhr:02d}: {e}")
+                if not work_queues[model]:
+                    del work_queues[model]
+
+                # Periodically re-check HRRR for new work (new FHRs published)
+                non_hrrr_since_recheck += 1
+                if non_hrrr_since_recheck >= HRRR_RECHECK_INTERVAL:
+                    non_hrrr_since_recheck = 0
+                    new_hrrr = get_pending_work('hrrr', hrrr_max_fhr)
+                    if new_hrrr:
+                        work_queues['hrrr'] = new_hrrr
+                        logger.info(f"[HRRR] New work detected: {len(new_hrrr)} FHRs — switching to HRRR")
 
             if total_new > 0:
                 logger.info(f"Total new downloads this pass: {total_new}")
-            else:
-                logger.info("All models up to date")
+
+            # Run cleanup after each pass
+            for model in models:
+                cleanup_disk_if_needed(model)
+                cleanup_old_extended(model)
 
         except Exception as e:
             logger.exception(f"Update failed: {e}")
 
-        # Sleep in 1-second increments so we can respond to signals
-        for _ in range(args.interval * 60):
+        # Brief pause before re-scanning (much shorter since we're interleaved)
+        for _ in range(30):  # 30 seconds between passes
             if not running:
                 break
             time.sleep(1)
