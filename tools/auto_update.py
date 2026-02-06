@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 """
-Auto-Update Script for HRRR Cross-Section Dashboard
+Auto-Update Script for Cross-Section Dashboard (Multi-Model)
 
-Continuously monitors for new HRRR cycles and progressively downloads
-forecast hours (F00-F18) as they become available on NOAA servers.
+Continuously monitors for new model cycles and progressively downloads
+forecast hours as they become available on NOAA servers.
 
-Maintains data for the latest 2 init cycles.
+Supports HRRR, GFS, and RRFS models.
 
 Usage:
-    python tools/auto_update.py                    # Default: check every 2 min
-    python tools/auto_update.py --interval 3       # Check every 3 minutes
-    python tools/auto_update.py --once             # Run once and exit
-    python tools/auto_update.py --max-hours 18     # Download up to F18
+    python tools/auto_update.py                              # Default: HRRR only
+    python tools/auto_update.py --models hrrr,gfs            # HRRR + GFS
+    python tools/auto_update.py --models hrrr,gfs,rrfs       # All models
+    python tools/auto_update.py --interval 3                  # Check every 3 minutes
+    python tools/auto_update.py --once                        # Run once and exit
+    python tools/auto_update.py --max-hours 18                # Download up to F18 (HRRR)
 """
 
 import argparse
@@ -26,6 +28,8 @@ from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from model_config import get_model_registry
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s | %(levelname)s | %(message)s',
@@ -34,7 +38,37 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 running = True
-BASE_DIR = Path("outputs/hrrr")
+OUTPUTS_BASE = Path("outputs")
+
+SYNOPTIC_HOURS = {0, 6, 12, 18}
+
+# Per-model: which GRIB file patterns confirm a complete FHR download
+MODEL_REQUIRED_PATTERNS = {
+    'hrrr': ['*wrfprs*.grib2', '*wrfnat*.grib2'],
+    'gfs':  ['*pgrb2.0p25*'],
+    'rrfs': ['*prslev*.grib2'],
+}
+
+# Per-model: which file_types to request from the orchestrator
+MODEL_FILE_TYPES = {
+    'hrrr': ['pressure', 'surface', 'native'],  # wrfprs, wrfsfc, wrfnat
+    'gfs':  ['pressure'],                        # pgrb2.0p25 (has surface data in it)
+    'rrfs': ['pressure'],                        # prslev (has surface data in it)
+}
+
+# Per-model: default max FHR for non-synoptic cycles
+MODEL_DEFAULT_MAX_FHR = {
+    'hrrr': 18,
+    'gfs':  48,   # We only grab first 48h for cross-sections (full run is 384h)
+    'rrfs': 18,
+}
+
+# Per-model: data availability lag (minutes after init time)
+MODEL_AVAILABILITY_LAG = {
+    'hrrr': 50,
+    'gfs':  240,   # GFS takes ~4 hours to start publishing
+    'rrfs': 120,   # RRFS takes ~2 hours
+}
 
 
 def signal_handler(sig, frame):
@@ -43,46 +77,76 @@ def signal_handler(sig, frame):
     running = False
 
 
-def get_latest_two_cycles():
-    """Determine the latest 2 expected HRRR init cycles based on current UTC time.
+def get_base_dir(model):
+    """Get output directory for a model."""
+    return OUTPUTS_BASE / model
 
-    HRRR runs every hour. Data typically available ~45-90 min after init time.
+
+def get_latest_two_cycles(model='hrrr'):
+    """Determine the latest 2 expected cycles based on current UTC time.
+
     Returns list of (date_str, hour) tuples, newest first.
     """
-    now = datetime.now(timezone.utc)
+    registry = get_model_registry()
+    model_config = registry.get_model(model)
+    if not model_config:
+        return []
 
-    # HRRR data typically available ~45 min after init time
-    latest_possible = now - timedelta(minutes=50)
+    now = datetime.now(timezone.utc)
+    lag_minutes = MODEL_AVAILABILITY_LAG.get(model, 60)
+    latest_possible = now - timedelta(minutes=lag_minutes)
+
+    valid_hours = set(model_config.forecast_cycles)
 
     cycles = []
-    for offset in range(0, 6):  # Look back up to 6 hours
+    for offset in range(0, 48):  # Look back up to 48 hours (GFS runs only 4x/day)
         cycle_time = latest_possible - timedelta(hours=offset)
-        date_str = cycle_time.strftime("%Y%m%d")
-        hour = cycle_time.hour
-        cycles.append((date_str, hour))
-        if len(cycles) >= 2:
-            break
+        if cycle_time.hour in valid_hours:
+            date_str = cycle_time.strftime("%Y%m%d")
+            hour = cycle_time.hour
+            cycles.append((date_str, hour))
+            if len(cycles) >= 2:
+                break
 
     return cycles
 
 
-def get_downloaded_fhrs(date_str, hour):
+def get_downloaded_fhrs(model, date_str, hour, max_fhr=18):
     """Check which forecast hours are already downloaded for a cycle.
 
-    An FHR is considered complete only if wrfprs, wrfsfc, AND wrfnat all exist.
+    Uses per-model required patterns to determine completeness.
     """
-    run_dir = BASE_DIR / date_str / f"{hour:02d}z"
+    base_dir = get_base_dir(model)
+    run_dir = base_dir / date_str / f"{hour:02d}z"
+    patterns = MODEL_REQUIRED_PATTERNS.get(model, ['*.grib2'])
+
     downloaded = []
-    for fhr in range(19):  # F00-F18
+    for fhr in range(max_fhr + 1):
         fhr_dir = run_dir / f"F{fhr:02d}"
-        if (fhr_dir.exists()
-            and list(fhr_dir.glob("*wrfprs*.grib2"))
-            and list(fhr_dir.glob("*wrfnat*.grib2"))):
+        if not fhr_dir.exists():
+            continue
+        # All required patterns must have at least one match
+        if all(list(fhr_dir.glob(p)) for p in patterns):
             downloaded.append(fhr)
     return downloaded
 
 
-def download_missing_fhrs(date_str, hour, max_hours=18):
+def get_latest_synoptic_cycle():
+    """Find the most recent synoptic cycle (00/06/12/18z) that should be available.
+
+    Returns (date_str, hour) or None. Only used for HRRR extended forecasts.
+    """
+    now = datetime.now(timezone.utc)
+    latest_possible = now - timedelta(minutes=50)
+
+    for offset in range(0, 24):
+        cycle_time = latest_possible - timedelta(hours=offset)
+        if cycle_time.hour in SYNOPTIC_HOURS:
+            return (cycle_time.strftime("%Y%m%d"), cycle_time.hour)
+    return None
+
+
+def download_missing_fhrs(model, date_str, hour, max_hours=18):
     """Download any missing forecast hours for a cycle.
 
     Returns number of newly downloaded hours.
@@ -90,30 +154,32 @@ def download_missing_fhrs(date_str, hour, max_hours=18):
     from smart_hrrr.orchestrator import download_gribs_parallel
     from smart_hrrr.io import create_output_structure
 
-    downloaded = get_downloaded_fhrs(date_str, hour)
+    downloaded = get_downloaded_fhrs(model, date_str, hour, max_fhr=max_hours)
     needed = [f for f in range(max_hours + 1) if f not in downloaded]
 
     if not needed:
         return 0
 
-    logger.info(f"Cycle {date_str}/{hour:02d}z: have F{downloaded if downloaded else 'none'}, "
-                f"need F{needed}")
+    logger.info(f"[{model.upper()}] Cycle {date_str}/{hour:02d}z: have {len(downloaded)} FHRs, "
+                f"need {len(needed)} (F{needed[0]:02d}-F{needed[-1]:02d})")
 
     # Create output structure
-    create_output_structure('hrrr', date_str, hour)
+    create_output_structure(model, date_str, hour)
 
     # Download missing forecast hours
+    file_types = MODEL_FILE_TYPES.get(model, ['pressure'])
     results = download_gribs_parallel(
-        model='hrrr',
+        model=model,
         date_str=date_str,
         cycle_hour=hour,
         forecast_hours=needed,
-        max_threads=4  # Don't saturate bandwidth
+        max_threads=4,
+        file_types=file_types,
     )
 
     new_count = sum(1 for ok in results.values() if ok)
     if new_count > 0:
-        logger.info(f"  Downloaded {new_count}/{len(needed)} new hours for {date_str}/{hour:02d}z")
+        logger.info(f"  [{model.upper()}] Downloaded {new_count}/{len(needed)} new hours for {date_str}/{hour:02d}z")
 
     return new_count
 
@@ -121,11 +187,12 @@ def download_missing_fhrs(date_str, hour, max_hours=18):
 DISK_LIMIT_GB = 500
 DISK_META_FILE = Path(__file__).parent.parent / 'data' / 'disk_meta.json'
 
-def get_disk_usage_gb():
-    """Get total disk usage of HRRR data directory in GB."""
-    if not BASE_DIR.exists():
+def get_disk_usage_gb(model='hrrr'):
+    """Get total disk usage of a model's data directory in GB."""
+    base_dir = get_base_dir(model)
+    if not base_dir.exists():
         return 0
-    total = sum(f.stat().st_size for f in BASE_DIR.rglob("*") if f.is_file())
+    total = sum(f.stat().st_size for f in base_dir.rglob("*") if f.is_file())
     return total / (1024 ** 3)
 
 def load_disk_meta():
@@ -142,13 +209,14 @@ def save_disk_meta(meta):
     with open(DISK_META_FILE, 'w') as f:
         json.dump(meta, f, indent=2)
 
-def cleanup_disk_if_needed():
+def cleanup_disk_if_needed(model='hrrr'):
     """Evict least-popular cycles if disk usage exceeds limit.
 
     Never evicts cycles from the latest 2 init hours or anything accessed
     in the last 2 hours.
     """
-    usage = get_disk_usage_gb()
+    base_dir = get_base_dir(model)
+    usage = get_disk_usage_gb(model)
     if usage <= DISK_LIMIT_GB:
         return
 
@@ -158,11 +226,13 @@ def cleanup_disk_if_needed():
     recent_cutoff = now - 7200  # 2 hours
 
     # Get latest 2 cycle keys (auto-update targets) - never evict these
-    latest = get_latest_two_cycles()
+    latest = get_latest_two_cycles(model)
     protected = {f"{d}_{h:02d}z" for d, h in latest}
 
     disk_cycles = []
-    for date_dir in BASE_DIR.iterdir():
+    if not base_dir.exists():
+        return
+    for date_dir in base_dir.iterdir():
         if not date_dir.is_dir() or not date_dir.name.isdigit():
             continue
         for hour_dir in date_dir.iterdir():
@@ -180,9 +250,9 @@ def cleanup_disk_if_needed():
     disk_cycles.sort()  # Oldest access first
 
     for last_access, cycle_key, hour_dir in disk_cycles:
-        if get_disk_usage_gb() <= target:
+        if get_disk_usage_gb(model) <= target:
             break
-        logger.info(f"Disk evict: {cycle_key} (last accessed {int((now - last_access)/3600)}h ago)")
+        logger.info(f"[{model.upper()}] Disk evict: {cycle_key} (last accessed {int((now - last_access)/3600)}h ago)")
         try:
             shutil.rmtree(hour_dir)
             parent = hour_dir.parent
@@ -195,20 +265,84 @@ def cleanup_disk_if_needed():
     save_disk_meta(meta)
 
 
-def run_update_cycle(max_hours=18):
-    """Check for and download new HRRR forecast hours for latest 2 cycles."""
-    cycles = get_latest_two_cycles()
+def cleanup_old_extended(model='hrrr'):
+    """Keep only 2 most recent synoptic runs with extended FHRs (F19-F48).
+
+    Only applies to HRRR. Deletes F19+ directories from older synoptic cycles.
+    """
+    if model != 'hrrr':
+        return
+
+    base_dir = get_base_dir(model)
+    synoptic_with_extended = []
+    if not base_dir.exists():
+        return
+
+    for date_dir in sorted(base_dir.iterdir(), reverse=True):
+        if not date_dir.is_dir() or not date_dir.name.isdigit():
+            continue
+        for hour_dir in sorted(date_dir.iterdir(), reverse=True):
+            if not hour_dir.is_dir() or not hour_dir.name.endswith('z'):
+                continue
+            hour = int(hour_dir.name.replace('z', ''))
+            if hour not in SYNOPTIC_HOURS:
+                continue
+            has_extended = any((hour_dir / f"F{f:02d}").exists() for f in range(19, 49))
+            if has_extended:
+                synoptic_with_extended.append(hour_dir)
+
+    # Keep newest 2 with extended data, delete F19+ from the rest
+    for old_dir in synoptic_with_extended[2:]:
+        for fhr in range(19, 49):
+            fhr_dir = old_dir / f"F{fhr:02d}"
+            if fhr_dir.exists():
+                try:
+                    shutil.rmtree(fhr_dir)
+                    logger.info(f"Cleaned extended F{fhr:02d} from {old_dir}")
+                except Exception as e:
+                    logger.warning(f"Failed to clean {fhr_dir}: {e}")
+
+
+def run_update_cycle_for_model(model, max_hours=None):
+    """Run one update pass for a single model.
+
+    Returns total number of newly downloaded FHRs.
+    """
+    if max_hours is None:
+        max_hours = MODEL_DEFAULT_MAX_FHR.get(model, 18)
+
+    cycles = get_latest_two_cycles(model)
+    if not cycles:
+        logger.info(f"[{model.upper()}] No cycles available yet")
+        return 0
 
     total_new = 0
     for date_str, hour in cycles:
         try:
-            new_count = download_missing_fhrs(date_str, hour, max_hours)
+            new_count = download_missing_fhrs(model, date_str, hour, max_hours)
             total_new += new_count
         except Exception as e:
-            logger.warning(f"Failed to update {date_str}/{hour:02d}z: {e}")
+            logger.warning(f"[{model.upper()}] Failed to update {date_str}/{hour:02d}z: {e}")
 
-    # Space-based cleanup instead of age-based
-    cleanup_disk_if_needed()
+    # Extended HRRR: download F19-F48 for the most recent synoptic cycle
+    if model == 'hrrr':
+        syn = get_latest_synoptic_cycle()
+        if syn:
+            syn_date, syn_hour = syn
+            try:
+                existing = get_downloaded_fhrs(model, syn_date, syn_hour, max_fhr=48)
+                extended_needed = [f for f in range(19, 49) if f not in existing]
+                if extended_needed:
+                    logger.info(f"[HRRR] Extended: {syn_date}/{syn_hour:02d}z needs "
+                                f"F{extended_needed[0]:02d}-F{extended_needed[-1]:02d}")
+                    new_ext = download_missing_fhrs(model, syn_date, syn_hour, max_hours=48)
+                    total_new += new_ext
+            except Exception as e:
+                logger.warning(f"[HRRR] Extended download failed for {syn_date}/{syn_hour:02d}z: {e}")
+
+    # Cleanup
+    cleanup_disk_if_needed(model)
+    cleanup_old_extended(model)
 
     return total_new
 
@@ -216,38 +350,55 @@ def run_update_cycle(max_hours=18):
 def main():
     global running
 
-    parser = argparse.ArgumentParser(description="HRRR Auto-Update - Progressive Download")
-    parser.add_argument("--interval", type=int, default=2, help="Check interval in minutes (default: 2)")
+    parser = argparse.ArgumentParser(description="Multi-Model Auto-Update - Progressive Download")
+    parser.add_argument("--models", type=str, default="hrrr",
+                        help="Comma-separated models to update (default: hrrr)")
+    parser.add_argument("--interval", type=int, default=2,
+                        help="Check interval in minutes (default: 2)")
     parser.add_argument("--once", action="store_true", help="Run once and exit")
-    parser.add_argument("--max-hours", type=int, default=18, help="Max forecast hours (default: 18)")
+    parser.add_argument("--max-hours", type=int, default=None,
+                        help="Max forecast hours for HRRR (default: per-model)")
     parser.add_argument("--no-cleanup", action="store_true", help="Don't clean up old data")
 
     args = parser.parse_args()
+    models = [m.strip().lower() for m in args.models.split(',')]
 
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
     logger.info("=" * 60)
-    logger.info("HRRR Progressive Auto-Update Service")
-    logger.info(f"Check interval: {args.interval} min | Max FHR: F{args.max_hours:02d}")
-    logger.info(f"Maintaining latest 2 init cycles with F00-F{args.max_hours:02d}")
+    logger.info(f"Multi-Model Auto-Update Service")
+    logger.info(f"Models: {', '.join(m.upper() for m in models)}")
+    logger.info(f"Check interval: {args.interval} min")
+    for m in models:
+        mfhr = args.max_hours if (args.max_hours and m == 'hrrr') else MODEL_DEFAULT_MAX_FHR.get(m, 18)
+        logger.info(f"  {m.upper()}: F00-F{mfhr:02d} (base)")
     logger.info("=" * 60)
 
     if args.once:
-        new = run_update_cycle(args.max_hours)
-        logger.info(f"Downloaded {new} new forecast hours")
+        total = 0
+        for model in models:
+            mfhr = args.max_hours if (args.max_hours and model == 'hrrr') else None
+            total += run_update_cycle_for_model(model, mfhr)
+        logger.info(f"Downloaded {total} new forecast hours total")
         return
 
     while running:
         try:
-            cycles = get_latest_two_cycles()
-            logger.info(f"Tracking cycles: {', '.join(f'{d}/{h:02d}z' for d, h in cycles)}")
+            total_new = 0
+            for model in models:
+                cycles = get_latest_two_cycles(model)
+                if cycles:
+                    logger.info(f"[{model.upper()}] Tracking: {', '.join(f'{d}/{h:02d}z' for d, h in cycles)}")
 
-            new = run_update_cycle(args.max_hours)
-            if new > 0:
-                logger.info(f"Total new downloads this pass: {new}")
+                mfhr = args.max_hours if (args.max_hours and model == 'hrrr') else None
+                new = run_update_cycle_for_model(model, mfhr)
+                total_new += new
+
+            if total_new > 0:
+                logger.info(f"Total new downloads this pass: {total_new}")
             else:
-                logger.info("All forecast hours up to date")
+                logger.info("All models up to date")
 
         except Exception as e:
             logger.exception(f"Update failed: {e}")

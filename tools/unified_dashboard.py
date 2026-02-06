@@ -310,6 +310,30 @@ rate_limiter = RateLimiter()
 # Limit concurrent matplotlib renders to prevent CPU/memory thrash under load
 RENDER_SEMAPHORE = threading.Semaphore(4)
 
+# =============================================================================
+# FRAME PRERENDER CACHE — stores rendered PNG bytes for slider/comparison
+# =============================================================================
+FRAME_CACHE = {}            # cache_key -> PNG bytes
+FRAME_CACHE_LOCK = threading.Lock()
+MAX_FRAME_CACHE = 500       # ~500 * 150KB = ~75MB max
+
+def frame_cache_key(model, cycle_key, fhr, style, start, end, y_axis, vscale, y_top, units, temp_cmap, anomaly):
+    """Deterministic cache key for a rendered frame."""
+    return f"{model}:{cycle_key}:F{fhr:02d}:{style}:{start[0]:.4f},{start[1]:.4f}:{end[0]:.4f},{end[1]:.4f}:{y_axis}:{vscale}:{y_top}:{units}:{temp_cmap}:{anomaly}"
+
+def frame_cache_put(key, png_bytes):
+    """Store a rendered frame, evicting oldest if full."""
+    with FRAME_CACHE_LOCK:
+        FRAME_CACHE[key] = png_bytes
+        while len(FRAME_CACHE) > MAX_FRAME_CACHE:
+            oldest = next(iter(FRAME_CACHE))
+            del FRAME_CACHE[oldest]
+
+def frame_cache_get(key):
+    """Retrieve cached frame or None."""
+    with FRAME_CACHE_LOCK:
+        return FRAME_CACHE.get(key)
+
 # Admin key for archive access — set via WXSECTION_KEY env var
 ADMIN_KEY = os.environ.get('WXSECTION_KEY', '')
 
@@ -376,23 +400,58 @@ def progress_cleanup():
 # DATA MANAGER - On-Demand Loading for Memory Efficiency
 # =============================================================================
 
+# Model-specific configuration for CrossSectionManager
+MODEL_PRS_PATTERNS = {
+    'hrrr': '*wrfprs*.grib2',
+    'rrfs': '*prslev*.grib2',
+    'gfs':  '*pgrb2.0p25*',  # GFS files have no .grib2 extension
+}
+MODEL_SFC_PATTERNS = {
+    'hrrr': '*wrfsfc*.grib2',
+    'rrfs': '*prslev*.grib2',   # RRFS: surface in same prslev file
+    'gfs':  '*pgrb2.0p25*',    # GFS: surface in same pgrb2 file (no .grib2 ext)
+}
+MODEL_NEEDS_SEPARATE_SFC = {'hrrr'}  # Only HRRR has separate wrfsfc
+MODEL_FORECAST_HOURS = {
+    'hrrr': list(range(19)),      # F00-F18 (base; synoptic cycles extend to F48)
+    'gfs':  list(range(49)),      # F00-F48
+    'rrfs': list(range(19)),      # F00-F18
+}
+SYNOPTIC_HOURS = {0, 6, 12, 18}
+
+def get_max_fhr_for_cycle(model_name: str, cycle_hour: int) -> int:
+    """Return max forecast hour for a given model+cycle. HRRR synoptic cycles go to 48."""
+    if model_name == 'hrrr' and cycle_hour in SYNOPTIC_HOURS:
+        return 48
+    base = MODEL_FORECAST_HOURS.get(model_name, list(range(19)))
+    return base[-1] if base else 18
+MODEL_MIN_LEVELS = {
+    'hrrr': 40,
+    'gfs':  20,  # GFS has ~34 pressure levels
+    'rrfs': 40,
+}
+MODEL_EXCLUDED_STYLES = {
+    'gfs': {'smoke'},       # GFS has no PM2.5/smoke
+    'rrfs': {'smoke'},      # RRFS has no smoke either
+    'hrrr': set(),          # HRRR supports all styles
+}
+
+
 class CrossSectionManager:
     """Manages cross-section data with smart pre-loading.
 
     Pre-loads latest N cycles at startup for instant access.
     Older cycles are available on-demand with loading indicator.
+    Parameterized by model_name for multi-model support.
     """
 
-    FORECAST_HOURS = list(range(19))  # F00-F18
-    PRELOAD_FHRS = list(range(19))  # All FHRs (F00-F18) — mmap cache makes this cheap (~29MB heap each)
-    PRELOAD_WORKERS = 2  # Parallel workers for loading FHRs
+    PRELOAD_WORKERS = 4  # Parallel workers for loading FHRs (~2.3GB temp RAM each during GRIB→mmap)
     PRELOAD_CYCLES = 0  # Don't pre-load; load on demand
-    MEM_LIMIT_MB = 117000  # 117 GB hard cap
-    MEM_EVICT_MB = 115000  # Start evicting at 115 GB
 
-    def __init__(self):
+    def __init__(self, model_name: str = 'hrrr', mem_limit_mb: int = 48000, mem_evict_mb: int = 46000):
+        self.model_name = model_name
         self.xsect = None
-        self.base_dir = Path("outputs/hrrr")
+        self.base_dir = Path(f"outputs/{model_name}")
         self.available_cycles = []  # List of available cycles (metadata only)
         self.loaded_cycles = set()  # Cycle keys that are fully loaded
         self.loaded_items = []  # List of (cycle_key, fhr) currently in memory (ordered by load time = LRU)
@@ -401,14 +460,111 @@ class CrossSectionManager:
         self._loading = threading.Lock()  # Prevents overlapping bulk loads (preload vs load_cycle)
         self._engine_key_map = {}  # (cycle_key, fhr) -> unique engine int key
         self._next_engine_key = 0  # Counter for unique keys
+        # Model-specific config
+        self._prs_pattern = MODEL_PRS_PATTERNS.get(model_name, '*.grib2')
+        self._sfc_pattern = MODEL_SFC_PATTERNS.get(model_name, '*.grib2')
+        self._needs_separate_sfc = model_name in MODEL_NEEDS_SEPARATE_SFC
+        self.FORECAST_HOURS = MODEL_FORECAST_HOURS.get(model_name, list(range(19)))
+        self.PRELOAD_FHRS = self.FORECAST_HOURS  # All FHRs — mmap cache makes this cheap
+        self.MEM_LIMIT_MB = mem_limit_mb
+        self.MEM_EVICT_MB = mem_evict_mb
+        self._min_levels = MODEL_MIN_LEVELS.get(model_name, 40)
+        self._display_prefix = model_name.upper()
+        # Load model config for metadata
+        try:
+            from model_config import get_model_registry
+            self.model_config = get_model_registry().get_model(model_name)
+            if self.model_config:
+                self._display_prefix = self.model_config.full_name.split('(')[0].strip()
+        except Exception:
+            self.model_config = None
+
+    def _sfc_file_from_prs(self, prs_file: str) -> str:
+        """Derive the surface GRIB path from a pressure GRIB path."""
+        if self.model_name == 'hrrr':
+            sfc = Path(prs_file).parent / Path(prs_file).name.replace('wrfprs', 'wrfsfc')
+            return str(sfc) if sfc.exists() else prs_file
+        # GFS/RRFS: surface data is in the same pressure file
+        return prs_file
+
+    def _nat_file_from_prs(self, prs_file: str):
+        """Derive the native-level GRIB path (for smoke). Returns None if not applicable."""
+        if self.model_name == 'hrrr':
+            nat = Path(prs_file).parent / Path(prs_file).name.replace('wrfprs', 'wrfnat')
+            return str(nat) if nat.exists() else None
+        elif self.model_name == 'rrfs':
+            nat = Path(prs_file).parent / Path(prs_file).name.replace('prslev', 'natlev')
+            return str(nat) if nat.exists() else None
+        return None  # GFS has no native levels
 
     def get_protected_cycles(self) -> set:
-        """Return the 2 newest cycle keys — these never get evicted or unloaded."""
+        """Return cycle keys that should never be evicted.
+
+        Protects:
+        - The 2 newest cycles (hourly or synoptic)
+        - The latest synoptic cycle that is "mostly loaded" (has F00-F18)
+        - If a newer synoptic cycle exists but is NOT mostly loaded yet,
+          also protect the previous synoptic cycle so we always have a
+          48h cycle available during the handoff period.
+        """
+        protected = set()
         if len(self.available_cycles) >= 2:
-            return {self.available_cycles[0]['cycle_key'], self.available_cycles[1]['cycle_key']}
+            protected = {self.available_cycles[0]['cycle_key'], self.available_cycles[1]['cycle_key']}
         elif self.available_cycles:
-            return {self.available_cycles[0]['cycle_key']}
-        return set()
+            protected = {self.available_cycles[0]['cycle_key']}
+
+        # Synoptic handoff: always keep a 48h cycle on hand
+        if self.model_name == 'hrrr':
+            protected |= self._get_synoptic_protected()
+
+        return protected
+
+    def _get_synoptic_protected(self) -> set:
+        """Determine which synoptic cycles to protect for 48h handoff.
+
+        Logic: We always want a 48h synoptic cycle available. If the newest
+        synoptic cycle is still loading (doesn't have F00-F18 loaded yet),
+        keep the previous synoptic cycle protected until the new one is ready.
+        """
+        synoptic_cycles = [c for c in self.available_cycles if c.get('is_synoptic')]
+        if not synoptic_cycles:
+            return set()
+
+        protected = set()
+
+        # Find newest synoptic cycle that has F00-F18 mostly loaded in memory
+        newest_ready = None
+        newest_not_ready = None
+        for c in synoptic_cycles:
+            ck = c['cycle_key']
+            loaded_fhrs = {fhr for ckey, fhr in self.loaded_items if ckey == ck}
+            base_fhrs = set(range(0, 19))
+            has_base = len(loaded_fhrs & base_fhrs) >= 15  # 15 of 19 = "mostly loaded"
+            if has_base:
+                if newest_ready is None:
+                    newest_ready = c
+            else:
+                if newest_not_ready is None and (newest_ready is None):
+                    newest_not_ready = c
+
+        if newest_ready:
+            # We have a ready synoptic cycle — protect it
+            protected.add(newest_ready['cycle_key'])
+        elif newest_not_ready:
+            # Newest synoptic is still loading — protect it AND the previous ready one
+            protected.add(newest_not_ready['cycle_key'])
+            # Find the next-oldest synoptic that IS ready
+            for c in synoptic_cycles:
+                if c['cycle_key'] == newest_not_ready['cycle_key']:
+                    continue
+                ck = c['cycle_key']
+                loaded_fhrs = {fhr for ckey, fhr in self.loaded_items if ckey == ck}
+                base_fhrs = set(range(0, 19))
+                if len(loaded_fhrs & base_fhrs) >= 15:
+                    protected.add(ck)
+                    break
+
+        return protected
 
     def is_archive_cycle(self, cycle_key: str) -> bool:
         """Return True if cycle_key is NOT one of the 2 latest (i.e. it's archive/old)."""
@@ -449,8 +605,16 @@ class CrossSectionManager:
         """Initialize the cross-section engine if needed."""
         if self.xsect is None:
             from core.cross_section_interactive import InteractiveCrossSection
-            self.xsect = InteractiveCrossSection(cache_dir='cache/dashboard/xsect')
-            if CLIMATOLOGY_DIR.exists():
+            cache_dir = f'cache/dashboard/xsect/{self.model_name}'
+            self.xsect = InteractiveCrossSection(
+                cache_dir=cache_dir,
+                min_levels=self._min_levels,
+                sfc_resolver=lambda prs: self._sfc_file_from_prs(prs),
+                nat_resolver=lambda prs: self._nat_file_from_prs(prs),
+            )
+            self.xsect.model = self.model_name.upper()
+            # Climatology is HRRR-only for now
+            if self.model_name == 'hrrr' and CLIMATOLOGY_DIR.exists():
                 self.xsect.set_climatology_dir(str(CLIMATOLOGY_DIR))
                 logger.info(f"Climatology dir set: {CLIMATOLOGY_DIR}")
 
@@ -480,18 +644,23 @@ class CrossSectionManager:
                     continue
 
                 # Check what forecast hours are available on disk
-                # Require both wrfprs AND wrfsfc to prevent loading without surface pressure
                 available_fhrs = []
-                for fhr in self.FORECAST_HOURS:
+                cycle_hour_int = int(hour)
+                max_fhr = get_max_fhr_for_cycle(self.model_name, cycle_hour_int)
+                for fhr in range(max_fhr + 1):
                     fhr_dir = hour_dir / f"F{fhr:02d}"
                     if fhr_dir.exists():
-                        has_prs = list(fhr_dir.glob("*wrfprs*.grib2"))
-                        has_sfc = list(fhr_dir.glob("*wrfsfc*.grib2"))
-                        # Skip .partial files (still downloading)
-                        has_prs = [f for f in has_prs if not f.name.endswith('.partial')]
-                        has_sfc = [f for f in has_sfc if not f.name.endswith('.partial')]
-                        if has_prs and has_sfc:
-                            available_fhrs.append(fhr)
+                        has_prs = [f for f in fhr_dir.glob(self._prs_pattern)
+                                   if not f.name.endswith('.partial')]
+                        if self._needs_separate_sfc:
+                            has_sfc = [f for f in fhr_dir.glob(self._sfc_pattern)
+                                       if not f.name.endswith('.partial')]
+                            if has_prs and has_sfc:
+                                available_fhrs.append(fhr)
+                        else:
+                            # GFS/RRFS: surface data is in the pressure file
+                            if has_prs:
+                                available_fhrs.append(fhr)
 
                 if available_fhrs:
                     cycle_key = f"{date_dir.name}_{hour}z"
@@ -504,7 +673,9 @@ class CrossSectionManager:
                         'path': str(hour_dir),
                         'available_fhrs': available_fhrs,
                         'init_dt': init_dt,
-                        'display': f"HRRR - {init_dt.strftime('%b %d %HZ')}",
+                        'display': f"{self._display_prefix} - {init_dt.strftime('%b %d %HZ')}",
+                        'max_fhr': max_fhr,
+                        'is_synoptic': cycle_hour_int in SYNOPTIC_HOURS,
                     })
 
         return self.available_cycles
@@ -520,6 +691,8 @@ class CrossSectionManager:
                 'fhrs': c['available_fhrs'],
                 'fhr_count': len(c['available_fhrs']),
                 'loaded': any(ck == c['cycle_key'] for ck, _ in self.loaded_items),
+                'max_fhr': c.get('max_fhr', 18),
+                'is_synoptic': c.get('is_synoptic', False),
             }
             for c in self.available_cycles
         ]
@@ -535,78 +708,89 @@ class CrossSectionManager:
     def _preload_latest_cycles_inner(self, n_cycles):
         self.init_engine()
 
-        # Newest cycles first (available_cycles already sorted newest-first)
+        # Build interleaved FHR list across all cycles (round-robin)
+        # so both the latest hourly AND synoptic cycle load in parallel
         cycles_to_load = self.available_cycles[:n_cycles]
+        # Also include synoptic cycles in top positions if not already there
+        if self.model_name == 'hrrr':
+            seen = {c['cycle_key'] for c in cycles_to_load}
+            for c in self.available_cycles:
+                if c.get('is_synoptic') and c['cycle_key'] not in seen:
+                    cycles_to_load.append(c)
+                    seen.add(c['cycle_key'])
+                    if len(cycles_to_load) >= n_cycles + 2:
+                        break
 
-        # Count total FHRs across all cycles for progress
-        all_fhrs = []
+        # Build per-cycle FHR queues
+        cycle_queues = []
         for cycle in cycles_to_load:
             cycle_key = cycle['cycle_key']
+            is_synoptic = cycle.get('is_synoptic', False) and self.model_name == 'hrrr'
+            allowed = cycle['available_fhrs'] if is_synoptic else [f for f in cycle['available_fhrs'] if f in self.PRELOAD_FHRS]
             with self._lock:
-                fhrs = [fhr for fhr in cycle['available_fhrs']
-                        if fhr in self.PRELOAD_FHRS
-                        and (cycle_key, fhr) not in self.loaded_items]
-            all_fhrs.extend((cycle, fhr) for fhr in fhrs)
+                fhrs = [fhr for fhr in allowed if (cycle_key, fhr) not in self.loaded_items]
+            if fhrs:
+                cycle_queues.append((cycle, fhrs))
 
-        if not all_fhrs:
+        if not cycle_queues:
             return
 
-        total = len(all_fhrs)
+        # Interleave: round-robin across cycles so all get FHRs loaded concurrently
+        interleaved = []
+        max_len = max(len(fhrs) for _, fhrs in cycle_queues)
+        for i in range(max_len):
+            for cycle, fhrs in cycle_queues:
+                if i < len(fhrs):
+                    interleaved.append((cycle, fhrs[i]))
+
+        total = len(interleaved)
         done = [0]
         op_id = "preload:startup"
-        progress_update(op_id, 0, total, "Starting...", label="Pre-loading latest cycles")
+        cycle_names = ', '.join(c['display'] for c, _ in cycle_queues)
+        progress_update(op_id, 0, total, "Starting...", label=f"Pre-loading {cycle_names}")
+        logger.info(f"Pre-loading {len(interleaved)} FHRs across {len(cycle_queues)} cycles ({self.PRELOAD_WORKERS} workers, interleaved)...")
 
-        for cycle in cycles_to_load:
-            cycle_key = cycle['cycle_key']
-            run_path = Path(cycle['path'])
-
-            # Only preload every-3rd FHRs that are available on disk
-            with self._lock:
-                fhrs_to_load = [fhr for fhr in cycle['available_fhrs']
-                                if fhr in self.PRELOAD_FHRS
-                                and (cycle_key, fhr) not in self.loaded_items]
-
-            if not fhrs_to_load:
-                continue
-
+        def _make_loader(c):
             def _load_one(fhr):
+                ck = c['cycle_key']
                 with self._lock:
-                    if (cycle_key, fhr) in self.loaded_items:
-                        return fhr, True
-                    self.xsect.init_date = cycle['date']
-                    self.xsect.init_hour = cycle['hour']
+                    if (ck, fhr) in self.loaded_items:
+                        return ck, fhr, True
+                    self.xsect.init_date = c['date']
+                    self.xsect.init_hour = c['hour']
                     self._evict_if_needed()
-                    engine_key = self._get_engine_key(cycle_key, fhr)
+                    engine_key = self._get_engine_key(ck, fhr)
 
-                prs_files = list((run_path / f"F{fhr:02d}").glob("*wrfprs*.grib2"))
+                prs_files = list((Path(c['path']) / f"F{fhr:02d}").glob(self._prs_pattern))
                 if prs_files and self.xsect.load_forecast_hour(str(prs_files[0]), engine_key):
                     with self._lock:
-                        if (cycle_key, fhr) not in self.loaded_items:
-                            self.loaded_items.append((cycle_key, fhr))
-                    return fhr, True
-                return fhr, False
+                        if (ck, fhr) not in self.loaded_items:
+                            self.loaded_items.append((ck, fhr))
+                    return ck, fhr, True
+                return ck, fhr, False
+            return _load_one
 
-            fhr_list = ', '.join(f'F{f:02d}' for f in fhrs_to_load)
-            logger.info(f"Pre-loading {cycle['display']} [{fhr_list}] ({self.PRELOAD_WORKERS} workers)...")
+        with ThreadPoolExecutor(max_workers=self.PRELOAD_WORKERS) as pool:
+            futures = {}
+            for cycle, fhr in interleaved:
+                loader = _make_loader(cycle)
+                futures[pool.submit(loader, fhr)] = (cycle['cycle_key'], fhr)
 
-            with ThreadPoolExecutor(max_workers=self.PRELOAD_WORKERS) as pool:
-                futures = {pool.submit(_load_one, fhr): fhr for fhr in fhrs_to_load}
-                for future in as_completed(futures):
-                    try:
-                        fhr, ok = future.result()
-                        done[0] += 1
-                        if ok:
-                            logger.info(f"  Loaded {cycle_key} F{fhr:02d}")
-                            progress_update(op_id, done[0], total, f"Loaded {cycle_key} F{fhr:02d}")
-                        else:
-                            progress_update(op_id, done[0], total, f"Failed {cycle_key} F{fhr:02d}")
-                    except Exception as e:
-                        done[0] += 1
-                        logger.warning(f"  Failed to load FHR: {e}")
+            for future in as_completed(futures):
+                try:
+                    ck, fhr, ok = future.result()
+                    done[0] += 1
+                    if ok:
+                        logger.info(f"  Loaded {ck} F{fhr:02d}")
+                        progress_update(op_id, done[0], total, f"Loaded {ck} F{fhr:02d}")
+                    else:
+                        progress_update(op_id, done[0], total, f"Failed {ck} F{fhr:02d}")
+                except Exception as e:
+                    done[0] += 1
+                    logger.warning(f"  Failed to load FHR: {e}")
 
-            mem_mb = self.xsect.get_memory_usage()
-            logger.info(f"  {cycle['display']} done ({mem_mb:.0f} MB total)")
-
+        mem_mb = self.xsect.get_memory_usage()
+        logger.info(f"  Pre-load done ({mem_mb:.0f} MB total)")
         progress_done(op_id)
 
     def auto_load_latest(self):
@@ -623,18 +807,42 @@ class CrossSectionManager:
         if not self.xsect or not self.available_cycles:
             return
 
-        # Prioritize the newest cycle — load it fully before touching anything else
+        # Build priority order:
+        #   1. Newest cycle (always first)
+        #   2. Newest synoptic cycle (if different from #1) — needs 48h
+        #   3. Previous synoptic cycle (handoff: keep it until newest synoptic is ready)
+        #   4. Remaining cycles in chronological order
         newest = self.available_cycles[0]
-        cycles_to_check = [newest] + [c for c in self.available_cycles[1:]]
+        seen = {newest['cycle_key']}
+        priority_cycles = [newest]
 
-        for cycle in cycles_to_check:
+        if self.model_name == 'hrrr':
+            synoptics = [c for c in self.available_cycles if c.get('is_synoptic')]
+            for syn in synoptics[:2]:  # Up to 2 newest synoptic cycles
+                if syn['cycle_key'] not in seen:
+                    priority_cycles.append(syn)
+                    seen.add(syn['cycle_key'])
+
+        for c in self.available_cycles[1:]:
+            if c['cycle_key'] not in seen:
+                priority_cycles.append(c)
+                seen.add(c['cycle_key'])
+
+        for cycle in priority_cycles:
             cycle_key = cycle['cycle_key']
             run_path = Path(cycle['path'])
+            is_synoptic = cycle.get('is_synoptic', False)
+
+            # Synoptic HRRR cycles: load ALL available FHRs (F00-F48)
+            # Regular cycles: only load base FHRs (F00-F18)
+            if is_synoptic and self.model_name == 'hrrr':
+                allowed_fhrs = cycle['available_fhrs']
+            else:
+                allowed_fhrs = [f for f in cycle['available_fhrs'] if f in self.PRELOAD_FHRS]
 
             with self._lock:
-                fhrs_to_load = [fhr for fhr in cycle['available_fhrs']
-                                if fhr in self.PRELOAD_FHRS
-                                and (cycle_key, fhr) not in self.loaded_items]
+                fhrs_to_load = [fhr for fhr in allowed_fhrs
+                                if (cycle_key, fhr) not in self.loaded_items]
 
             if not fhrs_to_load:
                 continue
@@ -651,7 +859,7 @@ class CrossSectionManager:
                         self._evict_if_needed()
                         engine_key = self._get_engine_key(ck, fhr)
 
-                    prs_files = list((Path(c['path']) / f"F{fhr:02d}").glob("*wrfprs*.grib2"))
+                    prs_files = list((Path(c['path']) / f"F{fhr:02d}").glob(self._prs_pattern))
                     if prs_files and self.xsect.load_forecast_hour(str(prs_files[0]), engine_key):
                         with self._lock:
                             if (ck, fhr) not in self.loaded_items:
@@ -664,7 +872,8 @@ class CrossSectionManager:
 
             fhr_list = ', '.join(f'F{f:02d}' for f in fhrs_to_load)
             priority = " [PRIORITY]" if is_newest else ""
-            logger.info(f"Auto-loading{priority} {cycle['display']} [{fhr_list}]...")
+            synoptic_tag = " [48h SYNOPTIC]" if is_synoptic and any(f >= 19 for f in fhrs_to_load) else ""
+            logger.info(f"Auto-loading{priority}{synoptic_tag} {cycle['display']} [{fhr_list}]...")
 
             with ThreadPoolExecutor(max_workers=self.PRELOAD_WORKERS) as pool:
                 futures = {pool.submit(_load_one, fhr): fhr for fhr in fhrs_to_load}
@@ -756,7 +965,7 @@ class CrossSectionManager:
                 self._evict_if_needed()
                 engine_key = self._get_engine_key(cycle_key, fhr)
 
-            prs_files = list((run_path / f"F{fhr:02d}").glob("*wrfprs*.grib2"))
+            prs_files = list((run_path / f"F{fhr:02d}").glob(self._prs_pattern))
             if prs_files and self.xsect.load_forecast_hour(str(prs_files[0]), engine_key):
                 with self._lock:
                     if (cycle_key, fhr) not in self.loaded_items:
@@ -813,7 +1022,7 @@ class CrossSectionManager:
 
             run_path = Path(cycle['path'])
             fhr_dir = run_path / f"F{fhr:02d}"
-            prs_files = list(fhr_dir.glob("*wrfprs*.grib2"))
+            prs_files = list(fhr_dir.glob(self._prs_pattern))
             if not prs_files:
                 return {'success': False, 'error': f'No GRIB file found for F{fhr:02d}'}
 
@@ -889,7 +1098,7 @@ class CrossSectionManager:
 
         # Build metadata with real FHR (not engine key) — thread-safe, no shared state
         meta = {
-            'model': 'HRRR',
+            'model': self.model_name.upper(),
             'init_date': cycle['date'] if cycle else None,
             'init_hour': cycle['hour'] if cycle else None,
             'forecast_hour': fhr,
@@ -960,7 +1169,72 @@ class CrossSectionManager:
         return times
 
 
-data_manager = CrossSectionManager()
+# =============================================================================
+# MODEL MANAGER REGISTRY
+# =============================================================================
+
+ENABLED_MODELS = ['hrrr']  # Default; overridden by --models CLI arg
+MODEL_MEM_BUDGETS = {
+    'hrrr': (58000, 56000),
+    'gfs':  (8000, 7500),
+    'rrfs': (8000, 7500),
+}
+
+
+class ModelManagerRegistry:
+    """Registry of CrossSectionManagers, one per model."""
+
+    def __init__(self):
+        self.managers: Dict[str, CrossSectionManager] = {}
+        self.default_model = 'hrrr'
+
+    def register(self, model_name: str):
+        limit, evict = MODEL_MEM_BUDGETS.get(model_name, (25000, 24000))
+        mgr = CrossSectionManager(
+            model_name=model_name,
+            mem_limit_mb=limit,
+            mem_evict_mb=evict,
+        )
+        self.managers[model_name] = mgr
+        return mgr
+
+    def get(self, model_name: str = None) -> CrossSectionManager:
+        name = (model_name or self.default_model).lower()
+        if name not in self.managers:
+            raise ValueError(f"Unknown model: {name}. Available: {list(self.managers.keys())}")
+        return self.managers[name]
+
+    def all_managers(self):
+        return self.managers.items()
+
+    def list_models(self):
+        return [
+            {
+                'id': name,
+                'name': mgr.model_config.full_name if mgr.model_config else name.upper(),
+                'resolution': mgr.model_config.resolution if mgr.model_config else 'unknown',
+                'domain': mgr.model_config.domain if mgr.model_config else 'unknown',
+                'cycle_count': len(mgr.available_cycles),
+                'loaded_count': len(mgr.loaded_items),
+                'excluded_styles': sorted(MODEL_EXCLUDED_STYLES.get(name, set())),
+            }
+            for name, mgr in self.managers.items()
+        ]
+
+
+model_registry = ModelManagerRegistry()
+model_registry.register('hrrr')  # Always register HRRR at import time
+data_manager = model_registry.get('hrrr')  # Backward compat alias
+
+
+def get_manager_from_request() -> CrossSectionManager:
+    """Extract ?model= from request and return the correct manager."""
+    model = request.args.get('model', 'hrrr').lower()
+    try:
+        return model_registry.get(model)
+    except ValueError:
+        return None
+
 
 # =============================================================================
 # HTML TEMPLATE
@@ -1075,6 +1349,42 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         /* Shift+click unload hint */
         .chip.loaded:active, .chip.active:active {
             opacity: 0.7;
+        }
+        /* Extended FHR chips (F19-F48) */
+        .chip.extended {
+            border-style: dashed;
+            font-size: 10px;
+            padding: 3px 5px;
+        }
+        .chip-divider {
+            color: var(--muted);
+            margin: 0 2px;
+            font-size: 14px;
+            user-select: none;
+            display: flex;
+            align-items: center;
+        }
+        /* Time slider row */
+        #slider-row {
+            padding: 4px 16px;
+            background: rgba(0,0,0,0.15);
+            border-top: 1px solid var(--border);
+            gap: 8px;
+        }
+        #fhr-slider {
+            -webkit-appearance: none;
+            height: 6px;
+            background: var(--card);
+            border-radius: 3px;
+            outline: none;
+        }
+        #fhr-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
         }
 
         /* Toggle button group */
@@ -1355,12 +1665,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
         #active-fhr { color: var(--accent); font-size: 13px; }
         #xsect-container {
-            flex: 1;
+            width: 100%;
+            height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 12px;
-            overflow: hidden;
         }
         #xsect-img {
             max-width: 100%;
@@ -1375,6 +1684,70 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .loading-text {
             color: var(--accent);
             animation: pulse 1.5s infinite;
+        }
+
+        /* Cycle Comparison Mode */
+        #xsect-panels {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #xsect-panels.compare-active {
+            flex-direction: row;
+        }
+        .xsect-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-width: 0;
+        }
+        .xsect-panel-label {
+            padding: 4px 12px;
+            font-size: 11px;
+            color: var(--muted);
+            border-bottom: 1px solid var(--border);
+            display: none;
+        }
+        #xsect-panels.compare-active .xsect-panel-label {
+            display: block;
+        }
+        #xsect-panels.compare-active .xsect-panel + .xsect-panel {
+            border-left: 1px solid var(--border);
+        }
+        .xsect-panel-body {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            overflow: hidden;
+        }
+        .xsect-panel-body img {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 4px;
+        }
+        #compare-controls {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 0 16px 8px;
+        }
+        #compare-controls.visible {
+            display: flex;
+        }
+        #compare-controls select {
+            font-size: 12px;
+        }
+        #compare-controls .toggle-group {
+            display: flex;
+            gap: 2px;
+        }
+        #compare-controls .toggle-btn {
+            font-size: 11px;
+            padding: 2px 8px;
         }
 
         /* Inset map for cross-section path */
@@ -1605,6 +1978,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         <div id="controls">
             <div class="control-row">
                 <div class="control-group">
+                    <label>Model:</label>
+                    <select id="model-select"></select>
+                </div>
+                <div class="control-group">
                     <label>Model Run:</label>
                     <select id="cycle-select"></select>
                     <button id="request-cycle-btn" title="Request a specific init cycle" style="padding:4px 8px;font-size:13px;">📅</button>
@@ -1677,6 +2054,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <button id="clear-btn">Clear Line</button>
                 <button id="admin-key-btn" title="Enter admin key for archive access" style="padding:4px 8px;font-size:13px;">🔒</button>
                 <button id="load-all-btn" title="Load all FHRs for current cycle" style="padding:4px 8px;font-size:12px;">Load All</button>
+                <button id="compare-btn" title="Compare two init cycles side-by-side" style="padding:4px 8px;font-size:12px;">Compare</button>
                 <div id="memory-status">
                     <span id="mem-text">0 MB</span>
                     <div class="mem-bar"><div class="mem-fill" id="mem-fill" style="width:0%"></div></div>
@@ -1686,6 +2064,18 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <label>Forecast Hours:</label>
                 <div class="chip-group" id="fhr-chips"></div>
             </div>
+            <div class="control-row" id="slider-row" style="display:none;">
+                <button id="play-btn" title="Auto-play through loaded frames" style="padding:4px 10px;font-size:16px;min-width:36px;">&#9654;</button>
+                <input type="range" id="fhr-slider" min="0" max="18" value="0" style="flex:1;">
+                <span id="slider-label" style="font-size:12px;color:var(--muted);min-width:36px;text-align:center;">F00</span>
+                <select id="play-speed" title="Playback speed" style="min-width:55px;font-size:11px;">
+                    <option value="2000">0.5x</option>
+                    <option value="1000" selected>1x</option>
+                    <option value="500">2x</option>
+                    <option value="250">4x</option>
+                </select>
+                <button id="prerender-btn" title="Pre-render all loaded frames for smooth playback" style="padding:4px 8px;font-size:11px;">Pre-render</button>
+            </div>
         </div>
         <div id="map"></div>
     </div>
@@ -1694,10 +2084,30 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             <span>Cross-Section</span>
             <span id="active-fhr"></span>
         </div>
-        <div id="xsect-container">
-            <div id="instructions">
-                Click two points on the map to draw a cross-section line.<br>
-                Then select forecast hours to load.
+        <div id="compare-controls">
+            <label style="font-size:12px;color:var(--muted);">vs</label>
+            <select id="compare-cycle-select" style="min-width:120px;"></select>
+            <div class="toggle-group" id="compare-mode-toggle">
+                <button class="toggle-btn active" data-value="same_fhr">Same FHR</button>
+                <button class="toggle-btn" data-value="valid_time">Valid Time</button>
+            </div>
+            <span id="compare-fhr-label" style="font-size:11px;color:var(--muted);"></span>
+        </div>
+        <div id="xsect-panels">
+            <div class="xsect-panel" id="panel-primary">
+                <div class="xsect-panel-label" id="panel-primary-label"></div>
+                <div class="xsect-panel-body" id="xsect-container">
+                    <div id="instructions">
+                        Click two points on the map to draw a cross-section line.<br>
+                        Then select forecast hours to load.
+                    </div>
+                </div>
+            </div>
+            <div class="xsect-panel" id="panel-compare" style="display:none;">
+                <div class="xsect-panel-label" id="panel-compare-label"></div>
+                <div class="xsect-panel-body" id="xsect-container-compare">
+                    <div style="color:var(--muted);">Select a comparison cycle</div>
+                </div>
             </div>
         </div>
     </div>
@@ -1760,6 +2170,71 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         let activeFhr = null;      // Which FHR is currently displayed in cross-section
         let isAdmin = false;
         let protectedCycles = [];
+        let currentModel = 'hrrr'; // Currently selected model
+        let modelExcludedStyles = {};  // model -> Set of excluded style keys
+
+        // Slider + playback state
+        let isPlaying = false;
+        let playInterval = null;
+        let prerenderedFrames = {};  // fhr -> blobUrl
+
+        // Comparison mode state
+        let compareActive = false;
+        let compareCycle = null;     // Cycle key for comparison panel
+        let compareMode = 'same_fhr'; // 'same_fhr' or 'valid_time'
+
+        // Model parameter helper — appends &model= to API calls
+        function modelParam() { return `&model=${currentModel}`; }
+
+        // Load available models from server and populate dropdown
+        async function loadModels() {
+            try {
+                const res = await fetch('/api/models');
+                const data = await res.json();
+                const select = document.getElementById('model-select');
+                select.innerHTML = '';
+                (data.models || []).forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m.id;
+                    opt.textContent = m.name.toUpperCase();
+                    select.appendChild(opt);
+                    if (m.excluded_styles) {
+                        modelExcludedStyles[m.id] = new Set(m.excluded_styles);
+                    }
+                });
+                if (select.options.length > 0) {
+                    currentModel = select.value;
+                }
+                select.onchange = async () => {
+                    currentModel = select.value;
+                    updateStyleDropdownForModel();
+                    await loadCycles();
+                    generateCrossSection();
+                };
+            } catch (e) {
+                console.error('Failed to load models:', e);
+                // Fallback: just show HRRR
+                const select = document.getElementById('model-select');
+                select.innerHTML = '<option value="hrrr">HRRR</option>';
+            }
+        }
+
+        // Hide styles that aren't available for the current model
+        function updateStyleDropdownForModel() {
+            const excluded = modelExcludedStyles[currentModel] || new Set();
+            const select = document.getElementById('style-select');
+            const currentVal = select.value;
+            Array.from(select.options).forEach(opt => {
+                opt.style.display = excluded.has(opt.value) ? 'none' : '';
+            });
+            // If current selection is excluded, switch to first visible
+            if (excluded.has(currentVal)) {
+                const first = Array.from(select.options).find(o => !excluded.has(o.value));
+                if (first) select.value = first.value;
+            }
+            updateTempCmapVisibility();
+            updateAnomalyVisibility();
+        }
 
         // Admin key management
         function getAdminKey() { return localStorage.getItem('wxsection_admin_key') || ''; }
@@ -1768,7 +2243,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const k = getAdminKey();
             if (!k) { setAdminState(false, []); return; }
             try {
-                const res = await fetch(`/api/check_key?key=${encodeURIComponent(k)}`);
+                const res = await fetch(`/api/check_key?key=${encodeURIComponent(k)}${modelParam()}`);
                 const data = await res.json();
                 setAdminState(data.valid, data.protected || []);
             } catch { setAdminState(false, []); }
@@ -1799,7 +2274,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             btn.textContent = 'Loading...';
             const toast = showToast(`Loading all FHRs for ${currentCycle}...`);
             try {
-                const res = await fetch(`/api/load_cycle?cycle=${currentCycle}${adminParam()}`, {method: 'POST'});
+                const res = await fetch(`/api/load_cycle?cycle=${currentCycle}${modelParam()}${adminParam()}`, {method: 'POST'});
                 const data = await res.json();
                 toast.remove();
                 if (data.success) {
@@ -2010,7 +2485,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         })
                     }).addTo(map);
                     startMarker.on('drag', updateLine);
-                    startMarker.on('dragend', generateCrossSection);
+                    startMarker.on('dragend', () => { invalidatePrerender(); generateCrossSection(); });
 
                     // Create end marker
                     endMarker = L.marker([cfg.end_lat, cfg.end_lon], {
@@ -2023,7 +2498,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         })
                     }).addTo(map);
                     endMarker.on('drag', updateLine);
-                    endMarker.on('dragend', generateCrossSection);
+                    endMarker.on('dragend', () => { invalidatePrerender(); generateCrossSection(); });
 
                     // Create line
                     line = L.polyline([[cfg.start_lat, cfg.start_lon], [cfg.end_lat, cfg.end_lon]], {
@@ -2107,7 +2582,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
             const toast = showToast(`Requesting ${dateStr}/${String(hour).padStart(2,'0')}z F00-F18...`);
             try {
-                const res = await fetch(`/api/request_cycle?date=${dateStr}&hour=${hour}${adminParam()}`, {method: 'POST'});
+                const res = await fetch(`/api/request_cycle?date=${dateStr}&hour=${hour}${modelParam()}${adminParam()}`, {method: 'POST'});
                 const data = await res.json();
                 toast.remove();
                 if (data.success) {
@@ -2210,7 +2685,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
         async function loadCycles() {
             try {
-                const res = await fetch('/api/cycles');
+                const res = await fetch(`/api/cycles?model=${currentModel}`);
                 const data = await res.json();
                 cycles = data.cycles || [];
 
@@ -2237,7 +2712,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         // Auto-refresh cycles every 60s to pick up newly downloaded forecast hours
         async function refreshCycleList() {
             try {
-                const res = await fetch('/api/cycles');
+                const res = await fetch(`/api/cycles?model=${currentModel}`);
                 const data = await res.json();
                 const newCycles = data.cycles || [];
                 if (!newCycles.length) return;
@@ -2260,6 +2735,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
                 cycles = newCycles;
                 buildCycleDropdown(cycles, true);  // Always preserve selection
+                if (compareActive) populateCompareCycleDropdown();
             } catch (e) {
                 // Silent fail for background refresh
             }
@@ -2324,7 +2800,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 // Need to load this cycle first
                 const toast = showToast(`Loading cycle (this may take a minute)...`);
                 try {
-                    const res = await fetch(`/api/load_cycle?cycle=${currentCycle}${adminParam()}`, {method: 'POST'});
+                    const res = await fetch(`/api/load_cycle?cycle=${currentCycle}${modelParam()}${adminParam()}`, {method: 'POST'});
                     const data = await res.json();
                     toast.remove();
 
@@ -2335,7 +2811,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         updateMemoryDisplay(data.memory_mb || 0);
 
                         // Refresh cycles list to update loaded status
-                        const cyclesRes = await fetch('/api/cycles');
+                        const cyclesRes = await fetch(`/api/cycles?model=${currentModel}`);
                         const cyclesData = await cyclesRes.json();
                         cycles = cyclesData.cycles || [];
                     } else {
@@ -2381,33 +2857,57 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const container = document.getElementById('fhr-chips');
             container.innerHTML = '';
 
-            const allFhrs = Array.from({length: 19}, (_, i) => i);
+            // Determine max FHR from current cycle metadata
+            const cycleInfo = cycles.find(c => c.key === currentCycle);
+            const maxFhr = (cycleInfo && cycleInfo.max_fhr) || 18;
+            const isSynoptic = cycleInfo && cycleInfo.is_synoptic;
 
-            allFhrs.forEach(fhr => {
-                const chip = document.createElement('div');
-                chip.className = 'chip';
-                chip.textContent = `F${String(fhr).padStart(2, '0')}`;
-                chip.dataset.fhr = fhr;
+            // Standard range: F00-F18
+            const standardMax = Math.min(maxFhr, 18);
+            for (let fhr = 0; fhr <= standardMax; fhr++) {
+                container.appendChild(createFhrChip(fhr, availableFhrs));
+            }
 
-                if (!availableFhrs.includes(fhr)) {
-                    chip.classList.add('unavailable');
-                    chip.title = 'Not downloaded yet';
-                } else {
-                    // Set visual state based on loaded/active
-                    if (fhr === activeFhr) {
-                        chip.classList.add('active');
-                        chip.title = 'Currently viewing (Shift+click to unload)';
-                    } else if (selectedFhrs.includes(fhr)) {
-                        chip.classList.add('loaded');
-                        chip.title = 'Loaded in RAM — click for instant view (Shift+click to unload)';
-                    } else {
-                        chip.title = 'Click to load (~15s)';
-                    }
-                    chip.onclick = (e) => handleChipClick(fhr, chip, e);
+            // Extended range: F19-F48 (synoptic cycles only)
+            if (isSynoptic && maxFhr > 18) {
+                const divider = document.createElement('span');
+                divider.className = 'chip-divider';
+                divider.textContent = '|';
+                container.appendChild(divider);
+
+                for (let fhr = 19; fhr <= maxFhr; fhr++) {
+                    const chip = createFhrChip(fhr, availableFhrs);
+                    chip.classList.add('extended');
+                    container.appendChild(chip);
                 }
+            }
 
-                container.appendChild(chip);
-            });
+            updateSliderVisibility();
+        }
+
+        function createFhrChip(fhr, availableFhrs) {
+            const chip = document.createElement('div');
+            chip.className = 'chip';
+            chip.textContent = `F${String(fhr).padStart(2, '0')}`;
+            chip.dataset.fhr = fhr;
+
+            if (!availableFhrs.includes(fhr)) {
+                chip.classList.add('unavailable');
+                chip.title = 'Not downloaded yet';
+            } else {
+                // Set visual state based on loaded/active
+                if (fhr === activeFhr) {
+                    chip.classList.add('active');
+                    chip.title = 'Currently viewing (Shift+click to unload)';
+                } else if (selectedFhrs.includes(fhr)) {
+                    chip.classList.add('loaded');
+                    chip.title = 'Loaded in RAM — click for instant view (Shift+click to unload)';
+                } else {
+                    chip.title = 'Click to load (~15s)';
+                }
+                chip.onclick = (e) => handleChipClick(fhr, chip, e);
+            }
+            return chip;
         }
 
         // Unified click handler for all chips
@@ -2425,7 +2925,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const toast = showToast(`Unloading F${String(fhr).padStart(2,'0')}...`);
 
                 try {
-                    const res = await fetch(`/api/unload?cycle=${currentCycle}&fhr=${fhr}${adminParam()}`, {method: 'POST'});
+                    const res = await fetch(`/api/unload?cycle=${currentCycle}&fhr=${fhr}${modelParam()}${adminParam()}`, {method: 'POST'});
                     const data = await res.json();
 
                     if (data.success) {
@@ -2473,7 +2973,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
             try {
                 const loadStart = Date.now();
-                const res = await fetch(`/api/load?cycle=${currentCycle}&fhr=${fhr}${adminParam()}`, {method: 'POST'});
+                const res = await fetch(`/api/load?cycle=${currentCycle}&fhr=${fhr}${modelParam()}${adminParam()}`, {method: 'POST'});
                 const data = await res.json();
                 const loadSec = ((Date.now() - loadStart) / 1000).toFixed(1);
 
@@ -2516,11 +3016,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     chip.title = 'Click to load (~15s)';
                 }
             });
+            updateSliderVisibility();
         }
 
         async function refreshLoadedStatus() {
             try {
-                const res = await fetch('/api/status');
+                const res = await fetch(`/api/status?model=${currentModel}`);
                 const data = await res.json();
 
                 // Update selected FHRs based on what's actually loaded
@@ -2541,6 +3042,362 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
 
         // =========================================================================
+        // Time Slider + Auto-Play
+        // =========================================================================
+
+        function updateSliderVisibility() {
+            const sliderRow = document.getElementById('slider-row');
+            if (selectedFhrs.length >= 2) {
+                sliderRow.style.display = '';
+                updateSliderRange();
+            } else {
+                sliderRow.style.display = 'none';
+                stopPlayback();
+            }
+        }
+
+        function updateSliderRange() {
+            const slider = document.getElementById('fhr-slider');
+            const sorted = [...selectedFhrs].sort((a, b) => a - b);
+            slider.min = 0;
+            slider.max = sorted.length - 1;
+            const idx = sorted.indexOf(activeFhr);
+            slider.value = idx >= 0 ? idx : 0;
+            slider.dataset.fhrMap = JSON.stringify(sorted);
+            document.getElementById('slider-label').textContent = activeFhr != null ? `F${String(activeFhr).padStart(2, '0')}` : '';
+        }
+
+        document.getElementById('fhr-slider').addEventListener('input', function() {
+            const fhrMap = JSON.parse(this.dataset.fhrMap || '[]');
+            const fhr = fhrMap[parseInt(this.value)];
+            if (fhr === undefined) return;
+
+            document.getElementById('slider-label').textContent = `F${String(fhr).padStart(2, '0')}`;
+            activeFhr = fhr;
+            updateChipStates();
+
+            // Use prerendered frame if available
+            if (prerenderedFrames[fhr]) {
+                const container = document.getElementById('xsect-container');
+                let img = document.getElementById('xsect-img');
+                if (!img) {
+                    img = document.createElement('img');
+                    img.id = 'xsect-img';
+                    img.style.maxWidth = '100%';
+                    container.innerHTML = '';
+                    container.appendChild(img);
+                }
+                img.src = prerenderedFrames[fhr];
+                document.getElementById('active-fhr').textContent = `F${String(fhr).padStart(2, '0')}`;
+                if (compareActive) { updateCompareLabels(); generateComparisonSection(); }
+            } else {
+                generateCrossSection();
+            }
+        });
+
+        document.getElementById('play-btn').addEventListener('click', () => {
+            if (isPlaying) {
+                stopPlayback();
+            } else {
+                startPlayback();
+            }
+        });
+
+        function startPlayback() {
+            isPlaying = true;
+            document.getElementById('play-btn').innerHTML = '&#9646;&#9646;';
+            const speed = parseInt(document.getElementById('play-speed').value);
+            const slider = document.getElementById('fhr-slider');
+
+            playInterval = setInterval(() => {
+                let val = parseInt(slider.value) + 1;
+                if (val > parseInt(slider.max)) val = 0;
+                slider.value = val;
+                slider.dispatchEvent(new Event('input'));
+            }, speed);
+        }
+
+        function stopPlayback() {
+            isPlaying = false;
+            document.getElementById('play-btn').innerHTML = '&#9654;';
+            if (playInterval) {
+                clearInterval(playInterval);
+                playInterval = null;
+            }
+        }
+
+        function invalidatePrerender() {
+            Object.values(prerenderedFrames).forEach(url => {
+                if (url && url.startsWith('blob:')) URL.revokeObjectURL(url);
+            });
+            prerenderedFrames = {};
+        }
+
+        document.getElementById('prerender-btn').addEventListener('click', async () => {
+            if (!startMarker || !endMarker || !currentCycle) return;
+
+            const btn = document.getElementById('prerender-btn');
+            btn.disabled = true;
+            btn.textContent = 'Rendering...';
+
+            const start = startMarker.getLatLng();
+            const end = endMarker.getLatLng();
+            const sorted = [...selectedFhrs].sort((a, b) => a - b);
+
+            const body = {
+                frames: sorted.map(fhr => ({cycle: currentCycle, fhr})),
+                start: [start.lat, start.lng],
+                end: [end.lat, end.lng],
+                style: document.getElementById('style-select').value,
+                y_axis: document.querySelector('#y-axis-toggle .toggle-btn.active')?.dataset?.value || 'pressure',
+                vscale: parseFloat(document.getElementById('vscale-select').value),
+                y_top: parseInt(document.getElementById('ytop-select').value),
+                units: document.getElementById('units-select').value,
+                temp_cmap: document.getElementById('temp-cmap-select')?.value || 'standard',
+                anomaly: document.querySelector('#anomaly-toggle .toggle-btn.active')?.dataset?.value === 'anomaly',
+                model: currentModel,
+            };
+
+            try {
+                const res = await fetch('/api/prerender', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(body),
+                });
+                const data = await res.json();
+                const sessionId = data.session_id;
+
+                // Poll progress until done
+                const pollId = setInterval(async () => {
+                    try {
+                        const pRes = await fetch('/api/progress');
+                        const progress = await pRes.json();
+                        const session = progress[sessionId];
+
+                        if (session) {
+                            btn.textContent = `${session.pct}%`;
+                        }
+
+                        if (!session || session.done) {
+                            clearInterval(pollId);
+                            btn.disabled = false;
+                            btn.textContent = 'Pre-render';
+
+                            // Fetch all frames as blob URLs
+                            const style = body.style;
+                            const baseParams = `start_lat=${body.start[0]}&start_lon=${body.start[1]}&end_lat=${body.end[0]}&end_lon=${body.end[1]}&style=${style}&y_axis=${body.y_axis}&vscale=${body.vscale}&y_top=${body.y_top}&units=${body.units}&temp_cmap=${body.temp_cmap}&anomaly=${body.anomaly ? '1' : '0'}&model=${currentModel}`;
+
+                            for (const fhr of sorted) {
+                                try {
+                                    const fRes = await fetch(`/api/frame?cycle=${currentCycle}&fhr=${fhr}&${baseParams}`);
+                                    if (fRes.ok) {
+                                        const blob = await fRes.blob();
+                                        prerenderedFrames[fhr] = URL.createObjectURL(blob);
+                                    }
+                                } catch (e) { /* skip failed frames */ }
+                            }
+                            showToast(`${sorted.length} frames pre-rendered`, 'success');
+                        }
+                    } catch (e) {
+                        clearInterval(pollId);
+                        btn.disabled = false;
+                        btn.textContent = 'Pre-render';
+                    }
+                }, 800);
+            } catch (err) {
+                btn.disabled = false;
+                btn.textContent = 'Pre-render';
+                showToast('Pre-render failed', 'error');
+            }
+        });
+
+        // Invalidate prerendered frames when render params change
+        ['style-select', 'vscale-select', 'ytop-select', 'units-select', 'temp-cmap-select'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', invalidatePrerender);
+        });
+
+        // =========================================================================
+        // Cycle Comparison Mode
+        // =========================================================================
+
+        function toggleCompareMode() {
+            compareActive = !compareActive;
+            const btn = document.getElementById('compare-btn');
+            const controls = document.getElementById('compare-controls');
+            const panels = document.getElementById('xsect-panels');
+            const panelCompare = document.getElementById('panel-compare');
+
+            if (compareActive) {
+                btn.style.background = 'var(--accent)';
+                btn.style.color = '#000';
+                controls.classList.add('visible');
+                panels.classList.add('compare-active');
+                panelCompare.style.display = '';
+                populateCompareCycleDropdown();
+                updateCompareLabels();
+            } else {
+                btn.style.background = '';
+                btn.style.color = '';
+                controls.classList.remove('visible');
+                panels.classList.remove('compare-active');
+                panelCompare.style.display = 'none';
+                compareCycle = null;
+                document.getElementById('xsect-container-compare').innerHTML =
+                    '<div style="color:var(--muted);">Select a comparison cycle</div>';
+            }
+        }
+
+        document.getElementById('compare-btn').addEventListener('click', toggleCompareMode);
+
+        function populateCompareCycleDropdown() {
+            const sel = document.getElementById('compare-cycle-select');
+            sel.innerHTML = '<option value="">-- Select cycle --</option>';
+            cycles.forEach(c => {
+                if (c.key === currentCycle) return;
+                const opt = document.createElement('option');
+                opt.value = c.key;
+                opt.textContent = c.label || c.key;
+                sel.appendChild(opt);
+            });
+            if (compareCycle) sel.value = compareCycle;
+        }
+
+        document.getElementById('compare-cycle-select').addEventListener('change', function() {
+            compareCycle = this.value || null;
+            updateCompareLabels();
+            generateComparisonSection();
+        });
+
+        // Compare mode toggle (Same FHR vs Valid Time)
+        document.querySelectorAll('#compare-mode-toggle .toggle-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('#compare-mode-toggle .toggle-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                compareMode = this.dataset.value;
+                updateCompareLabels();
+                generateComparisonSection();
+            });
+        });
+
+        function getCompareFhr() {
+            if (!compareCycle || activeFhr === null) return null;
+
+            if (compareMode === 'same_fhr') {
+                return activeFhr;
+            }
+
+            // Valid Time mode: find FHR in comparison cycle that matches same valid time
+            const primaryInfo = cycles.find(c => c.key === currentCycle);
+            const compareInfo = cycles.find(c => c.key === compareCycle);
+            if (!primaryInfo || !compareInfo) return activeFhr;
+
+            // Parse cycle init hours from keys like "20260205_18z"
+            const parseCycleTime = (key) => {
+                const m = key.match(/(\d{8})_(\d{2})z/);
+                if (!m) return null;
+                const yr = parseInt(m[1].substring(0, 4));
+                const mo = parseInt(m[1].substring(4, 6)) - 1;
+                const dy = parseInt(m[1].substring(6, 8));
+                const hr = parseInt(m[2]);
+                return new Date(Date.UTC(yr, mo, dy, hr));
+            };
+
+            const primaryInit = parseCycleTime(currentCycle);
+            const compareInit = parseCycleTime(compareCycle);
+            if (!primaryInit || !compareInit) return activeFhr;
+
+            // Valid time = init + FHR hours
+            const validTime = new Date(primaryInit.getTime() + activeFhr * 3600000);
+            const neededFhr = Math.round((validTime - compareInit) / 3600000);
+
+            if (neededFhr < 0 || neededFhr > (compareInfo.max_fhr || 48)) return null;
+            return neededFhr;
+        }
+
+        function updateCompareLabels() {
+            const primaryLabel = document.getElementById('panel-primary-label');
+            const compareLabel = document.getElementById('panel-compare-label');
+            const fhrLabel = document.getElementById('compare-fhr-label');
+
+            if (!compareActive) return;
+
+            const primaryInfo = cycles.find(c => c.key === currentCycle);
+            primaryLabel.textContent = (primaryInfo ? primaryInfo.label || currentCycle : currentCycle || '') +
+                (activeFhr !== null ? ` F${String(activeFhr).padStart(2, '0')}` : '');
+
+            if (compareCycle) {
+                const cFhr = getCompareFhr();
+                const compareInfo = cycles.find(c => c.key === compareCycle);
+                const cLabel = compareInfo ? compareInfo.label || compareCycle : compareCycle;
+                compareLabel.textContent = cLabel + (cFhr !== null ? ` F${String(cFhr).padStart(2, '0')}` : '');
+
+                if (compareMode === 'valid_time' && cFhr !== null && activeFhr !== null) {
+                    const primaryInit = parseCycleKey(currentCycle);
+                    if (primaryInit) {
+                        const vt = new Date(primaryInit.getTime() + activeFhr * 3600000);
+                        fhrLabel.textContent = `Valid: ${vt.getUTCHours().toString().padStart(2,'0')}z`;
+                    }
+                } else {
+                    fhrLabel.textContent = '';
+                }
+            } else {
+                compareLabel.textContent = 'No cycle selected';
+                fhrLabel.textContent = '';
+            }
+        }
+
+        function parseCycleKey(key) {
+            const m = key.match(/(\d{8})_(\d{2})z/);
+            if (!m) return null;
+            const yr = parseInt(m[1].substring(0, 4));
+            const mo = parseInt(m[1].substring(4, 6)) - 1;
+            const dy = parseInt(m[1].substring(6, 8));
+            const hr = parseInt(m[2]);
+            return new Date(Date.UTC(yr, mo, dy, hr));
+        }
+
+        async function generateComparisonSection() {
+            if (!compareActive || !compareCycle || !startMarker || !endMarker) return;
+
+            const container = document.getElementById('xsect-container-compare');
+            const cFhr = getCompareFhr();
+
+            if (cFhr === null) {
+                container.innerHTML = '<div style="color:var(--muted);">FHR not available in comparison cycle</div>';
+                return;
+            }
+
+            container.innerHTML = '<div class="loading-text">Generating...</div>';
+
+            const start = startMarker.getLatLng();
+            const end = endMarker.getLatLng();
+            const style = document.getElementById('style-select').value;
+            const vscale = document.getElementById('vscale-select').value;
+            const ytop = document.getElementById('ytop-select').value;
+            const units = document.getElementById('units-select').value;
+            const tempCmap = document.getElementById('temp-cmap-select').value;
+
+            // Use /api/frame for comparison (benefits from prerender cache)
+            const url = `/api/frame?start_lat=${start.lat}&start_lon=${start.lng}` +
+                `&end_lat=${end.lat}&end_lon=${end.lng}&cycle=${compareCycle}&fhr=${cFhr}&style=${style}` +
+                `&y_axis=${currentYAxis}&vscale=${vscale}&y_top=${ytop}&units=${units}&temp_cmap=${tempCmap}` +
+                `&anomaly=${anomalyMode ? 1 : 0}&model=${currentModel}`;
+
+            try {
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('Failed to generate comparison');
+                const blob = await res.blob();
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(blob);
+                container.innerHTML = '';
+                container.appendChild(img);
+            } catch (err) {
+                container.innerHTML = `<div style="color:#f87171">${err.message}</div>`;
+            }
+        }
+
+        // =========================================================================
         // Map Interaction
         // =========================================================================
         map.on('click', e => {
@@ -2557,7 +3414,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     })
                 }).addTo(map);
                 startMarker.on('drag', updateLine);
-                startMarker.on('dragend', generateCrossSection);
+                startMarker.on('dragend', () => { invalidatePrerender(); generateCrossSection(); });
             } else if (!endMarker) {
                 endMarker = L.marker([lat, lng], {
                     draggable: true,
@@ -2569,7 +3426,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     })
                 }).addTo(map);
                 endMarker.on('drag', updateLine);
-                endMarker.on('dragend', generateCrossSection);
+                endMarker.on('dragend', () => { invalidatePrerender(); generateCrossSection(); });
 
                 line = L.polyline([startMarker.getLatLng(), endMarker.getLatLng()], {
                     color: '#fbbf24', weight: 3, dashArray: '10, 5'
@@ -2611,7 +3468,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const url = `/api/xsect?start_lat=${start.lat}&start_lon=${start.lng}` +
                 `&end_lat=${end.lat}&end_lon=${end.lng}&cycle=${currentCycle}&fhr=${activeFhr}&style=${style}` +
                 `&y_axis=${currentYAxis}&vscale=${vscale}&y_top=${ytop}&units=${units}&temp_cmap=${tempCmap}` +
-                `&anomaly=${anomalyMode ? 1 : 0}`;
+                `&anomaly=${anomalyMode ? 1 : 0}${modelParam()}`;
 
             try {
                 const res = await fetch(url);
@@ -2625,6 +3482,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             } catch (err) {
                 container.innerHTML = `<div style="color:#f87171">${err.message}</div>`;
             }
+
+            // Update comparison panel if active
+            if (compareActive) {
+                updateCompareLabels();
+                generateComparisonSection();
+            }
         }
 
         // Clear button
@@ -2634,6 +3497,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             if (line) { map.removeLayer(line); line = null; }
             document.getElementById('xsect-container').innerHTML =
                 '<div id="instructions">Click two points on the map to draw a cross-section line</div>';
+            if (compareActive) {
+                document.getElementById('xsect-container-compare').innerHTML =
+                    '<div style="color:var(--muted);">Draw a line to compare</div>';
+            }
         };
 
         // GIF button
@@ -2653,7 +3520,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 `&end_lat=${end.lat}&end_lon=${end.lng}&cycle=${currentCycle}&style=${style}` +
                 `&y_axis=${currentYAxis}&vscale=${vscale}&y_top=${ytop}&units=${units}&speed=${speed}` +
                 `&temp_cmap=${document.getElementById('temp-cmap-select').value}` +
-                `&anomaly=${anomalyMode ? 1 : 0}` + adminParam();
+                `&anomaly=${anomalyMode ? 1 : 0}${modelParam()}` + adminParam();
             try {
                 const res = await fetch(url);
                 if (!res.ok) {
@@ -2901,7 +3768,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
         document.getElementById('memory-status').onclick = async () => {
             try {
-                const res = await fetch('/api/status');
+                const res = await fetch(`/api/status?model=${currentModel}`);
                 const data = await res.json();
                 const loaded = data.loaded || [];
                 const memMb = data.memory_mb || 0;
@@ -2950,7 +3817,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         };
         document.getElementById('ram-modal-close').onclick = () => ramModal.classList.remove('visible');
 
-        loadCycles();
+        loadModels().then(() => loadCycles());
     </script>
 </body>
 </html>'''
@@ -2963,17 +3830,25 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 def index():
     return HTML_TEMPLATE
 
+@app.route('/api/models')
+def api_models():
+    """List enabled models."""
+    return jsonify({'models': model_registry.list_models()})
+
 @app.route('/api/cycles')
 def api_cycles():
-    """Return available cycles for the dropdown."""
+    """Return available cycles for the dropdown. Supports ?model=hrrr."""
+    mgr = get_manager_from_request() or data_manager
     return jsonify({
-        'cycles': data_manager.get_cycles_for_ui(),
+        'cycles': mgr.get_cycles_for_ui(),
+        'model': mgr.model_name,
     })
 
 @app.route('/api/check_key')
 def api_check_key():
     """Check if the provided admin key is valid."""
-    return jsonify({'valid': check_admin_key(), 'protected': list(data_manager.get_protected_cycles())})
+    mgr = get_manager_from_request() or data_manager
+    return jsonify({'valid': check_admin_key(), 'protected': list(mgr.get_protected_cycles())})
 
 @app.route('/api/climatology_status')
 def api_climatology_status():
@@ -3000,8 +3875,9 @@ def api_climatology_status():
 
 @app.route('/api/status')
 def api_status():
-    """Return current memory/loading status."""
-    return jsonify(data_manager.get_loaded_status())
+    """Return current memory/loading status. Supports ?model=."""
+    mgr = get_manager_from_request() or data_manager
+    return jsonify(mgr.get_loaded_status())
 
 @app.route('/api/progress')
 def api_progress():
@@ -3036,7 +3912,8 @@ def api_load():
     except ValueError:
         return jsonify({'success': False, 'error': 'Invalid fhr'}), 400
 
-    result = data_manager.load_forecast_hour(cycle_key, fhr)
+    mgr = get_manager_from_request() or data_manager
+    result = mgr.load_forecast_hour(cycle_key, fhr)
     return jsonify(result)
 
 @app.route('/api/load_cycle', methods=['POST'])
@@ -3048,7 +3925,8 @@ def api_load_cycle():
     if not cycle_key:
         return jsonify({'success': False, 'error': 'Missing cycle parameter'}), 400
 
-    result = data_manager.load_cycle(cycle_key)
+    mgr = get_manager_from_request() or data_manager
+    result = mgr.load_cycle(cycle_key)
     touch_cycle_access(cycle_key)
     return jsonify(result)
 
@@ -3067,7 +3945,8 @@ def api_unload():
     except ValueError:
         return jsonify({'success': False, 'error': 'Invalid fhr'}), 400
 
-    result = data_manager.unload_forecast_hour(cycle_key, fhr, is_admin=check_admin_key())
+    mgr = get_manager_from_request() or data_manager
+    result = mgr.unload_forecast_hour(cycle_key, fhr, is_admin=check_admin_key())
     return jsonify(result)
 
 @app.route('/api/xsect')
@@ -3106,8 +3985,9 @@ def api_xsect():
     acquired = RENDER_SEMAPHORE.acquire(timeout=10)
     if not acquired:
         return jsonify({'error': 'Server busy, try again in a moment'}), 503
+    mgr = get_manager_from_request() or data_manager
     try:
-        buf = data_manager.generate_cross_section(start, end, cycle_key, fhr, style, y_axis, vscale, y_top, units=dist_units, temp_cmap=temp_cmap_param, anomaly=anomaly_param)
+        buf = mgr.generate_cross_section(start, end, cycle_key, fhr, style, y_axis, vscale, y_top, units=dist_units, temp_cmap=temp_cmap_param, anomaly=anomaly_param)
     finally:
         RENDER_SEMAPHORE.release()
     if buf is None:
@@ -3146,14 +4026,16 @@ def api_xsect_gif():
         gif_temp_cmap = 'standard'
     gif_anomaly = request.args.get('anomaly', '0') == '1'
 
+    mgr = get_manager_from_request() or data_manager
+
     # All loaded FHRs available for GIF (mmap makes loading all FHRs cheap)
-    loaded_fhrs = sorted(fhr for ck, fhr in data_manager.loaded_items
+    loaded_fhrs = sorted(fhr for ck, fhr in mgr.loaded_items
                          if ck == cycle_key)
     if len(loaded_fhrs) < 2:
         return jsonify({'error': f'Need at least 2 loaded FHRs for GIF (have {len(loaded_fhrs)})'}), 400
 
     # Lock terrain to first FHR so elevation doesn't jitter between frames
-    terrain_data = data_manager.get_terrain_data(start, end, cycle_key, loaded_fhrs[0], style)
+    terrain_data = mgr.get_terrain_data(start, end, cycle_key, loaded_fhrs[0], style)
 
     # GIF holds the semaphore for its entire render sequence (up to 19 frames)
     sem_timeout = 90
@@ -3163,7 +4045,7 @@ def api_xsect_gif():
     try:
         frames = []
         for fhr in loaded_fhrs:
-            buf = data_manager.generate_cross_section(start, end, cycle_key, fhr, style, y_axis, vscale, y_top, units=dist_units, terrain_data=terrain_data, temp_cmap=gif_temp_cmap, anomaly=gif_anomaly)
+            buf = mgr.generate_cross_section(start, end, cycle_key, fhr, style, y_axis, vscale, y_top, units=dist_units, terrain_data=terrain_data, temp_cmap=gif_temp_cmap, anomaly=gif_anomaly)
             if buf is not None:
                 frames.append(imageio.imread(buf))
     finally:
@@ -3189,6 +4071,164 @@ def api_xsect_gif():
 
     touch_cycle_access(cycle_key)
     return send_file(gif_buf, mimetype='image/gif', download_name=f'xsect_{cycle_key}_{style}.gif')
+
+# =============================================================================
+# FRAME PRERENDER + CACHED FRAME API
+# =============================================================================
+
+@app.route('/api/prerender', methods=['POST'])
+@rate_limit
+def api_prerender():
+    """Batch prerender frames for slider/comparison. Returns session_id for progress polling.
+
+    POST JSON: {frames: [{cycle, fhr}, ...], start: [lat, lon], end: [lat, lon],
+                style, y_axis, vscale, y_top, units, temp_cmap, anomaly, model}
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Missing JSON body'}), 400
+
+    try:
+        frames = data['frames']  # [{cycle: str, fhr: int}, ...]
+        start = tuple(data['start'])
+        end = tuple(data['end'])
+    except (KeyError, TypeError) as e:
+        return jsonify({'error': f'Missing required field: {e}'}), 400
+
+    style = data.get('style', 'temperature')
+    y_axis = data.get('y_axis', 'pressure')
+    vscale = float(data.get('vscale', 1.0))
+    y_top = int(data.get('y_top', 100))
+    units = data.get('units', 'km')
+    temp_cmap = data.get('temp_cmap', 'standard')
+    anomaly = bool(data.get('anomaly', False))
+    model = data.get('model', 'hrrr')
+
+    session_id = f"prerender:{int(time.time() * 1000)}"
+
+    def _render_batch():
+        mgr = model_registry.get(model)
+        if not mgr:
+            progress_update(session_id, 0, 1, "Unknown model", label="Pre-render failed")
+            progress_done(session_id)
+            return
+
+        total = len(frames)
+        progress_update(session_id, 0, total, "Starting...", label=f"Pre-rendering {total} frames")
+
+        # Lock terrain to first frame for consistency
+        first = frames[0]
+        try:
+            terrain_data = mgr.get_terrain_data(start, end, first['cycle'], first['fhr'], style)
+        except Exception:
+            terrain_data = None
+
+        rendered = 0
+        for i, frame in enumerate(frames):
+            ck = frame['cycle']
+            fhr = int(frame['fhr'])
+            cache_key = frame_cache_key(model, ck, fhr, style, start, end, y_axis, vscale, y_top, units, temp_cmap, anomaly)
+
+            # Skip if already cached
+            if frame_cache_get(cache_key) is not None:
+                rendered += 1
+                progress_update(session_id, rendered, total, f"F{fhr:02d} (cached)")
+                continue
+
+            # Ensure data is loaded
+            try:
+                mgr.ensure_loaded(ck, fhr)
+            except Exception:
+                progress_update(session_id, rendered, total, f"F{fhr:02d} load failed")
+                continue
+
+            acquired = RENDER_SEMAPHORE.acquire(timeout=30)
+            if not acquired:
+                progress_update(session_id, rendered, total, f"F{fhr:02d} skipped (busy)")
+                continue
+            try:
+                buf = mgr.generate_cross_section(
+                    start, end, ck, fhr, style, y_axis, vscale, y_top,
+                    units=units, terrain_data=terrain_data,
+                    temp_cmap=temp_cmap, anomaly=anomaly
+                )
+                if buf:
+                    frame_cache_put(cache_key, buf.getvalue())
+            except Exception:
+                pass
+            finally:
+                RENDER_SEMAPHORE.release()
+
+            rendered += 1
+            progress_update(session_id, rendered, total, f"F{fhr:02d} rendered")
+
+        progress_done(session_id)
+
+    threading.Thread(target=_render_batch, daemon=True).start()
+
+    return jsonify({
+        'session_id': session_id,
+        'total': len(frames),
+        'status': 'rendering',
+    })
+
+
+@app.route('/api/frame')
+@rate_limit
+def api_frame():
+    """Get a single cross-section frame. Checks prerender cache first, falls back to live render."""
+    try:
+        start = (float(request.args['start_lat']), float(request.args['start_lon']))
+        end = (float(request.args['end_lat']), float(request.args['end_lon']))
+        cycle_key = request.args.get('cycle')
+        fhr = int(request.args.get('fhr', 0))
+        style = request.args.get('style', 'wind_speed')
+        y_axis = request.args.get('y_axis', 'pressure')
+        vscale = float(request.args.get('vscale', 1.0))
+        y_top = int(request.args.get('y_top', 100))
+        dist_units = request.args.get('units', 'km')
+        temp_cmap = request.args.get('temp_cmap', 'standard')
+        anomaly = request.args.get('anomaly', '0') == '1'
+        model = request.args.get('model', 'hrrr')
+    except (KeyError, ValueError) as e:
+        return jsonify({'error': f'Invalid parameters: {e}'}), 400
+
+    if not cycle_key:
+        return jsonify({'error': 'Missing cycle parameter'}), 400
+
+    # Check cache first
+    cache_key = frame_cache_key(model, cycle_key, fhr, style, start, end, y_axis, vscale, y_top, dist_units, temp_cmap, anomaly)
+    cached = frame_cache_get(cache_key)
+    if cached:
+        return send_file(io.BytesIO(cached), mimetype='image/png')
+
+    # Fall back to live render (same as /api/xsect)
+    vscale = max(0.5, min(3.0, vscale))
+    if y_axis not in ('pressure', 'height'):
+        y_axis = 'pressure'
+    if y_top not in (100, 200, 300, 500, 700):
+        y_top = 100
+    if dist_units not in ('km', 'mi'):
+        dist_units = 'km'
+    if temp_cmap not in ('standard', 'green_purple', 'white_zero', 'nws_ndfd'):
+        temp_cmap = 'standard'
+
+    acquired = RENDER_SEMAPHORE.acquire(timeout=10)
+    if not acquired:
+        return jsonify({'error': 'Server busy, try again in a moment'}), 503
+    mgr = model_registry.get(model) or data_manager
+    try:
+        buf = mgr.generate_cross_section(start, end, cycle_key, fhr, style, y_axis, vscale, y_top, units=dist_units, temp_cmap=temp_cmap, anomaly=anomaly)
+    finally:
+        RENDER_SEMAPHORE.release()
+    if buf is None:
+        return jsonify({'error': 'Failed to generate frame. Data may not be loaded.'}), 500
+
+    # Cache the result for future requests
+    frame_cache_put(cache_key, buf.getvalue())
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png')
+
 
 # =============================================================================
 # v1 API — agent-friendly endpoints with smart defaults
@@ -3242,20 +4282,22 @@ def api_v1_cross_section():
             'available': [p['id'] for p in PRODUCTS_INFO],
         }), 400
 
+    mgr = get_manager_from_request() or data_manager
+
     # Resolve cycle
-    cycle_key = data_manager.resolve_cycle(cycle_raw, fhr)
+    cycle_key = mgr.resolve_cycle(cycle_raw, fhr)
     if not cycle_key:
         return jsonify({'error': f'No data available with forecast hour F{fhr:02d}'}), 404
 
     # Auto-load if needed (mmap = ~14ms, GRIB = ~30s)
-    if not data_manager.ensure_loaded(cycle_key, fhr):
+    if not mgr.ensure_loaded(cycle_key, fhr):
         return jsonify({'error': f'Failed to load {cycle_key} F{fhr:02d}'}), 500
 
     acquired = RENDER_SEMAPHORE.acquire(timeout=90)
     if not acquired:
         return jsonify({'error': 'Server busy rendering other requests, try again in a moment'}), 503
     try:
-        buf = data_manager.generate_cross_section(
+        buf = mgr.generate_cross_section(
             start, end, cycle_key, fhr, style, y_axis, 1.0, y_top, units=units)
     finally:
         RENDER_SEMAPHORE.release()
@@ -3270,36 +4312,44 @@ def api_v1_cross_section():
 @app.route('/api/v1/products')
 @rate_limit
 def api_v1_products():
-    """List available cross-section products."""
-    return jsonify({'products': PRODUCTS_INFO})
+    """List available cross-section products. Filters by model (e.g. no smoke for GFS)."""
+    model = request.args.get('model', 'hrrr').lower()
+    excluded = MODEL_EXCLUDED_STYLES.get(model, set())
+    if excluded:
+        filtered = [p for p in PRODUCTS_INFO if PRODUCT_TO_STYLE.get(p['id']) not in excluded]
+        return jsonify({'products': filtered, 'model': model})
+    return jsonify({'products': PRODUCTS_INFO, 'model': model})
 
 
 @app.route('/api/v1/cycles')
 @rate_limit
 def api_v1_cycles():
     """List available cycles and their forecast hours."""
+    mgr = get_manager_from_request() or data_manager
     cycles_out = []
-    for c in data_manager.available_cycles:
+    for c in mgr.available_cycles:
         ck = c['cycle_key']
         cycles_out.append({
             'key': ck,
             'display': c['display'],
             'forecast_hours': c['available_fhrs'],
-            'loaded': any(k == ck for k, _ in data_manager.loaded_items),
+            'loaded': any(k == ck for k, _ in mgr.loaded_items),
         })
-    latest = data_manager.available_cycles[0]['cycle_key'] if data_manager.available_cycles else None
-    return jsonify({'cycles': cycles_out, 'latest': latest})
+    latest = mgr.available_cycles[0]['cycle_key'] if mgr.available_cycles else None
+    return jsonify({'cycles': cycles_out, 'latest': latest, 'model': mgr.model_name})
 
 
 @app.route('/api/v1/status')
 @rate_limit
 def api_v1_status():
     """Server health and status."""
-    mem_mb = data_manager.xsect.get_memory_usage() if data_manager.xsect else 0
-    latest = data_manager.available_cycles[0]['cycle_key'] if data_manager.available_cycles else None
+    mgr = get_manager_from_request() or data_manager
+    mem_mb = mgr.xsect.get_memory_usage() if mgr.xsect else 0
+    latest = mgr.available_cycles[0]['cycle_key'] if mgr.available_cycles else None
     return jsonify({
         'ok': True,
-        'loaded_count': len(data_manager.loaded_items),
+        'model': mgr.model_name,
+        'loaded_count': len(mgr.loaded_items),
         'memory_mb': round(mem_mb, 0),
         'latest_cycle': latest,
     })
@@ -3309,7 +4359,8 @@ def api_v1_status():
 @app.route('/api/info')
 def api_info():
     """Legacy endpoint - returns available times."""
-    times = data_manager.get_available_times()
+    mgr = get_manager_from_request() or data_manager
+    times = mgr.get_available_times()
     return jsonify({
         'times': times,
         'hours': [t['fhr'] for t in times],
@@ -3387,6 +4438,8 @@ def api_request_cycle():
     except ValueError:
         return jsonify({'error': 'Invalid date format, use YYYYMMDD'}), 400
 
+    mgr = get_manager_from_request() or data_manager
+    model_name = mgr.model_name
     cycle_key = f"{date_str}/{hour:02d}z"
 
     # Determine source
@@ -3400,7 +4453,7 @@ def api_request_cycle():
         from smart_hrrr.orchestrator import download_gribs_parallel
         from smart_hrrr.io import create_output_structure
 
-        op_id = f"download:{cycle_key}"
+        op_id = f"download:{model_name}:{cycle_key}"
         fhrs = list(range(max_fhr + 1))
         completed = [0]
 
@@ -3410,11 +4463,11 @@ def api_request_cycle():
             progress_update(op_id, completed[0], len(fhrs), status)
 
         try:
-            create_output_structure('hrrr', date_str, hour)
+            create_output_structure(model_name, date_str, hour)
             progress_update(op_id, 0, len(fhrs), f"Downloading from {source}...",
-                            label=f"Downloading {cycle_key}")
+                            label=f"Downloading {model_name.upper()} {cycle_key}")
             results = download_gribs_parallel(
-                model='hrrr',
+                model=model_name,
                 date_str=date_str,
                 cycle_hour=hour,
                 forecast_hours=fhrs,
@@ -3422,10 +4475,10 @@ def api_request_cycle():
                 on_complete=on_fhr_done,
             )
             success = sum(1 for ok in results.values() if ok)
-            logger.info(f"Cycle request {cycle_key}: {success}/{len(fhrs)} forecast hours downloaded")
-            data_manager.scan_available_cycles()
+            logger.info(f"Cycle request {model_name} {cycle_key}: {success}/{len(fhrs)} forecast hours downloaded")
+            mgr.scan_available_cycles()
         except Exception as e:
-            logger.warning(f"Cycle request {cycle_key} failed: {e}")
+            logger.warning(f"Cycle request {model_name} {cycle_key} failed: {e}")
         finally:
             progress_done(op_id)
 
@@ -3480,18 +4533,29 @@ def api_favorite_delete(fav_id):
 # =============================================================================
 
 def main():
-    parser = argparse.ArgumentParser(description='HRRR Cross-Section Dashboard')
+    global data_manager
+
+    parser = argparse.ArgumentParser(description='Cross-Section Dashboard (multi-model)')
     parser.add_argument('--auto-update', action='store_true', help='Download latest data before starting')
     parser.add_argument('--preload', type=int, default=12, help='Number of latest cycles to pre-load (mmap makes all cheap)')
     parser.add_argument('--max-hours', type=int, default=18, help='Max forecast hour to download')
     parser.add_argument('--port', type=int, default=5000, help='Server port')
     parser.add_argument('--host', type=str, default='0.0.0.0', help='Server host')
     parser.add_argument('--production', action='store_true', help='Enable rate limiting')
+    parser.add_argument('--models', type=str, default='hrrr',
+                        help='Comma-separated list of models to enable (e.g. hrrr,gfs)')
 
     args = parser.parse_args()
     app.config['PRODUCTION'] = args.production
 
-    # Optionally download fresh data
+    # Register requested models
+    enabled_models = [m.strip().lower() for m in args.models.split(',') if m.strip()]
+    for model_name in enabled_models:
+        if model_name not in model_registry.managers:
+            model_registry.register(model_name)
+    data_manager = model_registry.get('hrrr')  # Keep backward compat alias
+
+    # Optionally download fresh data (HRRR only for now)
     if args.auto_update:
         from smart_hrrr.orchestrator import download_latest_cycle
 
@@ -3508,39 +4572,43 @@ def main():
             sys.exit(1)
         logger.info(f"Downloaded {sum(results.values())}/{len(fhrs_to_download)} forecast hours")
 
-    # Scan for available cycles
-    logger.info(f"Scanning for available cycles...")
-    cycles = data_manager.scan_available_cycles()
-
-    if cycles:
-        logger.info(f"Found {len(cycles)} cycles:")
-        for c in cycles:
-            fhrs_str = ', '.join(f'F{f:02d}' for f in c['available_fhrs'])
-            logger.info(f"  {c['display']}: [{fhrs_str}]")
-    else:
-        logger.info("No data found yet. Waiting for auto_update.py to download data...")
+    # Scan for available cycles across all models
+    for model_name, mgr in model_registry.managers.items():
+        logger.info(f"Scanning {model_name.upper()} for available cycles...")
+        cycles = mgr.scan_available_cycles()
+        if cycles:
+            logger.info(f"  {model_name.upper()}: {len(cycles)} cycles found")
+            for c in cycles[:3]:  # Show first 3
+                fhrs_str = ', '.join(f'F{f:02d}' for f in c['available_fhrs'])
+                logger.info(f"    {c['display']}: [{fhrs_str}]")
+            if len(cycles) > 3:
+                logger.info(f"    ... and {len(cycles) - 3} more")
+        else:
+            logger.info(f"  {model_name.upper()}: No data found")
 
     # Pre-load latest cycles in background so Flask starts immediately
-    if args.preload > 0 and cycles:
+    if args.preload > 0:
         def _startup_preload():
             time.sleep(2)  # Let Flask bind first
-            logger.info(f"Background: Pre-loading latest {args.preload} cycles...")
-            try:
-                data_manager.preload_latest_cycles(n_cycles=args.preload)
-            except Exception as e:
-                logger.warning(f"Cycle preload failed: {e}")
+            for model_name, mgr in model_registry.managers.items():
+                if mgr.available_cycles:
+                    logger.info(f"Background: Pre-loading latest {args.preload} {model_name.upper()} cycles...")
+                    try:
+                        mgr.preload_latest_cycles(n_cycles=args.preload)
+                    except Exception as e:
+                        logger.warning(f"{model_name.upper()} preload failed: {e}")
         threading.Thread(target=_startup_preload, daemon=True).start()
 
     # Background re-scan thread: periodically check for newly downloaded data + disk eviction
     def background_rescan():
         while True:
             time.sleep(60)  # Re-scan every 60 seconds
-            try:
-                data_manager.scan_available_cycles()
-                # Auto-load new PRELOAD_FHRS for latest 2 cycles
-                data_manager.auto_load_latest()
-            except Exception as e:
-                logger.warning(f"Background rescan failed: {e}")
+            for model_name, mgr in model_registry.managers.items():
+                try:
+                    mgr.scan_available_cycles()
+                    mgr.auto_load_latest()
+                except Exception as e:
+                    logger.warning(f"Background rescan failed for {model_name}: {e}")
 
             # Check disk usage every 10 minutes (use modulo on minute)
             if int(time.time()) % 600 < 60:
@@ -3549,19 +4617,22 @@ def main():
                     if usage > DISK_LIMIT_GB:
                         logger.info(f"Disk usage {usage:.1f}GB > {DISK_LIMIT_GB}GB limit, evicting...")
                         disk_evict_least_popular()
-                        data_manager.scan_available_cycles()
+                        for _, mgr in model_registry.managers.items():
+                            mgr.scan_available_cycles()
                 except Exception as e:
                     logger.warning(f"Disk eviction check failed: {e}")
 
     rescan_thread = threading.Thread(target=background_rescan, daemon=True)
     rescan_thread.start()
 
-    mem_mb = data_manager.xsect.get_memory_usage() if data_manager.xsect else 0
     disk_gb = get_disk_usage_gb()
     logger.info("")
     logger.info("=" * 60)
-    logger.info("HRRR Cross-Section Dashboard")
-    logger.info(f"Pre-loaded: {len(data_manager.loaded_cycles)} cycles ({mem_mb:.0f} MB)")
+    logger.info("Cross-Section Dashboard")
+    logger.info(f"Models: {', '.join(m.upper() for m in enabled_models)}")
+    for model_name, mgr in model_registry.managers.items():
+        mem_mb = mgr.xsect.get_memory_usage() if mgr.xsect else 0
+        logger.info(f"  {model_name.upper()}: {len(mgr.loaded_cycles)} cycles loaded ({mem_mb:.0f} MB)")
     logger.info(f"Disk: {disk_gb:.1f}GB / {DISK_LIMIT_GB}GB")
     logger.info(f"Auto-refreshing cycle list every 60s")
     logger.info(f"Open: http://{args.host}:{args.port}")

@@ -29,8 +29,11 @@ Directory structure matches the dashboard layout:
 
 import argparse
 import logging
+import socket
 import sys
 import time
+import urllib.request
+import urllib.error
 from datetime import datetime, timedelta
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -48,6 +51,11 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_INITS = [0, 6, 12, 18]
 DEFAULT_FHRS = [0, 3, 6, 9, 12, 15, 18]
+
+# AWS-only source list (skips NOMADS which fails for archive data)
+AWS_ONLY_SOURCES = [
+    'https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.{date}/conus/{filename}',
+]
 
 
 def date_range(start_str, end_str):
@@ -78,7 +86,20 @@ def count_existing(output_dir, date_str, hour, fhrs, file_types):
     return existing
 
 
-def download_init(output_dir, date_str, hour, fhrs, file_types, max_threads=4):
+def download_file_direct(url, output_path, timeout=600):
+    """Download a file directly from a URL (no source fallback)."""
+    partial_path = Path(str(output_path) + '.partial')
+    try:
+        socket.setdefaulttimeout(timeout)
+        urllib.request.urlretrieve(url, partial_path)
+        partial_path.rename(output_path)
+        return True
+    except (urllib.error.URLError, socket.timeout, OSError):
+        partial_path.unlink(missing_ok=True)
+        return False
+
+
+def download_init(output_dir, date_str, hour, fhrs, file_types, max_threads=4, aws_only=False):
     """Download all FHRs for a single init cycle. Returns (success, skipped, failed)."""
     registry = get_model_registry()
     model = registry.get_model('hrrr')
@@ -101,8 +122,25 @@ def download_init(output_dir, date_str, hour, fhrs, file_types, max_threads=4):
         if all_present:
             return fhr, 'skipped'
 
-        ok = download_forecast_hour('hrrr', date_str, hour, fhr, fhr_dir, file_types)
-        return fhr, 'ok' if ok else 'failed'
+        if aws_only:
+            # Skip NOMADS entirely — go straight to AWS
+            ok = True
+            for ft in file_types:
+                filename = model.get_filename(hour, ft, fhr)
+                output_path = fhr_dir / filename
+                if output_path.exists():
+                    continue
+                url = AWS_ONLY_SOURCES[0].format(date=date_str, hour=f"{hour:02d}", filename=filename)
+                logger.info(f"Downloading {filename} from AWS...")
+                if download_file_direct(url, output_path):
+                    logger.info(f"Downloaded {filename}")
+                else:
+                    logger.error(f"Failed: {filename}")
+                    ok = False
+            return fhr, 'ok' if ok else 'failed'
+        else:
+            ok = download_forecast_hour('hrrr', date_str, hour, fhr, fhr_dir, file_types)
+            return fhr, 'ok' if ok else 'failed'
 
     with ThreadPoolExecutor(max_workers=max_threads) as pool:
         futures = {pool.submit(_download_one, fhr): fhr for fhr in fhrs}
@@ -141,8 +179,12 @@ def main():
                         help=f'Forecast hours (default: {DEFAULT_FHRS})')
     parser.add_argument('--include-smoke', action='store_true',
                         help='Include wrfnat files for smoke (~7x more data)')
-    parser.add_argument('--threads', type=int, default=4,
-                        help='Parallel download threads per init (default: 4)')
+    parser.add_argument('--threads', type=int, default=8,
+                        help='Parallel download threads per init (default: 8)')
+    parser.add_argument('--aws-only', action='store_true',
+                        help='Skip NOMADS, download directly from AWS (faster for archive data)')
+    parser.add_argument('--pipeline', type=int, default=1,
+                        help='Download N init cycles concurrently (default: 1)')
     parser.add_argument('--dry-run', action='store_true',
                         help='Show what would be downloaded without downloading')
     args = parser.parse_args()
@@ -180,7 +222,8 @@ def main():
     print(f"  FHRs:        {', '.join(f'F{f:02d}' for f in args.fhrs)}")
     print(f"  File types:  {', '.join(file_types)}")
     print(f"  Output:      {output_dir}")
-    print(f"  Threads:     {args.threads}")
+    print(f"  Threads:     {args.threads}" + (f" × {args.pipeline} pipeline" if args.pipeline > 1 else ""))
+    print(f"  Source:      {'AWS only' if args.aws_only else 'NOMADS → AWS → Pando'}")
     print(f"  Total:       {total_cycles} cycles × {n_fhrs} FHRs = {total_fhrs} downloads")
     print(f"  Est. size:   ~{est_gb:.1f} GB")
     print("=" * 60)
@@ -204,8 +247,62 @@ def main():
     total_failed = 0
     cycles_done = 0
 
-    for date_str in dates:
-        for hour in args.inits:
+    # Build list of all cycles to download
+    all_cycles = [(date_str, hour) for date_str in dates for hour in args.inits]
+
+    if args.pipeline > 1:
+        # Pipelined: download multiple cycles concurrently
+        import threading
+        lock = threading.Lock()
+
+        def _do_cycle(cycle_idx, date_str, hour):
+            nonlocal total_success, total_skipped, total_failed, cycles_done
+            cycle_label = f"{date_str} {hour:02d}z"
+            existing = count_existing(output_dir, date_str, hour, args.fhrs, file_types)
+
+            if existing == n_fhrs:
+                with lock:
+                    total_skipped += n_fhrs
+                    cycles_done += 1
+                logger.info(f"[{cycle_idx}/{total_cycles}] {cycle_label} — all {n_fhrs} FHRs exist, skipping")
+                return
+
+            logger.info(f"[{cycle_idx}/{total_cycles}] {cycle_label} — downloading ({existing}/{n_fhrs} exist)...")
+            cycle_start = time.time()
+
+            # Fewer threads per cycle when pipelining to avoid overwhelming
+            threads_per = max(4, args.threads // args.pipeline)
+            success, skipped, failed = download_init(
+                output_dir, date_str, hour, args.fhrs, file_types, threads_per, aws_only=args.aws_only
+            )
+
+            dur = time.time() - cycle_start
+            with lock:
+                total_success += success
+                total_skipped += skipped
+                total_failed += failed
+                cycles_done += 1
+                fhrs_done = total_success + total_skipped + total_failed
+                elapsed = time.time() - overall_start
+                rate = fhrs_done / (elapsed / 60) if elapsed > 0 else 0
+                remaining_fhrs = total_fhrs - fhrs_done
+                eta_min = remaining_fhrs / rate if rate > 0 else 0
+
+            logger.info(
+                f"  {cycle_label} done in {dur:.0f}s — "
+                f"{success} new, {skipped} skipped, {failed} failed  |  "
+                f"Overall: {fhrs_done}/{total_fhrs}  ETA: {eta_min:.0f}m"
+            )
+
+        with ThreadPoolExecutor(max_workers=args.pipeline) as pipeline_pool:
+            futures = []
+            for idx, (date_str, hour) in enumerate(all_cycles, 1):
+                futures.append(pipeline_pool.submit(_do_cycle, idx, date_str, hour))
+            for f in futures:
+                f.result()  # wait and propagate exceptions
+    else:
+        # Sequential: one cycle at a time (original behavior)
+        for date_str, hour in all_cycles:
             cycles_done += 1
             cycle_label = f"{date_str} {hour:02d}z"
             existing = count_existing(output_dir, date_str, hour, args.fhrs, file_types)
@@ -219,7 +316,7 @@ def main():
             cycle_start = time.time()
 
             success, skipped, failed = download_init(
-                output_dir, date_str, hour, args.fhrs, file_types, args.threads
+                output_dir, date_str, hour, args.fhrs, file_types, args.threads, aws_only=args.aws_only
             )
 
             dur = time.time() - cycle_start

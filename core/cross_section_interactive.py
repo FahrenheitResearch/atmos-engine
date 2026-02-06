@@ -195,7 +195,8 @@ def _load_hour_process(grib_file: str, forecast_hour: int) -> Optional[ForecastH
 
             # Load smoke (MASSDEN) from wrfnat if available — keep on native hybrid levels
             try:
-                nat_file = Path(grib_file).parent / Path(grib_file).name.replace('wrfprs', 'wrfnat')
+                nat_path = Path(grib_file).parent / Path(grib_file).name.replace('wrfprs', 'wrfnat')
+                nat_file = nat_path
                 if nat_file.exists():
                     import eccodes
                     smoke_levels = {}
@@ -274,12 +275,16 @@ class InteractiveCrossSection:
 
     CACHE_LIMIT_GB = 400  # Max NPZ cache size on disk
 
-    def __init__(self, cache_dir: str = None):
+    def __init__(self, cache_dir: str = None, min_levels: int = 40,
+                 sfc_resolver=None, nat_resolver=None):
         """Initialize the interactive cross-section system.
 
         Args:
             cache_dir: Directory for NPZ cache. If provided, enables fast caching.
                       First load from GRIB takes ~25s, subsequent loads ~2s.
+            min_levels: Minimum pressure levels required (40 for HRRR, 20 for GFS).
+            sfc_resolver: Callable(prs_path) -> sfc_path. Resolves surface GRIB file.
+            nat_resolver: Callable(prs_path) -> nat_path or None. Resolves native GRIB file.
         """
         self.forecast_hours: Dict[int, ForecastHourData] = {}
         self._interpolator_cache = {}
@@ -290,10 +295,27 @@ class InteractiveCrossSection:
         self.model = "HRRR"
         self.init_date = None  # YYYYMMDD
         self.init_hour = None  # HH
+        # Model-specific validation
+        self.min_levels = min_levels
+        # File resolution callbacks
+        self._sfc_resolver = sfc_resolver or self._default_sfc_resolver
+        self._nat_resolver = nat_resolver or self._default_nat_resolver
 
         # Climatology for anomaly mode
         self.climatology_dir = None  # Path to climo NPZ directory
         self._climo_cache: Dict[str, ClimatologyData] = {}  # "MM_HHz_FNN" -> data
+
+    @staticmethod
+    def _default_sfc_resolver(prs_file: str) -> str:
+        """HRRR default: replace wrfprs with wrfsfc."""
+        sfc = Path(prs_file).parent / Path(prs_file).name.replace('wrfprs', 'wrfsfc')
+        return str(sfc) if sfc.exists() else prs_file
+
+    @staticmethod
+    def _default_nat_resolver(prs_file: str):
+        """HRRR default: replace wrfprs with wrfnat."""
+        nat = Path(prs_file).parent / Path(prs_file).name.replace('wrfprs', 'wrfnat')
+        return str(nat) if nat.exists() else None
 
     def _get_cache_stem(self, grib_file: str) -> Optional[str]:
         """Get cache name stem (without extension) for a GRIB file."""
@@ -589,8 +611,8 @@ class InteractiveCrossSection:
     def _validate_fhr_data(self, fhr_data: ForecastHourData) -> Optional[str]:
         """Validate ForecastHourData. Returns error message or None if valid."""
         n_levels = len(fhr_data.pressure_levels)
-        if n_levels < 40:
-            return f"only {n_levels} levels (expected 40)"
+        if n_levels < self.min_levels:
+            return f"only {n_levels} levels (expected {self.min_levels})"
         if fhr_data.surface_pressure is None:
             return "missing surface_pressure (needed for terrain)"
         return None
@@ -605,15 +627,15 @@ class InteractiveCrossSection:
             path.unlink(missing_ok=True)
 
     def _backfill_smoke(self, fhr_data: ForecastHourData, grib_file: str, mmap_cache_dir: Optional[Path] = None):
-        """Backfill smoke from wrfnat into ForecastHourData and update cache."""
+        """Backfill smoke from native file into ForecastHourData and update cache."""
         if fhr_data.smoke_hyb is not None:
             return
-        nat_file = Path(grib_file).parent / Path(grib_file).name.replace('wrfprs', 'wrfnat')
-        if not nat_file.exists():
+        nat_path = self._nat_resolver(grib_file)
+        if not nat_path or not Path(nat_path).exists():
             return
-        print(f"  Backfilling smoke from wrfnat...")
+        print(f"  Backfilling smoke from native file...")
         try:
-            result = self._load_smoke_from_wrfnat(str(nat_file))
+            result = self._load_smoke_from_wrfnat(nat_path)
             if result is None:
                 return
             smoke_hyb, smoke_pres_hyb = result
@@ -786,9 +808,8 @@ class InteractiveCrossSection:
                 # Load surface pressure
                 cb(11, total_steps, "Reading Surface Pressure...")
                 try:
-                    # Try wrfsfc file first
-                    sfc_file = Path(grib_file).parent / Path(grib_file).name.replace('wrfprs', 'wrfsfc')
-                    sp_file = str(sfc_file) if sfc_file.exists() else grib_file
+                    # Use resolver to find surface file (model-agnostic)
+                    sp_file = self._sfc_resolver(grib_file)
 
                     ds_sp = cfgrib.open_dataset(
                         sp_file,
@@ -808,11 +829,12 @@ class InteractiveCrossSection:
                 except Exception as e:
                     print(f"  Warning: Could not load surface pressure: {e}")
 
-                # Load smoke (MASSDEN PM2.5) from wrfnat file if available
+                # Load smoke (MASSDEN PM2.5) from native file if available
                 cb(12, total_steps, "Reading Smoke (PM2.5)...")
                 try:
-                    nat_file = Path(grib_file).parent / Path(grib_file).name.replace('wrfprs', 'wrfnat')
-                    if nat_file.exists():
+                    nat_path = self._nat_resolver(grib_file)
+                    if nat_path and Path(nat_path).exists():
+                        nat_file = Path(nat_path)
                         result = self._load_smoke_from_wrfnat(str(nat_file))
                         if result is not None:
                             fhr_data.smoke_hyb, fhr_data.smoke_pres_hyb = result
@@ -866,11 +888,13 @@ class InteractiveCrossSection:
             traceback.print_exc()
             return False
 
-    def load_run(self, run_dir: str, max_hours: int = 18, workers: int = 1) -> int:
+    def load_run(self, run_dir: str, max_hours: int = 18, workers: int = 1,
+                 prs_pattern: str = "*wrfprs*.grib2") -> int:
         """Load all forecast hours from a run directory.
 
         Args:
             run_dir: Path to run directory (e.g., outputs/hrrr/20251224/19z)
+            prs_pattern: Glob pattern for pressure GRIB files (model-specific)
             max_hours: Maximum forecast hours to load
             workers: Number of parallel workers (1 = sequential)
 
@@ -903,12 +927,12 @@ class InteractiveCrossSection:
         files_to_load = []
         for fhr in range(max_hours + 1):
             fhr_dir = run_path / f"F{fhr:02d}"
-            prs_files = list(fhr_dir.glob("*wrfprs*.grib2"))
+            prs_files = list(fhr_dir.glob(prs_pattern))
             if prs_files:
                 files_to_load.append((str(prs_files[0]), fhr))
 
         if not files_to_load:
-            print("No GRIB files found")
+            print(f"No GRIB files found matching {prs_pattern}")
             return 0
 
         print(f"Loading {len(files_to_load)} forecast hours with {workers} workers...")
@@ -1013,8 +1037,7 @@ class InteractiveCrossSection:
 
                 # Load surface pressure
                 try:
-                    sfc_file = Path(grib_file).parent / Path(grib_file).name.replace('wrfprs', 'wrfsfc')
-                    sp_file = str(sfc_file) if sfc_file.exists() else grib_file
+                    sp_file = self._sfc_resolver(grib_file)
 
                     ds_sp = cfgrib.open_dataset(
                         sp_file,
@@ -1416,12 +1439,39 @@ class InteractiveCrossSection:
             # Regular grid - use bilinear interpolation
             lats_1d = lats_grid if lats_grid.ndim == 1 else lats_grid[:, 0]
             lons_1d = lons_grid if lons_grid.ndim == 1 else lons_grid[0, :]
+
+            # Handle GFS-style 0-360 longitudes: convert to -180..180
+            _lon_shifted = False
+            if np.any(lons_1d > 180):
+                lons_1d = np.where(lons_1d > 180, lons_1d - 360, lons_1d)
+                _lon_shifted = True
+
+            # Ensure monotonically ascending for both axes
+            _lat_flip = False
+            if lats_1d.size > 1 and lats_1d[0] > lats_1d[-1]:
+                lats_1d = lats_1d[::-1]
+                _lat_flip = True
+
+            _lon_sort_idx = None
+            if lons_1d.size > 1 and not np.all(np.diff(lons_1d) > 0):
+                _lon_sort_idx = np.argsort(lons_1d)
+                lons_1d = lons_1d[_lon_sort_idx]
+
             pts = np.column_stack([path_lats, path_lons])
+
+            def _reorder_field(field):
+                """Flip/sort a 2D field to match the reordered lat/lon axes."""
+                f = field
+                if _lat_flip:
+                    f = f[::-1, :]
+                if _lon_sort_idx is not None:
+                    f = f[:, _lon_sort_idx]
+                return f
 
             def interp_3d(field_3d):
                 result = np.full((n_levels, n_points), np.nan)
                 for lev in range(min(field_3d.shape[0], n_levels)):
-                    level_data = _ensure_float32(field_3d[lev])
+                    level_data = _reorder_field(_ensure_float32(field_3d[lev]))
                     interp = RegularGridInterpolator(
                         (lats_1d, lons_1d), level_data,
                         method='linear', bounds_error=False, fill_value=np.nan
@@ -1430,7 +1480,7 @@ class InteractiveCrossSection:
                 return result
 
             def interp_2d(field_2d):
-                level_data = _ensure_float32(field_2d)
+                level_data = _reorder_field(_ensure_float32(field_2d))
                 interp = RegularGridInterpolator(
                     (lats_1d, lons_1d), level_data,
                     method='linear', bounds_error=False, fill_value=np.nan
@@ -1480,7 +1530,7 @@ class InteractiveCrossSection:
                 # Regular grid - bilinear interpolation
                 pts_hires = np.column_stack([path_lats_hires, path_lons_hires])
                 interp_sp = RegularGridInterpolator(
-                    (lats_1d, lons_1d), sp_f32,
+                    (lats_1d, lons_1d), _reorder_field(sp_f32),
                     method='linear', bounds_error=False, fill_value=np.nan
                 )
                 sp_hires = interp_sp(pts_hires)
