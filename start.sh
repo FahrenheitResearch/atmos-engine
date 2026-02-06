@@ -34,7 +34,7 @@ if pgrep -f "unified_dashboard" > /dev/null; then
     echo "  Dashboard already running"
 else
     echo "Starting dashboard on port 5561..."
-    XSECT_GRIB_BACKEND=cfgrib WXSECTION_KEY=ctwc nohup python3 tools/unified_dashboard.py \
+    XSECT_GRIB_BACKEND=cfgrib WXSECTION_KEY=cwtc nohup python3 tools/unified_dashboard.py \
         --port 5561 --models hrrr,gfs,rrfs \
         > /tmp/dashboard.log 2>&1 &
     echo "  PID: $!"

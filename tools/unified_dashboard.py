@@ -419,7 +419,9 @@ class RateLimiter:
 rate_limiter = RateLimiter()
 
 # Limit concurrent matplotlib renders to prevent CPU/memory thrash under load
-RENDER_SEMAPHORE = threading.Semaphore(4)
+# 12 = up to 8 prerender workers + 4 live user requests
+RENDER_SEMAPHORE = threading.Semaphore(12)
+PRERENDER_WORKERS = 8  # Parallel threads for batch prerender
 
 # =============================================================================
 # FRAME PRERENDER CACHE — stores rendered PNG bytes for slider/comparison
@@ -662,7 +664,7 @@ class CrossSectionManager:
         """Return the list of cycles we WANT loaded, in priority order (newest first).
 
         HRRR: newest synoptic (48h) + N most recent hourly cycles.
-              During handoff, also includes previous synoptic.
+              Only one synoptic kept (no previous synoptic handoff).
         GFS/RRFS: newest cycle. During handoff, also includes previous.
         """
         if not self.available_cycles:
@@ -679,8 +681,8 @@ class CrossSectionManager:
         Priority order:
           1. Latest init cycle (whatever it is) — always #1
           2. Newest synoptic (48h) — if not already the latest init
-          3. Previous synoptic during handoff
-          4. N most recent hourly cycles
+          3. N most recent hourly cycles
+        Only one synoptic cycle is kept — no previous synoptic handoff.
         """
         targets = []
         seen = set()
@@ -697,16 +699,7 @@ class CrossSectionManager:
             targets.append(synoptics[0])
             seen.add(synoptics[0]['cycle_key'])
 
-        # 3. Handoff: keep previous synoptic if newest synoptic isn't mostly loaded
-        if synoptics:
-            newest_syn_ck = synoptics[0]['cycle_key']
-            loaded_fhrs = {fhr for ck, fhr in self.loaded_items if ck == newest_syn_ck}
-            if len(loaded_fhrs & set(range(19))) < 15 and len(synoptics) > 1:
-                if synoptics[1]['cycle_key'] not in seen:
-                    targets.append(synoptics[1])
-                    seen.add(synoptics[1]['cycle_key'])
-
-        # 4. Recent hourly cycles (up to N)
+        # 3. Recent hourly cycles (up to N)
         count = 0
         for c in self.available_cycles:
             if c['cycle_key'] not in seen:
@@ -2471,7 +2464,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <div class="chip-group" id="fhr-chips"></div>
             </div>
             <div class="control-row" id="slider-row" style="display:none;">
+                <button id="prev-btn" title="Previous frame" style="padding:3px 6px;font-size:12px;min-width:28px;">&#9664;</button>
                 <button id="play-btn" title="Auto-play" style="padding:3px 8px;font-size:14px;min-width:32px;">&#9654;</button>
+                <button id="next-btn" title="Next frame" style="padding:3px 6px;font-size:12px;min-width:28px;">&#9654;</button>
                 <input type="range" id="fhr-slider" min="0" max="18" value="0" style="flex:1;">
                 <span id="slider-label" style="font-size:11px;color:var(--muted);min-width:32px;text-align:center;">F00</span>
                 <select id="play-speed" title="Playback speed" style="min-width:50px;font-size:11px;">
@@ -3622,6 +3617,19 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             }
         });
 
+        function stepFrame(delta) {
+            stopPlayback();
+            const slider = document.getElementById('fhr-slider');
+            let val = parseInt(slider.value) + delta;
+            if (val < 0) val = parseInt(slider.max);
+            if (val > parseInt(slider.max)) val = 0;
+            slider.value = val;
+            slider.dispatchEvent(new Event('input'));
+        }
+
+        document.getElementById('prev-btn').addEventListener('click', () => stepFrame(-1));
+        document.getElementById('next-btn').addEventListener('click', () => stepFrame(1));
+
         function startPlayback() {
             isPlaying = true;
             document.getElementById('play-btn').innerHTML = '&#9646;&#9646;';
@@ -4697,34 +4705,38 @@ def api_prerender():
         except Exception:
             terrain_data = None
 
-        rendered = 0
-        for i, frame in enumerate(frames):
-            if is_cancelled(session_id):
-                logger.info(f"Pre-render CANCELLED at {rendered}/{total}")
-                PROGRESS[session_id]['detail'] = 'Cancelled'
-                break
-
+        # Ensure all data is loaded first (sequential, fast from mmap cache)
+        render_frames = []
+        rendered = [0]  # mutable for closure
+        for frame in frames:
             ck = frame['cycle']
             fhr = int(frame['fhr'])
             cache_key = frame_cache_key(model, ck, fhr, style, start, end, y_axis, vscale, y_top, units, temp_cmap, anomaly)
 
-            # Skip if already cached
             if frame_cache_get(cache_key) is not None:
-                rendered += 1
-                progress_update(session_id, rendered, total, f"F{fhr:02d} (cached)")
+                rendered[0] += 1
+                progress_update(session_id, rendered[0], total, f"F{fhr:02d} (cached)")
                 continue
 
-            # Ensure data is loaded
             try:
                 mgr.ensure_loaded(ck, fhr)
+                render_frames.append((ck, fhr, cache_key))
             except Exception:
-                progress_update(session_id, rendered, total, f"F{fhr:02d} load failed")
-                continue
+                rendered[0] += 1
+                progress_update(session_id, rendered[0], total, f"F{fhr:02d} load failed")
 
+        if not render_frames:
+            progress_done(session_id)
+            return
+
+        # Parallel render with ThreadPool — numpy/Agg release GIL for C-heavy work
+        def render_one(item):
+            ck, fhr, cache_key = item
+            if is_cancelled(session_id):
+                return fhr, False
             acquired = RENDER_SEMAPHORE.acquire(timeout=30)
             if not acquired:
-                progress_update(session_id, rendered, total, f"F{fhr:02d} skipped (busy)")
-                continue
+                return fhr, False
             try:
                 buf = mgr.generate_cross_section(
                     start, end, ck, fhr, style, y_axis, vscale, y_top,
@@ -4733,13 +4745,25 @@ def api_prerender():
                 )
                 if buf:
                     frame_cache_put(cache_key, buf.getvalue())
+                return fhr, True
             except Exception:
-                pass
+                return fhr, False
             finally:
                 RENDER_SEMAPHORE.release()
 
-            rendered += 1
-            progress_update(session_id, rendered, total, f"F{fhr:02d} rendered")
+        with ThreadPoolExecutor(max_workers=PRERENDER_WORKERS) as pool:
+            futures = {pool.submit(render_one, item): item for item in render_frames}
+            for future in as_completed(futures):
+                fhr, ok = future.result()
+                rendered[0] += 1
+                detail = f"F{fhr:02d} {'rendered' if ok else 'failed'}"
+                progress_update(session_id, rendered[0], total, detail)
+                if is_cancelled(session_id):
+                    for f in futures:
+                        f.cancel()
+                    logger.info(f"Pre-render CANCELLED at {rendered[0]}/{total}")
+                    PROGRESS[session_id]['detail'] = 'Cancelled'
+                    break
 
         progress_done(session_id)
         CANCEL_FLAGS.pop(session_id, None)

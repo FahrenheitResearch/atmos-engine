@@ -59,15 +59,15 @@ nohup cloudflared tunnel run wxsection > /tmp/cloudflared.log 2>&1 &
 
 ## Architecture
 
-### Preload Window (6 HRRR cycles, ~151-174 FHRs)
+### Preload Window (5 HRRR cycles, ~125 FHRs)
 ```
 Priority order:
-  1. Latest init (e.g. 08z) — 19 FHRs, always first
-  2. Newest synoptic 48h (e.g. 06z) — 49 FHRs
-  3. Previous synoptic handoff (e.g. 00z) — 49 FHRs (if newest not ready)
-  4. 3 recent hourlies (e.g. 07z, 05z, 04z) — 19 FHRs each
+  1. Latest init (e.g. 14z) — 19 FHRs, always first
+  2. Newest synoptic 48h (e.g. 12z) — 49 FHRs
+  3. 3 recent hourlies (e.g. 13z, 11z, 10z) — 19 FHRs each
 
-HRRR_HOURLY_CYCLES = 3  (was 5, reduced to keep picker clean)
+No previous synoptic handoff — only one 48h cycle kept at a time.
+HRRR_HOURLY_CYCLES = 3
 ```
 
 Only these cycles appear in the run picker dropdown. Archive-requested cycles appear when downloading/loaded.
