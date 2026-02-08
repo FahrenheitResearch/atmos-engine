@@ -1,0 +1,474 @@
+{
+    "20200817_12z": {
+        "name": "CA Lightning Siege - Outbreak",
+        "category": "fire-ca",
+        "date_local": "2020-08-17",
+        "why": "CA lightning outbreak / start of Aug 2020 lightning siege",
+        "notes": "Widespread ignitions Aug 16-17; afternoon/evening spread"
+    },
+    "20200818_12z": {
+        "name": "CA Lightning Siege - Expansion",
+        "category": "fire-ca",
+        "date_local": "2020-08-18",
+        "why": "CA lightning-siege rapid expansion day",
+        "notes": "Wind/behavior shift drove major growth in multiple complexes"
+    },
+    "20200906_12z": {
+        "name": "Creek Fire Explosive Growth",
+        "category": "fire-ca",
+        "date_local": "2020-09-06",
+        "why": "Creek Fire explosive growth / pyroCb period",
+        "notes": "Strongest runs late Sep 5-Sep 7; afternoon-evening critical"
+    },
+    "20200907_18z": {
+        "name": "PNW Labor Day Windstorm Onset",
+        "category": "fire-pnw",
+        "date_local": "2020-09-07",
+        "why": "Pacific NW Labor Day windstorm onset",
+        "notes": "Strongest winds evening/night; fires ignited/spread rapidly"
+    },
+    "20200908_00z": {
+        "name": "PNW Windstorm - Catastrophic Spread",
+        "category": "fire-pnw",
+        "date_local": "2020-09-08",
+        "why": "Pacific NW windstorm continuation / catastrophic spread",
+        "notes": "Peak impacts daytime into evening"
+    },
+    "20200927_00z": {
+        "name": "Glass Fire - Diablo Winds",
+        "category": "fire-ca",
+        "date_local": "2020-09-27",
+        "why": "NorCal Diablo-wind critical fire weather (Glass Fire start)",
+        "notes": "Overnight to morning wind-driven spread"
+    },
+    "20201021_12z": {
+        "name": "East Troublesome Blowup",
+        "category": "fire-co",
+        "date_local": "2020-10-21",
+        "why": "CO wind-driven blowup conditions (East Troublesome)",
+        "notes": "Peak late morning to afternoon"
+    },
+    "20201026_00z": {
+        "name": "SoCal Santa Ana - Silverado/Blue Ridge",
+        "category": "fire-ca",
+        "date_local": "2020-10-26",
+        "why": "SoCal Santa Ana extreme winds (Silverado/Blue Ridge)",
+        "notes": "Peak overnight to morning into midday"
+    },
+    "20210629_12z": {
+        "name": "PNW Heat Dome Peak",
+        "category": "other",
+        "date_local": "2021-06-29",
+        "why": "Pacific NW heat dome peak (extreme heat/dryness)",
+        "notes": "Peak afternoon/evening"
+    },
+    "20210804_12z": {
+        "name": "Dixie Fire - Greenville Run",
+        "category": "fire-ca",
+        "date_local": "2021-08-04",
+        "why": "Dixie Fire major run into Greenville",
+        "notes": "Peak late afternoon/evening"
+    },
+    "20211230_06z": {
+        "name": "Marshall Fire Windstorm",
+        "category": "fire-co",
+        "date_local": "2021-12-30",
+        "why": "Marshall Fire downslope windstorm",
+        "notes": "Winds developed mid-morning; extreme midday gusts"
+    },
+    "20220422_12z": {
+        "name": "Hermits Peak/Calf Canyon",
+        "category": "fire-sw",
+        "date_local": "2022-04-22",
+        "why": "Hermits Peak/Calf Canyon extreme fire weather day",
+        "notes": "Strong winds/low RH; rapid spread"
+    },
+    "20220906_12z": {
+        "name": "CA Heat Wave + Mosquito Fire",
+        "category": "fire-ca",
+        "date_local": "2022-09-06",
+        "why": "CA extreme heat wave + Mosquito Fire start",
+        "notes": "Peak heat/low RH afternoon; ignition early evening"
+    },
+    "20220909_18z": {
+        "name": "Cedar Creek East-Wind Event",
+        "category": "fire-pnw",
+        "date_local": "2022-09-09",
+        "why": "OR east-wind Red Flag day (Cedar Creek)",
+        "notes": "Winds increase Fri AM + surge again Fri evening"
+    },
+    "20240226_12z": {
+        "name": "Smokehouse Creek Ignition",
+        "category": "fire-sw",
+        "date_local": "2024-02-26",
+        "why": "TX Panhandle wind-driven outbreak (Smokehouse Creek ignition)",
+        "notes": "Strongest spread afternoon/evening"
+    },
+    "20240227_12z": {
+        "name": "Smokehouse Creek Day 2",
+        "category": "fire-sw",
+        "date_local": "2024-02-27",
+        "why": "TX Panhandle continued wind-driven growth",
+        "notes": "Rapid expansion continued daytime"
+    },
+    "20240725_12z": {
+        "name": "Park Fire First Burn Period",
+        "category": "fire-ca",
+        "date_local": "2024-07-25",
+        "why": "Park Fire first full burn period after ignition",
+        "notes": "Large growth driven by heat/dry + winds"
+    },
+    "20250107_00z": {
+        "name": "LA Santa Ana Outbreak (Palisades/Eaton)",
+        "category": "fire-ca",
+        "date_local": "2025-01-07",
+        "why": "LA-area Santa Ana outbreak (Palisades/Eaton etc. starting Jan 7-9)",
+        "notes": "Peak morning to daytime winds"
+    },
+    "20250702_18z": {
+        "name": "Madre Fire Explosive Growth",
+        "category": "fire-ca",
+        "date_local": "2025-07-02",
+        "why": "Madre Fire onset + explosive growth into July 3",
+        "notes": "Ignition early afternoon; huge growth overnight to next morning"
+    },
+    "20250801_18z": {
+        "name": "Gifford Fire Ignition",
+        "category": "fire-ca",
+        "date_local": "2025-08-01",
+        "why": "Gifford Fire ignition (large 2025 CA fire)",
+        "notes": "Ignition afternoon; growth into overnight"
+    },
+
+    "20200826_18z": {
+        "name": "Hurricane Laura Cat 4",
+        "category": "hurricane",
+        "notes": "150mph, Cameron LA landfall"
+    },
+    "20200916_00z": {
+        "name": "Hurricane Sally Cat 2",
+        "category": "hurricane",
+        "notes": "Stalled, 30in rain Gulf Coast"
+    },
+    "20201009_12z": {
+        "name": "Hurricane Delta Cat 2",
+        "category": "hurricane",
+        "notes": "Same area as Laura, 6 weeks later"
+    },
+    "20201028_12z": {
+        "name": "Hurricane Zeta Cat 3",
+        "category": "hurricane",
+        "notes": "Fast mover across Gulf Coast"
+    },
+    "20201108_18z": {
+        "name": "Tropical Storm Eta",
+        "category": "hurricane",
+        "notes": "12th US landfall of 2020 season"
+    },
+    "20210829_06z": {
+        "name": "Hurricane Ida Cat 4",
+        "category": "hurricane",
+        "notes": "150mph, Katrina anniversary, catastrophic LA damage"
+    },
+    "20210913_18z": {
+        "name": "Hurricane Nicholas Cat 1",
+        "category": "hurricane",
+        "notes": "Houston-area heavy rain event"
+    },
+    "20220928_12z": {
+        "name": "Hurricane Ian Cat 4",
+        "category": "hurricane",
+        "notes": "$110B damage, near-Cat 5 at FL landfall"
+    },
+    "20221110_00z": {
+        "name": "Hurricane Nicole Cat 1",
+        "category": "hurricane",
+        "notes": "Rare November hurricane, FL east coast"
+    },
+    "20230830_00z": {
+        "name": "Hurricane Idalia Cat 3",
+        "category": "hurricane",
+        "notes": "Rapid intensification, Big Bend FL"
+    },
+    "20230916_06z": {
+        "name": "Hurricane Lee Post-Tropical",
+        "category": "hurricane",
+        "notes": "Maine near-miss, large wind field"
+    },
+    "20240708_00z": {
+        "name": "Hurricane Beryl Cat 1",
+        "category": "hurricane",
+        "notes": "Earliest Cat 5 in Atlantic history, TX landfall"
+    },
+    "20240805_00z": {
+        "name": "Hurricane Debby Cat 1",
+        "category": "hurricane",
+        "notes": "Stalled, 20-30in rain SC"
+    },
+    "20240926_18z": {
+        "name": "Hurricane Helene Cat 4",
+        "category": "hurricane",
+        "notes": "Catastrophic NC inland flooding"
+    },
+    "20241009_12z": {
+        "name": "Hurricane Milton Cat 3",
+        "category": "hurricane",
+        "notes": "Extreme rapid intensification to Cat 5"
+    },
+
+    "20200303_03z": {
+        "name": "Nashville TN EF3/EF4",
+        "category": "tornado",
+        "notes": "Nocturnal, 25 dead"
+    },
+    "20200412_18z": {
+        "name": "Easter 2020 Outbreak",
+        "category": "tornado",
+        "notes": "141 tornadoes, Bassfield EF4"
+    },
+    "20210126_02z": {
+        "name": "Fultondale AL EF3",
+        "category": "tornado",
+        "notes": "Nocturnal, 150mph"
+    },
+    "20210325_15z": {
+        "name": "Birmingham/Eagle Point AL EF3",
+        "category": "tornado",
+        "notes": "80mi track"
+    },
+    "20210327_01z": {
+        "name": "Newnan GA EF4",
+        "category": "tornado",
+        "notes": "Nocturnal, 170mph"
+    },
+    "20211211_00z": {
+        "name": "Quad-State Mayfield KY EF4",
+        "category": "tornado",
+        "notes": "250mi track, 57 dead"
+    },
+    "20211210_23z": {
+        "name": "Edwardsville IL Amazon EF3",
+        "category": "tornado",
+        "notes": "6 dead, warehouse collapse"
+    },
+    "20220305_18z": {
+        "name": "Winterset IA EF4",
+        "category": "tornado",
+        "notes": "70mi track, QLCS transition"
+    },
+    "20220429_22z": {
+        "name": "Andover KS EF3",
+        "category": "tornado",
+        "notes": "155mph, 0 fatalities"
+    },
+    "20230324_22z": {
+        "name": "Rolling Fork MS EF4",
+        "category": "tornado",
+        "notes": "195mph, 17 dead"
+    },
+    "20230621_22z": {
+        "name": "Matador TX EF3",
+        "category": "tornado",
+        "notes": "Small town devastated"
+    },
+    "20231209_15z": {
+        "name": "Dec 2023 TN Outbreak",
+        "category": "tornado",
+        "notes": "39 tornadoes, EF3 Clarksville"
+    },
+    "20240426_18z": {
+        "name": "Elkhorn-Blair NE EF4",
+        "category": "tornado",
+        "notes": "Omaha metro, 170mph"
+    },
+    "20240428_01z": {
+        "name": "Sulphur/Marietta OK EF3-EF4",
+        "category": "tornado",
+        "notes": "First OK violent tornado in 8yr"
+    },
+    "20240506_23z": {
+        "name": "Barnsdall OK EF4",
+        "category": "tornado",
+        "notes": "180mph, 40mi track"
+    },
+    "20240521_17z": {
+        "name": "Greenfield IA EF4",
+        "category": "tornado",
+        "notes": "DOW 309-318mph, 5 dead"
+    },
+    "20240526_00z": {
+        "name": "Valley View TX EF3",
+        "category": "tornado",
+        "notes": "Nocturnal, I-35, 7 dead"
+    },
+    "20250315_14z": {
+        "name": "Kentwood-Carson LA/MS EF4",
+        "category": "tornado",
+        "notes": "67mi track, 6 dead"
+    },
+    "20250516_17z": {
+        "name": "St. Louis MO EF3",
+        "category": "tornado",
+        "notes": "Urban, $1.6B, first since 1959"
+    },
+    "20250517_01z": {
+        "name": "Somerset-London KY EF4",
+        "category": "tornado",
+        "notes": "60mi track, 19 dead"
+    },
+
+    "20200810_12z": {
+        "name": "Iowa Derecho",
+        "category": "derecho",
+        "notes": "$11B, 140mph, costliest thunderstorm ever"
+    },
+    "20211215_18z": {
+        "name": "December Midwest Derecho",
+        "category": "derecho",
+        "notes": "First-ever December derecho"
+    },
+    "20220512_16z": {
+        "name": "May SD Derecho",
+        "category": "derecho",
+        "notes": "107mph, haboob"
+    },
+    "20220613_18z": {
+        "name": "Ohio Valley Derecho",
+        "category": "derecho",
+        "notes": "98mph Ft Wayne record"
+    },
+    "20230629_12z": {
+        "name": "June Midwest Derecho",
+        "category": "derecho",
+        "notes": "600mi path, 100mph IL"
+    },
+    "20240516_18z": {
+        "name": "Houston Derecho",
+        "category": "derecho",
+        "notes": "100mph downtown, 8 dead"
+    },
+    "20240715_18z": {
+        "name": "July Chicago Derecho",
+        "category": "derecho",
+        "notes": "32 tornadoes, 105mph"
+    },
+    "20250429_17z": {
+        "name": "Pennsylvania Derecho",
+        "category": "derecho",
+        "notes": "120mph, 700mi path"
+    },
+    "20250620_18z": {
+        "name": "N Plains Derecho + Enderlin EF5",
+        "category": "derecho",
+        "notes": "First EF5 since 2013"
+    },
+    "20250728_18z": {
+        "name": "July N Plains Derecho",
+        "category": "derecho",
+        "notes": "99mph Sioux Center"
+    },
+    "20241119_12z": {
+        "name": "PNW Bomb Cyclone",
+        "category": "derecho",
+        "notes": "942mb, 85mph, 600K outages"
+    },
+
+    "20210428_18z": {
+        "name": "Hondo TX Record Hail 6.42in",
+        "category": "hail",
+        "notes": "$1.4B damage"
+    },
+    "20230621_18z": {
+        "name": "Red Rocks CO Hail + 36 Tornadoes",
+        "category": "hail",
+        "notes": "CO tornado record day"
+    },
+    "20240314_18z": {
+        "name": "DFW Hailstorm",
+        "category": "hail",
+        "notes": "Record 106 reports of 2in+"
+    },
+    "20240528_18z": {
+        "name": "South Plains DVD-Size Hail",
+        "category": "hail",
+        "notes": "4-5in Lubbock area"
+    },
+    "20240531_00z": {
+        "name": "Denver Midnight Hail",
+        "category": "hail",
+        "notes": "$1B+, nocturnal"
+    },
+    "20240602_18z": {
+        "name": "Vigo Park TX 7in Hail",
+        "category": "hail",
+        "notes": "Possible state record"
+    },
+    "20250526_18z": {
+        "name": "Menard TX 5.87in Hail",
+        "category": "hail",
+        "notes": "Near-record"
+    },
+
+    "20211114_00z": {
+        "name": "PNW Atmospheric River",
+        "category": "ar",
+        "notes": "Coquihalla Hwy collapse, WA/BC emergency"
+    },
+    "20230104_12z": {
+        "name": "CA AR Strongest Storm",
+        "category": "ar",
+        "notes": "100mph Tahoe, 9 consecutive ARs"
+    },
+    "20230109_00z": {
+        "name": "CA AR Peak Flooding",
+        "category": "ar",
+        "notes": "IVT 750-1000, Montecito evac"
+    },
+    "20240204_06z": {
+        "name": "Pineapple Express LA",
+        "category": "ar",
+        "notes": "Wettest LA day since 2003"
+    },
+    "20251210_12z": {
+        "name": "PNW Mega-AR Cat 5",
+        "category": "ar",
+        "notes": "All-time flood records"
+    },
+
+    "20210215_12z": {
+        "name": "Winter Storm Uri",
+        "category": "winter",
+        "notes": "TX grid near-collapse, 246 dead"
+    },
+    "20221118_00z": {
+        "name": "Buffalo Lake Effect 81in",
+        "category": "winter",
+        "notes": "66in in one day"
+    },
+    "20221223_06z": {
+        "name": "Winter Storm Elliott",
+        "category": "winter",
+        "notes": "Bomb cyclone, 47 dead Buffalo"
+    },
+    "20250121_06z": {
+        "name": "Gulf Coast Blizzard Enzo",
+        "category": "winter",
+        "notes": "8in snow New Orleans"
+    },
+    "20241107_00z": {
+        "name": "Colorado Blizzard",
+        "category": "winter",
+        "notes": "42in SE CO, 90hr snow"
+    },
+
+    "20210628_12z": {
+        "name": "PNW Heat Dome",
+        "category": "other",
+        "notes": "Portland 116F, 1400 dead"
+    },
+    "20250704_00z": {
+        "name": "TX MCV Flooding",
+        "category": "other",
+        "notes": "Guadalupe R 26ft in 45min, 135 dead"
+    }
+}
