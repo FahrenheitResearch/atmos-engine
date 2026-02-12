@@ -103,7 +103,7 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 |-------|-----------|--------|--------|---------|-------|
 | **HRRR** | 3km | CONUS | Every hour | 18h (48h synoptic) | Primary model. Full field set (21 products). |
 | **GFS** | 0.25deg | Global (CONUS subset) | 00/06/12/18z | 384h | Subset to CONUS+5deg at extraction. All products except smoke. |
-| **RRFS** | 3km | North America | Every hour | 18h (60h synoptic) | Experimental HRRR successor. Rotated lat/lon grid. All products except smoke. |
+| **RRFS** | 3km | North America | Hourly 00-12z, 3-hourly 15/18/21z | 18h (84h synoptic) | Experimental HRRR successor. Rotated lat/lon grid. All products except smoke. |
 | **NAM** | 12km | CONUS | 00/06/12/18z | 84h | awphys product. 39 levels. cfgrib extracts v-wind (eccodes misses it). Missing q/cloud/dew_point. |
 | **RAP** | 13km | CONUS | Every hour | 21h (51h ext) | awp130pgrb product. 37 levels. Same cfgrib v-wind trick. Missing q/cloud/dew_point. |
 | **NAM-Nest** | 3km | CONUS | 00/06/12/18z | 60h | High-res NAM nest. 42 levels, 926MB/FHR. Has most fields; dew_point/vorticity partial (7/42 levels). |

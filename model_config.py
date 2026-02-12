@@ -145,12 +145,12 @@ class ModelRegistry:
                 # Alternative S3 URL format
                 'https://s3.amazonaws.com/noaa-rrfs-pds/rrfs_a/rrfs.{date}/{hour}/{filename}'
             ],
-            forecast_cycles=list(range(24)),  # Every hour
+            forecast_cycles=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 18, 21],  # Hourly 00-12z, then 3-hourly (no 13z/14z)
             max_forecast_hours={
-                # Synoptic times (00, 06, 12, 18 UTC) go to 60 hours
-                0: 60, 6: 60, 12: 60, 18: 60,
+                # Synoptic times (00, 06, 12, 18 UTC) go to 84 hours
+                0: 84, 6: 84, 12: 84, 18: 84,
                 # All other hours go to 18 hours
-                **{h: 18 for h in range(24) if h not in [0, 6, 12, 18]}
+                **{h: 18 for h in [1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 15, 21]}
             },
             grid_type='rotated_lat_lon',
             domain='north_america',

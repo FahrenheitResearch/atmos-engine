@@ -46,7 +46,7 @@ NOMADS/AWS → auto_update.py (slot-based download) → outputs/model/date/cycle
 |-------|-----------|------|--------|-------|
 | HRRR | 3km | F00-F48 (synoptic), F00-F18 (hourly) | Every hour | Primary model, full field set |
 | GFS | 0.25deg | F00-F384 (6h intervals) | Every 6h | CONUS subset, ~50MB/FHR |
-| RRFS | 3km | F00-F18 (F00-F60 synoptic) | Every hour | HRRR successor (experimental) |
+| RRFS | 3km | F00-F18 (F00-F84 synoptic) | Hourly 00-12z, 3-hourly 15/18/21z | HRRR successor (experimental) |
 | NAM | 12km | F00-F84 | 00/06/12/18z | Wind via cfgrib fallback; missing q/cloud/dew_point |
 | RAP | 13km | F00-F21 (F00-F51 extended) | Every hour | Wind via cfgrib fallback; missing q/cloud/dew_point |
 | NAM-Nest | 3km | F00-F60 | 00/06/12/18z | Full field set, 926MB/FHR |

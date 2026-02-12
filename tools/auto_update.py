@@ -76,7 +76,7 @@ MODEL_FILE_TYPES = {
 MODEL_FORECAST_HOURS = {
     'hrrr': list(range(19)),                          # F00-F18 every hour (synoptic extends to F48)
     'gfs':  list(range(0, 121, 3)) + list(range(126, 385, 6)),  # F00-F120 every 3h, F126-F384 every 6h
-    'rrfs': list(range(19)),                          # F00-F18 every hour
+    'rrfs': list(range(19)),                          # F00-F18 base (synoptic extends to F84)
     'nam':  list(range(37)) + list(range(39, 85, 3)),  # F00-F36 hourly, F39-F84 3-hourly
     'rap':  list(range(22)),                          # F00-F21 every hour (extended cycles go further)
     'nam_nest': list(range(61)),                      # F00-F60 every hour
@@ -84,7 +84,7 @@ MODEL_FORECAST_HOURS = {
 MODEL_DEFAULT_MAX_FHR = {
     'hrrr': 18,
     'gfs':  384,
-    'rrfs': 18,
+    'rrfs': 84,
     'nam':  84,
     'rap':  21,
     'nam_nest': 60,
@@ -262,8 +262,8 @@ def get_pending_work(model, max_hours=None):
     # HRRR: 2 cycles (current + previous for base FHRs)
     # GFS: 2 cycles (runs every 6h, 180min lag already covers availability)
     # RRFS: 4 cycles — lag=0 means aggressive probing, but RRFS takes ~120min
-    #   to publish. At 4 hourly cycles we always reach back far enough to find
-    #   one that's actually available while still probing the newest immediately.
+    #   to publish. Hourly 00-12z then 3-hourly (15/18/21z). Synoptic extends to F84.
+    #   At 4 cycles we always reach back far enough to find one that's available.
     if model == 'rrfs':
         n_cycles = 4
     elif model == 'hrrr':
@@ -297,17 +297,17 @@ def get_pending_work(model, max_hours=None):
     for cycle_items in per_cycle:
         work.extend(cycle_items[1:])
 
-    # Extended HRRR: F19-F48 for latest synoptic cycle (lower priority, appended after base)
-    if model == 'hrrr':
+    # Extended synoptic FHRs: append beyond base range for latest synoptic cycle
+    # HRRR: F19-F48, RRFS: F19-F84 (lower priority, appended after base FHRs)
+    if model in ('hrrr', 'rrfs'):
         syn = get_latest_synoptic_cycle()
         if syn:
             syn_date, syn_hour = syn
-            # Check extended FHRs directly on disk (get_downloaded_fhrs only knows
-            # about MODEL_FORECAST_HOURS which caps at F18 for HRRR base range)
+            max_ext = 49 if model == 'hrrr' else 85  # HRRR F48, RRFS F84
             run_dir = get_base_dir(model) / syn_date / f"{syn_hour:02d}z"
             patterns = MODEL_REQUIRED_PATTERNS.get(model, ['*.grib2'])
             work_set = {(d, h, f) for d, h, f in work}
-            for fhr in range(19, 49):
+            for fhr in range(19, max_ext):
                 fhr_dir = run_dir / f"F{fhr:02d}"
                 if fhr_dir.exists() and all(list(fhr_dir.glob(p)) for p in patterns):
                     continue  # Already downloaded
@@ -446,13 +446,14 @@ def cleanup_old_date_folders(model='hrrr'):
 
 
 def cleanup_old_extended(model='hrrr'):
-    """Keep only 2 most recent synoptic runs with extended FHRs (F19-F48).
+    """Keep only 2 most recent synoptic runs with extended FHRs.
 
-    Only applies to HRRR. Deletes F19+ directories from older synoptic cycles.
+    HRRR: F19-F48, RRFS: F19-F84. Deletes extended FHR dirs from older synoptic cycles.
     """
-    if model != 'hrrr':
+    if model not in ('hrrr', 'rrfs'):
         return
 
+    max_ext = 49 if model == 'hrrr' else 85  # HRRR F48, RRFS F84
     base_dir = get_base_dir(model)
     synoptic_with_extended = []
     if not base_dir.exists():
@@ -467,13 +468,13 @@ def cleanup_old_extended(model='hrrr'):
             hour = int(hour_dir.name.replace('z', ''))
             if hour not in SYNOPTIC_HOURS:
                 continue
-            has_extended = any((hour_dir / f"F{f:02d}").exists() for f in range(19, 49))
+            has_extended = any((hour_dir / f"F{f:02d}").exists() for f in range(19, max_ext))
             if has_extended:
                 synoptic_with_extended.append(hour_dir)
 
     # Keep newest 2 with extended data, delete F19+ from the rest
     for old_dir in synoptic_with_extended[2:]:
-        for fhr in range(19, 49):
+        for fhr in range(19, max_ext):
             fhr_dir = old_dir / f"F{fhr:02d}"
             if fhr_dir.exists():
                 try:
@@ -504,21 +505,22 @@ def run_update_cycle_for_model(model, max_hours=None):
         except Exception as e:
             logger.warning(f"[{model.upper()}] Failed to update {date_str}/{hour:02d}z: {e}")
 
-    # Extended HRRR: download F19-F48 for the most recent synoptic cycle
-    if model == 'hrrr':
+    # Extended synoptic FHRs: HRRR F19-F48, RRFS F19-F84
+    if model in ('hrrr', 'rrfs'):
+        max_ext_fhr = 48 if model == 'hrrr' else 84
         syn = get_latest_synoptic_cycle()
         if syn:
             syn_date, syn_hour = syn
             try:
-                existing = get_downloaded_fhrs(model, syn_date, syn_hour, max_fhr=48)
-                extended_needed = [f for f in range(19, 49) if f not in existing]
+                existing = get_downloaded_fhrs(model, syn_date, syn_hour, max_fhr=max_ext_fhr)
+                extended_needed = [f for f in range(19, max_ext_fhr + 1) if f not in existing]
                 if extended_needed:
-                    logger.info(f"[HRRR] Extended: {syn_date}/{syn_hour:02d}z needs "
+                    logger.info(f"[{model.upper()}] Extended: {syn_date}/{syn_hour:02d}z needs "
                                 f"F{extended_needed[0]:02d}-F{extended_needed[-1]:02d}")
-                    new_ext = download_missing_fhrs(model, syn_date, syn_hour, max_hours=48)
+                    new_ext = download_missing_fhrs(model, syn_date, syn_hour, max_hours=max_ext_fhr)
                     total_new += new_ext
             except Exception as e:
-                logger.warning(f"[HRRR] Extended download failed for {syn_date}/{syn_hour:02d}z: {e}")
+                logger.warning(f"[{model.upper()}] Extended download failed for {syn_date}/{syn_hour:02d}z: {e}")
 
     # Cleanup
     cleanup_disk_if_needed(model)

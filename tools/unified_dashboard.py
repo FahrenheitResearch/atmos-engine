@@ -484,7 +484,7 @@ XSECT_STYLES = [(key, label) for _, group in XSECT_STYLE_GROUPS for key, label, 
 # =============================================================================
 
 class RateLimiter:
-    def __init__(self, rpm=60, burst=10):
+    def __init__(self, rpm=240, burst=40):
         self.rpm, self.burst = rpm, burst
         self.requests = defaultdict(list)
         self.lock = threading.Lock()
@@ -882,7 +882,7 @@ MODEL_NEEDS_SEPARATE_SFC = {'hrrr'}  # Only HRRR has separate wrfsfc
 MODEL_FORECAST_HOURS = {
     'hrrr': list(range(19)),                # F00-F18 (base; synoptic cycles extend to F48)
     'gfs':  list(range(0, 385, 6)),         # F00-F384 every 6 hours
-    'rrfs': list(range(19)),                # F00-F18
+    'rrfs': list(range(19)),                # F00-F18 (base; synoptic cycles extend to F84)
     'nam':  list(range(37)) + list(range(39, 85, 3)),  # F00-F36 hourly, F39-F84 3-hourly
     'rap':  list(range(22)),                # F00-F21 (base; extended cycles go further)
     'nam_nest': list(range(61)),            # F00-F60 hourly
@@ -890,9 +890,11 @@ MODEL_FORECAST_HOURS = {
 SYNOPTIC_HOURS = {0, 6, 12, 18}
 
 def get_max_fhr_for_cycle(model_name: str, cycle_hour: int) -> int:
-    """Return max forecast hour for a given model+cycle. HRRR synoptic cycles go to 48."""
+    """Return max forecast hour for a given model+cycle. Synoptic cycles extend further."""
     if model_name == 'hrrr' and cycle_hour in SYNOPTIC_HOURS:
         return 48
+    if model_name == 'rrfs' and cycle_hour in SYNOPTIC_HOURS:
+        return 84
     if model_name == 'rap' and cycle_hour in {3, 9, 15, 21}:
         return 51  # RAP extended cycles
     base = MODEL_FORECAST_HOURS.get(model_name, list(range(19)))
@@ -902,6 +904,8 @@ def get_model_fhr_list(model_name: str, cycle_hour: int = None) -> list:
     """Return the actual FHR list for a model+cycle (handles sparse GFS/NAM FHRs)."""
     if model_name == 'hrrr' and cycle_hour is not None and cycle_hour in SYNOPTIC_HOURS:
         return list(range(49))  # F00-F48 every hour
+    if model_name == 'rrfs' and cycle_hour is not None and cycle_hour in SYNOPTIC_HOURS:
+        return list(range(85))  # F00-F84 every hour
     if model_name == 'rap' and cycle_hour is not None and cycle_hour in {3, 9, 15, 21}:
         return list(range(52))  # F00-F51 every hour (extended)
     return MODEL_FORECAST_HOURS.get(model_name, list(range(19)))
@@ -14391,9 +14395,9 @@ def api_v1_capabilities():
             'domain': cfg.domain if cfg else 'CONUS',
             'forecast_hours': {
                 'base': MODEL_FORECAST_HOURS.get(name, []),
-                'synoptic_max': 48 if name == 'hrrr' else MODEL_FORECAST_HOURS.get(name, [0])[-1],
+                'synoptic_max': get_max_fhr_for_cycle(name, 0),  # synoptic (00z) max FHR
             },
-            'synoptic_hours': sorted(SYNOPTIC_HOURS) if name == 'hrrr' else None,
+            'synoptic_hours': sorted(SYNOPTIC_HOURS) if name in ('hrrr', 'rrfs') else None,
             'excluded_products': sorted(excluded),
             'available_cycles': cycle_count,
         }
@@ -14409,8 +14413,8 @@ def api_v1_capabilities():
         },
         'coordinate_bounds': CONUS_BOUNDS,
         'rate_limits': {
-            'requests_per_minute': 60,
-            'burst_per_second': 10,
+            'requests_per_minute': 240,
+            'burst_per_second': 40,
         },
         'event_count': len(EVENTS_DATA),
     })
