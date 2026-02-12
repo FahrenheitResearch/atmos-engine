@@ -2707,7 +2707,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             background: var(--accent);
             color: #000;
             border-color: var(--accent);
+            animation: pill-pop 0.2s ease-out;
         }
+        @keyframes pill-pop { 0% { transform: scale(0.92); } 60% { transform: scale(1.04); } 100% { transform: scale(1); } }
         .model-pill .model-res {
             font-size: 9px;
             font-weight: 400;
@@ -4933,6 +4935,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     const pill = document.createElement('div');
                     pill.className = 'model-pill' + (m.id === currentModel ? ' active' : '');
                     pill.dataset.model = m.id;
+                    if (m.id === currentModel) {
+                        const mc = MODEL_COLORS[m.id] || 'var(--accent)';
+                        pill.style.background = mc;
+                        pill.style.borderColor = mc;
+                    }
                     const dot = document.createElement('span');
                     const dotState = m.loaded_count > 0 ? (m.loaded_count >= (m.fhr_count || 1) ? ' loaded' : ' partial') : '';
                     dot.className = 'model-dot' + dotState;
@@ -4973,9 +4980,18 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const mc = MODEL_COLORS[modelId] || 'var(--accent)';
                 modelLabel.style.cssText = `background:${mc}22;color:${mc};border:1px solid ${mc}44;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;`;
             }
-            // Update pill active states
+            // Update pill active states with model-specific colors
             document.querySelectorAll('.model-pill').forEach(p => {
-                p.classList.toggle('active', p.dataset.model === modelId);
+                const isActive = p.dataset.model === modelId;
+                p.classList.toggle('active', isActive);
+                if (isActive) {
+                    const mc = MODEL_COLORS[modelId] || 'var(--accent)';
+                    p.style.background = mc;
+                    p.style.borderColor = mc;
+                } else {
+                    p.style.background = '';
+                    p.style.borderColor = '';
+                }
             });
             stopPlayback();
             invalidatePrerender();
@@ -7217,6 +7233,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 chip.classList.add('unavailable');
                 chip.title = `${fhrLabel(fhr)}${vtSuffix} — Not downloaded yet`;
             } else {
+                chip.title = `${fhrLabel(fhr)}${vtSuffix}`;
                 // Set visual state based on loaded/active
                 if (fhr === activeFhr) {
                     chip.classList.add('active');
