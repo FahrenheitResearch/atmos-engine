@@ -3366,6 +3366,14 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .modal-header--compact h2 { font-size: 16px; margin: 0; }
         .diff-canvas { width: 100%; border-radius: 4px; }
         .diff-panel-label { color: var(--warning); }
+        .colorbar-units { opacity: 0.7; }
+        .select--min60 { min-width: 60px; }
+        .select--min70 { min-width: 70px; }
+        .select--min50 { min-width: 50px; }
+        .label--xs { font-size: 10px; }
+        .event-list { flex: 1; overflow-y: auto; }
+        .memory-status { cursor: pointer; }
+        .playback-group { display: contents; }
 
         /* Expanded panel (320px, collapsible) */
         #expanded-panel {
@@ -3996,6 +4004,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
         .region-chip:hover { opacity: 0.8; }
         .region-chip.active { border-color: white; }
+        .region-chip[data-region="all"] { background: var(--card); color: var(--text); }
         .region-chip[data-region="california"] { background: var(--region-california); color: #000; }
         .region-chip[data-region="pnw_rockies"] { background: var(--region-pnw); color: #000; }
         .region-chip[data-region="colorado_basin"] { background: var(--region-colorado); color: #fff; }
@@ -4856,14 +4865,14 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     </div>
                     <div class="ctrl-row">
                         <label>V-Scale:</label>
-                        <select id="vscale-select" aria-label="Vertical exaggeration" style="min-width:60px;">
+                        <select id="vscale-select" class="select--min60" aria-label="Vertical exaggeration">
                             <option value="0.5">0.5x</option>
                             <option value="1.0" selected>1x</option>
                             <option value="1.5">1.5x</option>
                             <option value="2.0">2x</option>
                         </select>
                         <label>Top:</label>
-                        <select id="ytop-select" aria-label="Y-axis top pressure level" style="min-width:70px;">
+                        <select id="ytop-select" class="select--min70" aria-label="Y-axis top pressure level">
                             <option value="100" selected>100 hPa</option>
                             <option value="200">200 hPa</option>
                             <option value="300">300 hPa</option>
@@ -4871,7 +4880,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                             <option value="700">700 hPa</option>
                         </select>
                         <label>Units:</label>
-                        <select id="units-select" aria-label="Distance units" style="min-width:50px;">
+                        <select id="units-select" class="select--min50" aria-label="Distance units">
                             <option value="km" selected>km</option>
                             <option value="mi">mi</option>
                         </select>
@@ -4880,7 +4889,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <div class="ctrl-section">
                     <div class="ctrl-section-title">&#11088; Favorites</div>
                     <div class="ctrl-row">
-                        <select id="favorites-select" aria-label="Saved favorites" style="flex:1;">
+                        <select id="favorites-select" class="select--flex" aria-label="Saved favorites">
                             <option value="">Saved Favorites</option>
                         </select>
                         <button id="save-favorite-btn" class="btn-sm">Save</button>
@@ -4989,7 +4998,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <div id="city-list-view">
                     <input type="text" id="city-search" placeholder="Search 261 cities..." aria-label="Search cities">
                     <div class="region-chips" id="region-chips">
-                        <span class="region-chip active" data-region="all" style="background:var(--card);color:var(--text);">All</span>
+                        <span class="region-chip active" data-region="all">All</span>
                         <span class="region-chip" data-region="california">CA</span>
                         <span class="region-chip" data-region="pnw_rockies">PNW</span>
                         <span class="region-chip" data-region="colorado_basin">CO</span>
@@ -5015,9 +5024,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <select id="event-category-filter" class="select--min80 select--flex" aria-label="Event category filter" style="display:none;">
                             <option value="">All Categories</option>
                         </select>
-                        <label style="font-size:10px;"><input type="checkbox" id="event-coords-only">With coordinates only</label>
+                        <label class="label--xs"><input type="checkbox" id="event-coords-only">With coordinates only</label>
                     </div>
-                    <div id="event-list" style="flex:1;overflow-y:auto;"></div>
+                    <div id="event-list" class="event-list"></div>
                 </div>
                 <div class="event-detail-panel" id="event-detail">
                     <button class="event-detail-back" id="event-detail-back">&larr; Back to events</button>
@@ -5033,7 +5042,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 </div>
                 <div class="ctrl-section">
                     <div class="ctrl-section-title">&#128202; Memory Status</div>
-                    <div id="memory-status" style="cursor:pointer;">
+                    <div id="memory-status" class="memory-status">
                         <span id="mem-text" class="mem-text">0 MB</span>
                         <div class="mem-bar"><div class="mem-fill" id="mem-fill" style="width:0%"></div></div>
                     </div>
@@ -5125,7 +5134,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <canvas id="colorbar-canvas" class="canvas--colorbar" width="200" height="14"></canvas>
                 <div class="map-legend-labels">
                     <span id="colorbar-min"></span>
-                    <span id="colorbar-units" style="opacity:0.7;"></span>
+                    <span id="colorbar-units" class="colorbar-units"></span>
                     <span id="colorbar-max"></span>
                 </div>
             </div>
@@ -5161,7 +5170,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <div id="bottom-body">
                     <!-- Slider row -->
                     <div id="slider-row">
-                        <div role="group" aria-label="Playback controls" style="display:contents;">
+                        <div role="group" class="playback-group" aria-label="Playback controls">
                         <button id="prev-btn" class="playback-btn" data-tip="Previous frame (Left / J)" aria-label="Previous frame">&#9664;<span class="kbd-hint">&#8592;</span></button>
                         <button id="play-btn" class="play-btn" data-tip="Auto-play (Space)" aria-label="Play">&#9654;<span class="kbd-hint">Spc</span></button>
                         <button id="next-btn" class="playback-btn" data-tip="Next frame (Right / K)" aria-label="Next frame">&#9654;<span class="kbd-hint">&#8594;</span></button>
