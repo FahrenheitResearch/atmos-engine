@@ -3824,9 +3824,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .preset-item {
             display: flex; align-items: center; gap: 6px;
             padding: 4px 8px; border-radius: 4px; cursor: pointer;
-            transition: background 0.1s; font-size: 11px; color: var(--text);
+            transition: background 0.12s, padding-left 0.12s; font-size: 11px; color: var(--text);
         }
-        .preset-item:hover { background: var(--card); }
+        .preset-item:hover { background: var(--card); padding-left: 12px; }
         .preset-item .preset-dot {
             width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
         }
@@ -4498,10 +4498,22 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                                         <img id="hero-preview-img" style="width:100%;display:block;border-radius:8px;opacity:0;transition:opacity 0.4s;" alt="Sample cross-section">
                                         <div id="hero-preview-label" style="position:absolute;bottom:0;left:0;right:0;padding:4px 10px;background:linear-gradient(transparent,rgba(15,23,42,0.9));font-size:10px;color:var(--muted);text-align:right;">Sample &mdash; click to explore</div>
                                     </div>
-                                    <div id="landing-stats" style="font-size:11px;color:var(--muted);line-height:1.7;">
-                                        <b style="color:var(--text);">6 models</b> &middot; HRRR 3km, GFS, RRFS, NAM, RAP, NAM-Nest<br>
-                                        <b style="color:var(--text);">21 products</b> &middot; Temperature, wind, fire weather, moisture, dynamics<br>
-                                        <b style="color:var(--text);">Keyboard</b> &middot; Left/Right: FHR, Space: play, ?: help
+                                    <div id="landing-stats" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:10px;color:var(--muted);text-align:center;">
+                                        <div style="background:var(--card);border-radius:6px;padding:8px 6px;">
+                                            <div style="font-size:18px;font-weight:700;color:var(--accent);">6</div>
+                                            <div style="font-weight:600;color:var(--text);font-size:11px;">Models</div>
+                                            <div style="margin-top:2px;">HRRR &middot; GFS &middot; RRFS<br>NAM &middot; RAP &middot; NAM-Nest</div>
+                                        </div>
+                                        <div style="background:var(--card);border-radius:6px;padding:8px 6px;">
+                                            <div style="font-size:18px;font-weight:700;color:var(--accent);">21</div>
+                                            <div style="font-weight:600;color:var(--text);font-size:11px;">Products</div>
+                                            <div style="margin-top:2px;">Temperature &middot; Wind<br>Fire Wx &middot; Moisture</div>
+                                        </div>
+                                        <div style="background:var(--card);border-radius:6px;padding:8px 6px;">
+                                            <div style="font-size:18px;font-weight:700;color:var(--accent);">~0.5s</div>
+                                            <div style="font-weight:600;color:var(--text);font-size:11px;">Render</div>
+                                            <div style="margin-top:2px;">&#8592;&#8594; FHR &middot; Space: play<br>?: keyboard help</div>
+                                        </div>
                                     </div>
                                     <div id="landing-cycle" style="margin-top:10px;font-size:10px;color:var(--muted);opacity:0.7;"></div>
                                 </div>
