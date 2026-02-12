@@ -37,7 +37,7 @@ LOG_FILE = os.path.join(os.environ.get("TEMP", r"C:\Users\drew\AppData\Local\Tem
 
 ENV_VARS = {
     "XSECT_GRIB_BACKEND": "auto",
-    "WXSECTION_KEY": "cwtc",
+    "MAPBOX_TOKEN": os.environ.get("MAPBOX_TOKEN", ""),
     "XSECT_CACHE_DIR": r"C:\Users\drew\hrrr-maps\cache\xsect",
     "XSECT_OUTPUTS_DIR": r"C:\Users\drew\hrrr-maps\outputs",
     "XSECT_ARCHIVE_DIR": r"E:\hrrr-archive,F:\hrrr-archive,H:\hrrr-archive",
@@ -218,7 +218,7 @@ def wait_for_healthy(timeout=120):
     start = time.time()
     while time.time() - start < timeout:
         try:
-            r = urllib.request.urlopen(f"http://localhost:{PORT}/api/status", timeout=5)
+            r = urllib.request.urlopen(f"http://127.0.0.1:{PORT}/api/status", timeout=5)
             if r.status == 200:
                 return True
         except Exception:
@@ -239,14 +239,14 @@ def get_status():
         "events_with_data": 0,
     }
     try:
-        r = urllib.request.urlopen(f"http://localhost:{PORT}/api/v1/capabilities", timeout=5)
+        r = urllib.request.urlopen(f"http://127.0.0.1:{PORT}/api/v1/capabilities", timeout=5)
         d = json.loads(r.read())
         status["healthy"] = True
         for m in d.get("models", []):
             status["models"][m["id"]] = m["available_cycles"]
         status["event_count"] = d.get("event_count", 0)
 
-        r2 = urllib.request.urlopen(f"http://localhost:{PORT}/api/v1/events", timeout=5)
+        r2 = urllib.request.urlopen(f"http://127.0.0.1:{PORT}/api/v1/events", timeout=5)
         events = json.loads(r2.read())
         if isinstance(events, dict):
             events = events.get("events", [])

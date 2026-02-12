@@ -1185,7 +1185,6 @@ python tools/unified_dashboard.py --port 5565 --models hrrr,gfs
 |----------|-------------|-----------|
 | `WXSECTION_API_BASE` | Dashboard URL | MCP config or shell |
 | `GOOGLE_STREET_VIEW_KEY` | Street View API key | `.env` file (gitignored) |
-| `WXSECTION_KEY` | Admin key for dashboard | Shell/start script |
 
 ### .env File
 

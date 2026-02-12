@@ -250,19 +250,6 @@ data/
 
 See [API_GUIDE.md](API_GUIDE.md) for the full v1 API documentation.
 
-## AI Agent Research Platform
-
-wxsection.com includes a full AI-agent-native research platform for autonomous atmospheric analysis:
-
-- **22 MCP tools** — Cross-sections, external data (METAR, RAWS, SPC, NWS), fire weather assessment, Street View
-- **6 Python API modules** (~6,600 lines) — `cross_section`, `external_data`, `fire_risk`, `case_study`, `report_builder`, `forecast`
-- **88 curated historical events** — Fires, hurricanes, tornadoes, derechos, winter storms with suggested cross-section paths
-- **Fire risk scoring** — Composite 0–100 scoring across 12 CONUS fire-prone regions
-- **PDF report generation** — LaTeX templates for forecasts, case studies, and bulletins
-- **Agent swarm orchestration** — Parallel agent workflows for comprehensive analysis
-
-See [AGENT_GUIDE.md](AGENT_GUIDE.md) for the full AI agent platform documentation.
-
 ## Command Line Options
 
 ### Dashboard

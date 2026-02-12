@@ -34,7 +34,7 @@ cd ~/hrrr-maps && ./start.sh
 # Or:
 sudo mount /dev/sde /mnt/hrrr
 python tools/auto_update.py --interval 2 --models hrrr,gfs,rrfs &
-XSECT_GRIB_BACKEND=auto WXSECTION_KEY=cwtc python3 tools/unified_dashboard.py --port 5561 --models hrrr,gfs,rrfs
+XSECT_GRIB_BACKEND=auto python3 tools/unified_dashboard.py --port 5561 --models hrrr,gfs,rrfs
 ```
 
 Logs: `/tmp/dashboard.log`, `/tmp/auto_update.log`, `/tmp/cloudflared.log`
@@ -57,7 +57,8 @@ Logs: `/tmp/dashboard.log`, `/tmp/auto_update.log`, `/tmp/cloudflared.log`
 | Mmap load (cached on NVMe) | <0.1s |
 | Cached preload (176 FHRs) | ~4s total |
 | Parallel prerender (19 frames) | ~4s |
-| HRRR FHR download (1.17GB) | ~170s |
+| HRRR FHR download (262MB, byte-range) | ~26s |
+| HRRR FHR download (full 1.17GB, legacy) | ~170s |
 | GFS FHR download (516MB) | ~83s |
 | RRFS FHR download (795MB) | ~124s |
 
@@ -76,17 +77,22 @@ Logs: `/tmp/dashboard.log`, `/tmp/auto_update.log`, `/tmp/cloudflared.log`
 RENDER_SEMAPHORE = 12      # Max concurrent matplotlib renders
 PRERENDER_WORKERS = 8      # Parallel prerender processes (--prerender-workers)
 PRELOAD_WORKERS = 20       # Cached mmap load threads (--preload-workers / XSECT_PRELOAD_WORKERS)
-GRIB_POOL_WORKERS = 4      # GRIB conversion processes (--grib-workers / XSECT_GRIB_WORKERS)
-CACHE_LIMIT_GB = 1000      # NVMe cache size limit (~1TB)
+GRIB_POOL_WORKERS = 6      # GRIB conversion processes (--grib-workers / XSECT_GRIB_WORKERS)
+CACHE_LIMIT_GB = 2000      # NVMe cache size limit (~2TB, 4TB drive)
 HRRR_HOURLY_CYCLES = 3     # Non-synoptic cycles in preload window
 GRIB_BACKEND = 'auto'      # XSECT_GRIB_BACKEND: auto (eccodes→cfgrib fallback), eccodes, cfgrib
 
 # auto_update.py (slot-based concurrent)
-HRRR_SLOTS = 3             # --hrrr-slots: concurrent HRRR downloads
-GFS_SLOTS = 1              # --gfs-slots: concurrent GFS downloads
-RRFS_SLOTS = 1             # --rrfs-slots: concurrent RRFS downloads
-DISK_LIMIT_GB = 500        # GRIB source disk limit on VHD
+HRRR_SLOTS = 4             # --hrrr-slots: concurrent HRRR downloads (boosted to 12 during priority)
+GFS_SLOTS = 2              # --gfs-slots: concurrent GFS downloads
+RRFS_SLOTS = 8             # --rrfs-slots: concurrent RRFS downloads (AWS, no throttle)
+DISK_LIMIT_GB = 500        # GRIB source disk limit (auto_update)
 STATUS_FILE = '/tmp/auto_update_status.json'  # IPC to dashboard
+
+# orchestrator.py (byte-range download)
+# HRRR downloads use .idx byte-range subsetting: wrfprs 249MB (vs 383MB), wrfsfc 13MB (vs 136MB)
+# wrfnat (663MB) skipped entirely — lazy-downloaded on smoke style request
+# HTTP connection pooling via requests.Session with 10 connections/host
 ```
 
 ## API Quick Reference
@@ -114,7 +120,7 @@ pkill -f unified_dashboard
 ```
 Wait for it to die, then:
 ```bash
-XSECT_GRIB_BACKEND=auto WXSECTION_KEY=cwtc nohup python3 tools/unified_dashboard.py --port 5561 --models hrrr,gfs,rrfs > /tmp/dashboard.log 2>&1 &
+XSECT_GRIB_BACKEND=auto nohup python3 tools/unified_dashboard.py --port 5561 --models hrrr,gfs,rrfs > /tmp/dashboard.log 2>&1 &
 ```
 
 ### Restart auto-update
@@ -139,20 +145,25 @@ du -sh ~/hrrr-maps/cache/xsect/*/
 ## Download Architecture
 
 Auto-update uses slot-based concurrency (`run_download_pass_concurrent`):
-- Each model gets dedicated ThreadPoolExecutor slots (3 HRRR + 1 GFS + 1 RRFS)
+- Each model gets dedicated ThreadPoolExecutor slots (4 HRRR + 2 GFS + 8 RRFS)
+- **HRRR-first priority boost**: When new HRRR cycle detected, temporarily steals slots from RRFS/GFS (up to 12 HRRR slots) until early FHRs (F00-F05) are done
 - Models download in parallel — slow RRFS can't block HRRR
 - HRRR fail-fast: if an FHR isn't published, prunes higher FHRs from same cycle
-- HRRR queue refreshes every 45s for newly published FHRs
-- `download_forecast_hour` requires ALL file types to succeed (wrfprs + wrfsfc + wrfnat for HRRR)
+- HRRR queue refreshes every 2s for newly published FHRs
+- **Byte-range .idx subsetting**: Downloads only needed GRIB records from wrfprs (~249MB vs 383MB) and wrfsfc (~13MB vs 136MB). Skips wrfnat (~663MB) entirely — lazy-downloaded on smoke request.
+- **Connection pooling**: `requests.Session` with HTTPAdapter pool reuses TCP+TLS connections (~2.4x faster handshakes)
 - Writes progress to `/tmp/auto_update_status.json` on every schedule/completion event (atomically via tmp+rename)
+- Self-restart wrapper with exponential backoff on crashes (2s → 30s max)
 
-**Availability lag**: HRRR 50min, GFS 180min (3h), RRFS 120min after init time. Set in `MODEL_AVAILABILITY_LAG`.
+**Per-FHR HRRR download**: 262MB in ~26s (was 1,180MB in ~170s = **78% less data, 6.5x faster**)
+
+**Availability lag**: HRRR 50min, GFS 180min (3h), RRFS 0min (probe aggressively). Set in `MODEL_AVAILABILITY_LAG`.
 
 **NOMADS is the bottleneck**: ~6-7 MB/s per connection regardless of local bandwidth.
-5 concurrent connections = ~265 Mbps sustained. Safe up to ~7-8 before throttling risk.
+With byte-range, effective throughput is much higher due to reduced data volume.
 
 ### Archive Downloads (dashboard `request_cycle`)
-- Triggered via `/api/request_cycle` (admin-gated)
+- Triggered via `/api/request_cycle`
 - Downloads from AWS archive (NOAA Big Data Program), not NOMADS
 - Uses `download_gribs_parallel` with `max_threads=8`
 - Progress shown in real-time via `/api/progress`
@@ -169,7 +180,7 @@ Dashboard tracks operations via `PROGRESS` dict + `/api/progress` endpoint. Fron
 | `preload` | ▶ | indigo | Startup preload of target cycles |
 | `autoload` | ▶ | light-indigo (#818cf8) | Background rescan auto-load (every 30-60s) |
 | `load` | ↑ | default | Manual FHR load |
-| `download` | ↓ | amber | Archive cycle download (admin-gated) |
+| `download` | ↓ | amber | Archive cycle download |
 | `prerender` | ● | purple | Batch frame rendering |
 | `autoupdate` | ↻ | cyan (#06b6d4) | auto_update download progress (from status file) |
 

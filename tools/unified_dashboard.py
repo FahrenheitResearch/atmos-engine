@@ -41,12 +41,18 @@ app = Flask(__name__)
 
 
 @app.after_request
-def add_cors_headers(response):
-    """Allow cross-origin requests for the public v1 API."""
+def add_response_headers(response):
+    """Add CORS for public API + security headers on all responses."""
     if request.path.startswith('/api/v1/'):
         response.headers['Access-Control-Allow-Origin'] = '*'
         response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
         response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+    # Security headers
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
     return response
 
 
@@ -59,8 +65,8 @@ VOTES_FILE = Path(__file__).parent.parent / 'data' / 'votes.json'
 REQUESTS_FILE = Path(__file__).parent.parent / 'data' / 'requests.json'
 FAVORITES_FILE = Path(__file__).parent.parent / 'data' / 'favorites.json'
 DISK_META_FILE = Path(__file__).parent.parent / 'data' / 'disk_meta.json'
-DISK_LIMIT_GB = 500  # Max disk usage for HRRR data (GRIB source on VHD)
-CACHE_LIMIT_GB = 500   # Max NVMe cache for mmap files
+DISK_LIMIT_GB = 1000  # Max disk usage for HRRR data (GRIB source on VHD)
+CACHE_LIMIT_GB = 2000  # Max NVMe cache for mmap files (4TB drive, ~2TB free)
 CLIMATOLOGY_DIR = Path(os.environ.get('CLIMATOLOGY_DIR', str(Path(__file__).resolve().parent.parent / 'climatology')))
 
 # Styles that support anomaly mode (must match ANOMALY_STYLES in cross_section_interactive.py)
@@ -542,7 +548,7 @@ def shutdown_render_pool():
 _GRIB_POOL = None
 _GRIB_POOL_LOCK = threading.Lock()
 _GRIB_POOL_CONFIG = None
-GRIB_POOL_WORKERS = 4  # Overridden by --grib-workers at startup
+GRIB_POOL_WORKERS = 6  # Overridden by --grib-workers at startup
 
 
 def _get_grib_pool(pool_config, project_dir):
@@ -622,20 +628,85 @@ def frame_cache_get(key):
     with FRAME_CACHE_LOCK:
         return FRAME_CACHE.get(key)
 
-# Admin key for archive access — set via WXSECTION_KEY env var
-ADMIN_KEY = os.environ.get('WXSECTION_KEY', '')
+# =============================================================================
+# OVERLAY PRERENDER CACHE — stores rendered overlay PNG bytes per FHR/product
+# =============================================================================
+OVERLAY_CACHE = {}              # cache_key -> PNG bytes
+OVERLAY_CACHE_LOCK = threading.Lock()
+MAX_OVERLAY_CACHE = 500         # ~500 * 150KB = ~75MB max (multiple products)
 
-def check_admin_key():
-    """Check if request has valid admin key (query param or header)."""
-    key = (request.args.get('key', '') or request.headers.get('X-Admin-Key', '')).strip()
-    return bool(ADMIN_KEY) and key == ADMIN_KEY
+def overlay_cache_key(model, cycle_key, fhr, product_or_field, level=None):
+    """Deterministic cache key for an overlay frame."""
+    return f"overlay:{model}:{cycle_key}:F{fhr:02d}:{product_or_field}:{level or 'sfc'}"
+
+def overlay_cache_put(key, png_bytes):
+    """Store a rendered overlay frame, evicting oldest if full."""
+    with OVERLAY_CACHE_LOCK:
+        OVERLAY_CACHE[key] = png_bytes
+        while len(OVERLAY_CACHE) > MAX_OVERLAY_CACHE:
+            oldest = next(iter(OVERLAY_CACHE))
+            del OVERLAY_CACHE[oldest]
+
+def overlay_cache_get(key):
+    """Retrieve cached overlay frame or None."""
+    with OVERLAY_CACHE_LOCK:
+        return OVERLAY_CACHE.get(key)
+
+AUTO_PRERENDER_PRODUCTS = ['surface_analysis', 'fire_weather']  # products to prerender on cycle load
+
+def auto_prerender_overlay(mgr, model_name: str, cycle_key: str, product: str = 'surface_analysis'):
+    """Background: prerender overlay frames for all loaded FHRs of a cycle.
+    Called automatically after cycle load completes."""
+    try:
+        from core.map_overlay import PRODUCT_PRESETS, MapOverlayEngine
+        spec = PRODUCT_PRESETS.get(product)
+        if not spec:
+            return
+
+        # Collect loaded FHRs for this cycle
+        fhrs = sorted(fhr for ck, fhr in mgr.loaded_items if ck == cycle_key)
+        if not fhrs:
+            return
+
+        # Skip if all already cached
+        to_render = [f for f in fhrs if not overlay_cache_get(
+            overlay_cache_key(model_name, cycle_key, f, product))]
+        if not to_render:
+            return
+
+        cache_dir = mgr.cache_dir if hasattr(mgr, 'cache_dir') else ''
+        engine = _get_overlay_engine(model_name, cache_dir)
+        rendered = 0
+        for fhr in to_render:
+            fhr_data = mgr.get_forecast_hour(cycle_key, fhr)
+            if fhr_data is None:
+                continue
+            try:
+                result = engine.render_composite(fhr_data, spec, opacity=1.0)
+                webp_data = _png_to_webp(result.data)
+                key = overlay_cache_key(model_name, cycle_key, fhr, product)
+                overlay_cache_put(key, webp_data)
+                rendered += 1
+            except Exception as exc:
+                logger.debug(f"Overlay prerender {cycle_key} F{fhr:02d}: {exc}")
+        if rendered:
+            logger.info(f"Auto-prerendered {rendered} overlay frames for {model_name} {cycle_key} ({product})")
+    except Exception as e:
+        logger.warning(f"Overlay auto-prerender failed: {e}")
+
+
+def auto_prerender_overlay_all_products(mgr, model_name: str, cycle_key: str):
+    """Background: prerender overlay frames for all default products."""
+    for product in AUTO_PRERENDER_PRODUCTS:
+        auto_prerender_overlay(mgr, model_name, cycle_key, product=product)
+
+MAPBOX_TOKEN = os.environ.get('MAPBOX_TOKEN', '')
 
 def rate_limit(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        if app.config.get('PRODUCTION'):
-            if not rate_limiter.is_allowed(request.remote_addr):
-                return jsonify({'error': 'Rate limit exceeded'}), 429
+        if not rate_limiter.is_allowed(request.remote_addr):
+            return jsonify({'error': 'Rate limit exceeded'}), 429
         return f(*args, **kwargs)
     return decorated
 
@@ -803,6 +874,99 @@ MODEL_EXCLUDED_STYLES = {
     'rrfs': {'smoke'},      # RRFS has no smoke either
     'hrrr': set(),          # HRRR supports all styles
 }
+
+# ── Lazy wrfnat download for smoke style ──
+# wrfnat files (~663MB) are no longer downloaded by auto_update (saves 56% bandwidth).
+# When a smoke cross-section is first requested, this triggers a background download.
+_wrfnat_download_pending = set()  # Set of (cycle_key, fhr) currently downloading
+_wrfnat_download_lock = threading.Lock()
+
+def _trigger_lazy_wrfnat_download(model_name: str, cycle_key: str, fhr: int):
+    """Trigger background download of wrfnat file for smoke data.
+
+    Returns True if download was triggered or already in progress,
+    False if not applicable (non-HRRR or wrfnat already exists).
+    """
+    if model_name != 'hrrr':
+        return False
+
+    key = (cycle_key, fhr)
+    with _wrfnat_download_lock:
+        if key in _wrfnat_download_pending:
+            return True  # Already downloading
+
+    # Parse cycle_key to find the wrfprs file and derive wrfnat path
+    # cycle_key format: "YYYYMMDD/HHz"
+    try:
+        parts = cycle_key.split('/')
+        date_str = parts[0]
+        hour = int(parts[1].replace('z', ''))
+    except (IndexError, ValueError):
+        return False
+
+    outputs_dir = Path('outputs') / 'hrrr' / date_str / f"{hour:02d}z" / f"F{fhr:02d}"
+    if not outputs_dir.exists():
+        return False
+
+    # Check if wrfnat already exists
+    nat_files = list(outputs_dir.glob('*wrfnat*.grib2'))
+    if nat_files:
+        return False  # Already have it
+
+    # Check if wrfprs exists (need it to derive the nat filename)
+    prs_files = list(outputs_dir.glob('*wrfprs*.grib2'))
+    if not prs_files:
+        return False
+
+    nat_filename = prs_files[0].name.replace('wrfprs', 'wrfnat')
+    nat_path = outputs_dir / nat_filename
+
+    with _wrfnat_download_lock:
+        if key in _wrfnat_download_pending:
+            return True
+        _wrfnat_download_pending.add(key)
+
+    def _download():
+        try:
+            from smart_hrrr.orchestrator import download_forecast_hour
+            logger.info(f"[LAZY-WRFNAT] Downloading wrfnat for {cycle_key} F{fhr:02d}...")
+            ok = download_forecast_hour(
+                model='hrrr',
+                date_str=date_str,
+                cycle_hour=hour,
+                forecast_hour=fhr,
+                output_dir=outputs_dir,
+                file_types=['native'],  # Only wrfnat
+            )
+            if ok:
+                logger.info(f"[LAZY-WRFNAT] Downloaded wrfnat for {cycle_key} F{fhr:02d} — reload to pick up smoke data")
+                # Force reload: unload + reload so mmap cache picks up wrfnat smoke fields
+                for mgr in model_registry.managers.values():
+                    if mgr.model_name == 'hrrr' and (cycle_key, fhr) in mgr.loaded_items:
+                        try:
+                            mgr._unload_item(cycle_key, fhr)
+                            with mgr._lock:
+                                if (cycle_key, fhr) in mgr.loaded_items:
+                                    mgr.loaded_items.remove((cycle_key, fhr))
+                            # Delete mmap cache for this FHR so it reconverts with smoke
+                            cache_dir = Path(mgr.CACHE_BASE) / 'hrrr'
+                            fhr_cache = cache_dir / date_str / f"{hour:02d}z" / f"F{fhr:02d}"
+                            if fhr_cache.exists():
+                                import shutil
+                                shutil.rmtree(fhr_cache, ignore_errors=True)
+                                logger.info(f"[LAZY-WRFNAT] Cleared mmap cache {fhr_cache}")
+                            mgr.load_forecast_hour(cycle_key, fhr)
+                        except Exception as e:
+                            logger.warning(f"[LAZY-WRFNAT] Reload failed: {e}")
+                        break
+            else:
+                logger.warning(f"[LAZY-WRFNAT] Failed to download wrfnat for {cycle_key} F{fhr:02d}")
+        finally:
+            with _wrfnat_download_lock:
+                _wrfnat_download_pending.discard(key)
+
+    threading.Thread(target=_download, daemon=True, name=f"wrfnat-{cycle_key}-F{fhr:02d}").start()
+    return True
 
 def _env_int(name: str, default: int) -> int:
     """Parse integer env var with fallback."""
@@ -1507,6 +1671,15 @@ class CrossSectionManager:
         progress_done(op_id)
         CANCEL_FLAGS.pop(op_id, None)
 
+        # Auto-prerender overlay frames for the loaded cycle(s)
+        loaded_cycles = set(ck for ck, _ in self.loaded_items)
+        for ck in loaded_cycles:
+            threading.Thread(
+                target=auto_prerender_overlay_all_products,
+                args=(self, self.model_name, ck),
+                daemon=True,
+            ).start()
+
     def auto_load_latest(self):
         """Load new FHRs from disk, newest cycle first (priority)."""
         if not self._loading.acquire(blocking=False):
@@ -1688,6 +1861,15 @@ class CrossSectionManager:
 
         progress_done(op_id)
 
+        # Auto-prerender overlay frames for newly loaded FHRs
+        loaded_cycles = set(ck for ck, _ in self.loaded_items)
+        for ck in loaded_cycles:
+            threading.Thread(
+                target=auto_prerender_overlay_all_products,
+                args=(self, self.model_name, ck),
+                daemon=True,
+            ).start()
+
     def get_loaded_status(self):
         """Return current memory status."""
         mem_mb = self.xsect.get_memory_usage() if self.xsect else 0
@@ -1720,6 +1902,16 @@ class CrossSectionManager:
                 return True
         result = self.load_forecast_hour(cycle_key, fhr)
         return result.get('success', False)
+
+    def get_forecast_hour(self, cycle_key: str, fhr: int):
+        """Get ForecastHourData for a loaded cycle+FHR. Returns None if not loaded."""
+        with self._lock:
+            if (cycle_key, fhr) not in self.loaded_items:
+                return None
+        engine_key = self._engine_key_map.get((cycle_key, fhr))
+        if engine_key is None:
+            return None
+        return self.xsect.forecast_hours.get(engine_key) if self.xsect else None
 
     def load_cycle(self, cycle_key: str) -> dict:
         """Load an entire cycle (all available FHRs) into memory, parallel."""
@@ -1813,6 +2005,13 @@ class CrossSectionManager:
             logger.info(f"Loaded {cycle['display']} ({loaded_count[0]} FHRs, {mem_mb:.0f} MB total)")
         progress_done(op_id)
         CANCEL_FLAGS.pop(op_id, None)
+
+        # Auto-prerender overlay frames for the loaded cycle (all default products)
+        threading.Thread(
+            target=auto_prerender_overlay_all_products,
+            args=(self, self.model_name, cycle_key),
+            daemon=True,
+        ).start()
 
         return {
             'success': True,
@@ -2228,9 +2427,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>wxsection.com — Cross-Section Dashboard</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -2473,6 +2670,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         #map {
             flex: 1;
             z-index: 1;
+            width: 100%;
+            min-height: 0;
         }
 
         /* ===== Bottom Slide-Up Panel ===== */
@@ -3085,24 +3284,14 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
         .request-item-text { font-size: 14px; line-height: 1.4; }
 
-        /* ===== City marker cluster overrides ===== */
-        .marker-cluster-small { background: rgba(14,165,233,0.3); }
-        .marker-cluster-small div { background: rgba(14,165,233,0.6); }
-        .marker-cluster-medium { background: rgba(14,165,233,0.4); }
-        .marker-cluster-medium div { background: rgba(14,165,233,0.7); }
-        .marker-cluster-large { background: rgba(14,165,233,0.5); }
-        .marker-cluster-large div { background: rgba(14,165,233,0.8); }
-        .marker-cluster div { color: #fff; font-size: 12px; font-weight: 700; }
-        .city-dot {
-            width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.7);
-            box-shadow: 0 0 4px rgba(0,0,0,0.5);
-        }
-        .city-dot.california { background: #f97316; }
-        .city-dot.pnw_rockies { background: #22c55e; }
-        .city-dot.colorado_basin { background: #3b82f6; }
-        .city-dot.southwest { background: #ef4444; }
-        .city-dot.southern_plains { background: #eab308; }
-        .city-dot.southeast_misc { background: #a855f7; }
+        /* ===== Mapbox GL overrides ===== */
+        .mapboxgl-canvas { outline: none; }
+        .mapboxgl-popup-content { background: #1e293b; color: #f4f4f4; border-radius: 8px; padding: 12px; font-family: system-ui, sans-serif; }
+        .mapboxgl-popup-tip { border-top-color: #1e293b; }
+        .mapboxgl-popup-close-button { color: #94a3b8; font-size: 18px; padding: 4px 8px; }
+        .mapboxgl-popup-close-button:hover { color: #fff; background: transparent; }
+        .mapboxgl-ctrl-attrib { font-size: 10px !important; background: rgba(0,0,0,0.5) !important; }
+        .mapboxgl-ctrl-attrib a { color: #94a3b8 !important; }
 
         /* Memory bar in settings */
         .mem-bar { width: 60px; height: 6px; background: var(--card); border-radius: 3px; overflow: hidden; }
@@ -3187,6 +3376,19 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
             /* Close panel button gets larger */
             #panel-header .close-panel { font-size: 24px; padding: 4px 8px; }
+
+            /* Menu-top mode: icon sidebar on top instead of bottom */
+            body.menu-top #icon-sidebar {
+                order: 0;
+                border-top: none;
+                border-bottom: 1px solid var(--border);
+            }
+            body.menu-top #map-area { order: 1; }
+            body.menu-top #expanded-panel {
+                top: 48px;
+                height: calc(100vh - 48px);
+            }
+            body.menu-top #bottom-panel { bottom: 0; }
         }
 
         /* Small phones (< 400px) */
@@ -3194,6 +3396,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             .icon-tab { width: 38px; height: 38px; }
             #icon-sidebar { height: 44px; }
             #expanded-panel { height: calc(100vh - 44px); }
+            body.menu-top #expanded-panel { top: 44px; height: calc(100vh - 44px); }
             .chip { padding: 5px 7px; font-size: 11px; }
         }
 
@@ -3319,7 +3522,6 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <div class="ctrl-row">
                             <label>Product:</label>
                             <select id="overlay-product-select" style="flex:1;font-size:11px;">
-                                <option value="">Custom (single field)</option>
                                 <option value="surface_analysis">Surface Analysis</option>
                                 <option value="radar_composite">Reflectivity</option>
                                 <option value="severe_weather">Severe Weather</option>
@@ -3328,6 +3530,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                                 <option value="moisture">Moisture</option>
                                 <option value="fire_weather">Fire Weather</option>
                                 <option value="precip">Precipitation</option>
+                                <option value="">Custom (single field)</option>
                             </select>
                         </div>
                         <div id="overlay-custom-controls">
@@ -3387,7 +3590,6 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                             <option value="cycle">Cycle Compare</option>
                         </select>
                         <button id="request-cycle-btn" style="padding:3px 8px;font-size:12px;">Request Run</button>
-                        <button id="admin-key-btn" style="padding:3px 8px;font-size:12px;">Admin</button>
                     </div>
                 </div>
             </div>
@@ -3450,35 +3652,40 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             <!-- TAB: Settings -->
             <div class="tab-content" id="tab-settings">
                 <div class="ctrl-section">
-                    <div class="ctrl-section-title">Map Layers</div>
+                    <div class="ctrl-section-title">Map Style</div>
                     <div class="ctrl-row">
-                        <label>Tile Layer:</label>
+                        <label>Basemap:</label>
                         <select id="tile-layer-select" style="flex:1;">
-                            <option value="dark_labels">Dark + Labels</option>
                             <option value="dark">Dark</option>
-                            <option value="light_labels">Light + Labels</option>
                             <option value="light">Light</option>
-                            <option value="topo">Topo</option>
+                            <option value="satellite">Satellite</option>
+                            <option value="outdoors">Outdoors</option>
                         </select>
                     </div>
                 </div>
                 <div class="ctrl-section">
                     <div class="ctrl-section-title">Map Markers</div>
                     <div class="ctrl-row">
-                        <label><input type="checkbox" id="toggle-city-markers" checked style="margin-right:4px;">Show city markers</label>
+                        <label><input type="checkbox" id="toggle-city-markers" style="margin-right:4px;">Show city markers</label>
                     </div>
                     <div class="ctrl-row">
-                        <label><input type="checkbox" id="toggle-event-markers" checked style="margin-right:4px;">Show event markers</label>
+                        <label><input type="checkbox" id="toggle-event-markers" style="margin-right:4px;">Show event markers</label>
                     </div>
                     <div class="ctrl-row">
                         <label><input type="checkbox" id="toggle-clustering" checked style="margin-right:4px;">Cluster markers</label>
                     </div>
                 </div>
-                <div class="ctrl-section">
-                    <div class="ctrl-section-title">Admin</div>
+                <div class="ctrl-section mobile-only-setting" style="display:none;">
+                    <div class="ctrl-section-title">Layout</div>
                     <div class="ctrl-row">
-                        <button id="settings-admin-btn" style="padding:4px 12px;font-size:12px;">Enter Admin Key</button>
-                        <span id="admin-status" style="font-size:11px;color:var(--muted);"></span>
+                        <label>Menu position:</label>
+                        <select id="menu-position-select" style="flex:1;">
+                            <option value="bottom">Bottom</option>
+                            <option value="top">Top</option>
+                        </select>
+                    </div>
+                    <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+                        Use "Top" if your browser has a bottom URL bar (e.g. Safari on iPhone).
                     </div>
                 </div>
             </div>
@@ -3677,8 +3884,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             <div id="ram-modal-body"></div>
         </div>
     </div>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.js"></script>
     <script>
         const styles = ''' + json.dumps(XSECT_STYLES) + ''';
         const MAX_SELECTED = 4;
@@ -3686,14 +3892,74 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         // =====================================================================
         // State (all preserved from original)
         // =====================================================================
-        let startMarker = null, endMarker = null, line = null;
+        let startMarker = null, endMarker = null, lineExists = false;
         let poiMarkers = [];  // Array of {marker, label} objects
+
+        // ---- Mapbox marker/line helpers ----
+        function createXSMarker(lat, lng, color) {
+            const el = document.createElement('div');
+            el.style.cssText = 'width:' + markerSize + 'px;height:' + markerSize + 'px;background:' + color + ';border-radius:50%;border:2px solid white;cursor:grab;box-shadow:0 1px 4px rgba(0,0,0,0.4);';
+            const m = new mapboxgl.Marker({ element: el, draggable: true })
+                .setLngLat([lng, lat])
+                .addTo(map);
+            // Leaflet-compat: getLatLng() returns {lat, lng}
+            m.getLatLng = () => { const ll = m.getLngLat(); return { lat: ll.lat, lng: ll.lng }; };
+            return m;
+        }
+
+        function updateLine() {
+            if (!startMarker || !endMarker || !mapStyleLoaded) return;
+            const s = startMarker.getLngLat();
+            const e = endMarker.getLngLat();
+            const data = {
+                type: 'Feature',
+                geometry: { type: 'LineString', coordinates: [[s.lng, s.lat], [e.lng, e.lat]] }
+            };
+            if (map.getSource('xs-line')) {
+                map.getSource('xs-line').setData(data);
+            } else {
+                map.addSource('xs-line', { type: 'geojson', data: data });
+                map.addLayer({
+                    id: 'xs-line',
+                    type: 'line',
+                    source: 'xs-line',
+                    paint: { 'line-color': '#fbbf24', 'line-width': 3, 'line-dasharray': [3, 1.5] }
+                });
+            }
+            lineExists = true;
+        }
+
+        function removeLine() {
+            if (mapStyleLoaded) {
+                if (map.getLayer('xs-line')) map.removeLayer('xs-line');
+                if (map.getSource('xs-line')) map.removeSource('xs-line');
+            }
+            lineExists = false;
+        }
+
+        function clearXSMarkers() {
+            if (startMarker) { startMarker.remove(); startMarker = null; }
+            if (endMarker) { endMarker.remove(); endMarker = null; }
+            removeLine();
+        }
+
+        function setupStartMarker(lat, lng) {
+            const m = createXSMarker(lat, lng, '#38bdf8');
+            m.on('drag', () => { updateLine(); liveDragRender(); });
+            m.on('dragend', () => { invalidatePrerender(); generateCrossSection(); });
+            return m;
+        }
+
+        function setupEndMarker(lat, lng) {
+            const m = createXSMarker(lat, lng, '#f87171');
+            m.on('drag', () => { updateLine(); liveDragRender(); });
+            m.on('dragend', () => { invalidatePrerender(); generateCrossSection(); });
+            return m;
+        }
         let cycles = [];
         let currentCycle = null;
         let selectedFhrs = [];
         let activeFhr = null;
-        let isAdmin = false;
-        let protectedCycles = [];
         let currentModel = 'hrrr';
         let modelExcludedStyles = {};
 
@@ -3770,40 +4036,6 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             updateAnomalyVisibility();
         }
 
-        // Admin key management
-        function getAdminKey() { return localStorage.getItem('wxsection_admin_key') || ''; }
-        function adminParam() { const k = getAdminKey(); return k ? `&key=${encodeURIComponent(k)}` : ''; }
-        async function checkAdminKey() {
-            const k = getAdminKey();
-            if (!k) { setAdminState(false, []); return; }
-            try {
-                const res = await fetch(`/api/check_key?key=${encodeURIComponent(k)}${modelParam()}`);
-                const data = await res.json();
-                setAdminState(data.valid, data.protected || []);
-            } catch { setAdminState(false, []); }
-        }
-        function setAdminState(valid, prot) {
-            isAdmin = valid;
-            protectedCycles = prot;
-            const btn = document.getElementById('admin-key-btn');
-            btn.textContent = valid ? '🔓' : '🔒';
-            btn.title = valid ? 'Admin mode active (click to change key)' : 'Enter admin key for archive access';
-            document.getElementById('load-all-btn').style.display = '';  // Always visible (mmap makes loading cheap)
-        }
-        async function promptAdminKey() {
-            const key = prompt(isAdmin ? 'Admin key (current key active, clear to revoke):' : 'Enter admin key:', getAdminKey());
-            if (key === null) return;
-            if (key === '') { localStorage.removeItem('wxsection_admin_key'); setAdminState(false, []); showToast('Key removed', 'success', 2000); return; }
-            localStorage.setItem('wxsection_admin_key', key);
-            await checkAdminKey();
-            showToast(isAdmin ? 'Admin access granted' : 'Invalid key', isAdmin ? 'success' : 'error', 2000);
-        }
-        document.getElementById('admin-key-btn').onclick = promptAdminKey;
-        // Settings tab admin button
-        const settingsAdminBtn = document.getElementById('settings-admin-btn');
-        if (settingsAdminBtn) settingsAdminBtn.onclick = promptAdminKey;
-        checkAdminKey();
-
         // Load All button — loads every FHR for current cycle
         document.getElementById('load-all-btn').onclick = async () => {
             if (!currentCycle) return;
@@ -3812,7 +4044,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             btn.textContent = 'Loading...';
             const toast = showToast(`Loading all FHRs for ${currentCycle}...`);
             try {
-                const res = await fetch(`/api/load_cycle?cycle=${currentCycle}${modelParam()}${adminParam()}`, {method: 'POST'});
+                const res = await fetch(`/api/load_cycle?cycle=${currentCycle}${modelParam()}`, {method: 'POST'});
                 const data = await res.json();
                 toast.remove();
                 if (data.success) {
@@ -3845,7 +4077,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             if (isMobile && !expandedPanel.classList.contains('collapsed')) {
                 expandedPanel.classList.add('collapsed');
                 iconTabs.forEach(t => t.classList.remove('active'));
-                setTimeout(() => map.invalidateSize(), 300);
+                setTimeout(() => map.resize(), 300);
             }
         }
 
@@ -3854,7 +4086,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 // Clicking active tab collapses
                 expandedPanel.classList.add('collapsed');
                 iconTabs.forEach(t => t.classList.remove('active'));
-                setTimeout(() => map.invalidateSize(), 250);
+                setTimeout(() => map.resize(), 250);
                 return;
             }
             activeTab = tabId;
@@ -3863,7 +4095,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             tabContents.forEach(tc => tc.classList.toggle('active', tc.id === 'tab-' + tabId));
             panelTitle.textContent = tabNames[tabId] || tabId;
             // Trigger resize so map reflows
-            setTimeout(() => map.invalidateSize(), 250);
+            setTimeout(() => map.resize(), 250);
         }
 
         iconTabs.forEach(tab => {
@@ -3873,7 +4105,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         document.getElementById('close-panel-btn').onclick = () => {
             expandedPanel.classList.add('collapsed');
             iconTabs.forEach(t => t.classList.remove('active'));
-            setTimeout(() => map.invalidateSize(), 250);
+            setTimeout(() => map.resize(), 250);
         };
 
         // =====================================================================
@@ -3890,7 +4122,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             bottomExpandBtn.style.display = state === 'full' ? 'none' : '';
             bottomCollapseBtn.style.display = state === 'collapsed' ? 'none' : '';
             bottomExpandBtn.innerHTML = state === 'collapsed' ? '&#9650;' : '&#9650;&#9650;';
-            setTimeout(() => map.invalidateSize(), 350);
+            setTimeout(() => map.resize(), 350);
         }
 
         bottomExpandBtn.onclick = () => {
@@ -3910,182 +4142,216 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         });
 
         // =====================================================================
-        // Initialize Map
+        // Initialize Map (Mapbox GL JS)
         // =====================================================================
         const isMobile = window.matchMedia('(max-width: 768px)').matches || ('ontouchstart' in window && window.innerWidth < 900);
         const markerSize = isMobile ? 24 : 16;
         const markerAnchor = markerSize / 2;
-        const map = L.map('map', {
-            center: [39, -98],
+
+        mapboxgl.accessToken = '%%MAPBOX_TOKEN%%';
+        const MAPBOX_STYLES = {
+            dark: 'mapbox://styles/mapbox/dark-v11',
+            light: 'mapbox://styles/mapbox/light-v11',
+            satellite: 'mapbox://styles/mapbox/satellite-streets-v12',
+            outdoors: 'mapbox://styles/mapbox/outdoors-v12',
+        };
+        let currentStyleKey = 'dark';
+        const map = new mapboxgl.Map({
+            container: 'map',
+            style: MAPBOX_STYLES.dark,
+            center: [-98, 39],
             zoom: isMobile ? 4 : 5,
             minZoom: 3,
-            maxZoom: 10,
-            tap: true
+            maxZoom: 12,
+            projection: 'mercator',
         });
-        const baseLayers = {
-            'Dark': L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OSM, &copy; CARTO', subdomains: 'abcd', maxZoom: 20
-            }),
-            'Dark + Labels': L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OSM, &copy; CARTO', subdomains: 'abcd', maxZoom: 20
-            }),
-            'Light': L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OSM, &copy; CARTO', subdomains: 'abcd', maxZoom: 20
-            }),
-            'Light + Labels': L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OSM, &copy; CARTO', subdomains: 'abcd', maxZoom: 20
-            }),
-            'Topo': L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OSM, &copy; OpenTopoMap', maxZoom: 17
-            }),
-        };
-        let currentBaseLayer = baseLayers['Dark + Labels'];
-        currentBaseLayer.addTo(map);
-        L.control.layers(baseLayers, null, {position: 'topright', collapsed: true}).addTo(map);
+        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-        // Settings: tile layer selector
+        // Track map load state for deferred source/layer additions
+        let mapStyleLoaded = false;
+
+        // ---- Compatibility helpers: Leaflet [lat,lng] → Mapbox [lng,lat] ----
+        function fitBoundsLL(latLngs, padding) {
+            // Accept [[lat,lng],[lat,lng]] like Leaflet, convert to Mapbox [[lng,lat],[lng,lat]]
+            const sw = [latLngs[0][1], latLngs[0][0]];
+            const ne = [latLngs[1][1], latLngs[1][0]];
+            map.fitBounds([sw, ne], { padding: padding || 50 });
+        }
+
+        // ---- Re-add custom sources/layers after style change ----
+        let _pendingStyleReload = false;
+        // Forward-declare variables used by readdCustomLayers (defined later)
+        var _citiesGeoJSON = null;
+        var _eventsGeoJSON = null;
+        var _modelMapOverlayRef = null;  // set after modelMapOverlay IIFE
+        function readdCustomLayers() {
+            // Weather overlay source (hidden by default)
+            addWeatherOverlaySource();
+            // XS line
+            if (startMarker && endMarker) updateLine();
+            // City + event GeoJSON layers
+            if (_citiesGeoJSON && typeof addCityLayers === 'function') addCityLayers(_citiesGeoJSON);
+            if (_eventsGeoJSON && typeof addEventLayers === 'function') addEventLayers(_eventsGeoJSON);
+            // Restore overlay visibility
+            if (_modelMapOverlayRef && _modelMapOverlayRef._isEnabled()) {
+                map.setLayoutProperty('weather-overlay-a', 'visibility', 'visible');
+                map.setLayoutProperty('weather-overlay-b', 'visibility', 'visible');
+                _modelMapOverlayRef.update();
+            }
+        }
+
+        map.on('style.load', () => {
+            mapStyleLoaded = true;
+            readdCustomLayers();
+        });
+
+        // Settings: basemap style selector
         document.getElementById('tile-layer-select').onchange = function() {
-            const layerMap = {
-                'dark_labels': 'Dark + Labels', 'dark': 'Dark',
-                'light_labels': 'Light + Labels', 'light': 'Light', 'topo': 'Topo',
-            };
-            map.removeLayer(currentBaseLayer);
-            currentBaseLayer = baseLayers[layerMap[this.value]];
-            currentBaseLayer.addTo(map);
+            const style = MAPBOX_STYLES[this.value];
+            if (style) {
+                currentStyleKey = this.value;
+                map.setStyle(style);
+            }
         };
 
         // =========================================================================
-        // Map Overlay — WebGL2 renderer + Leaflet integration
+        // Weather overlay — Mapbox image source (server-rendered PNGs)
         // =========================================================================
-        const ModelMapGL = (function() {
-            let gl, program, dataTex, cmapTex, canvas;
-            let uVmin, uVmax, uOpacity, uNanValue;
+        // 1x1 transparent PNG for placeholder
+        const TRANSPARENT_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+        const OVERLAY_BOUNDS = [[-135, 53], [-60, 53], [-60, 21], [-135, 21]]; // TL, TR, BR, BL
 
-            function init() {
-                canvas = document.createElement('canvas');
-                gl = canvas.getContext('webgl2', {premultipliedAlpha: false, alpha: true});
-                if (!gl) { console.warn('WebGL2 not available for map overlay'); return false; }
-
-                const vs = `#version 300 es
-                    in vec2 a_pos;
-                    out vec2 v_tc;
-                    void main() { v_tc = a_pos * 0.5 + 0.5; gl_Position = vec4(a_pos, 0, 1); }`;
-                const fs = `#version 300 es
-                    precision highp float;
-                    in vec2 v_tc;
-                    out vec4 fragColor;
-                    uniform sampler2D u_data;
-                    uniform sampler2D u_cmap;
-                    uniform float u_vmin, u_vmax, u_opacity, u_nan;
-                    void main() {
-                        float v = texture(u_data, vec2(v_tc.x, 1.0 - v_tc.y)).r;
-                        if (abs(v - u_nan) < 0.5) discard;
-                        float t = clamp((v - u_vmin) / (u_vmax - u_vmin), 0.0, 1.0);
-                        vec4 c = texture(u_cmap, vec2(t, 0.5));
-                        fragColor = vec4(c.rgb, c.a * u_opacity);
-                    }`;
-                function compile(type, src) {
-                    const s = gl.createShader(type);
-                    gl.shaderSource(s, src);
-                    gl.compileShader(s);
-                    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
-                        console.error('Shader:', gl.getShaderInfoLog(s));
-                    return s;
+        function findFirstLabelLayer() {
+            // Find the first Mapbox label or boundary layer to insert overlay below it
+            const layers = map.getStyle().layers;
+            for (const layer of layers) {
+                // Mapbox dark-v11 uses these prefixes for labels and boundaries
+                if (layer.id.match(/^(admin|state|country|place|settlement|poi|road-label|water-label|natural)/)) {
+                    return layer.id;
                 }
-                program = gl.createProgram();
-                gl.attachShader(program, compile(gl.VERTEX_SHADER, vs));
-                gl.attachShader(program, compile(gl.FRAGMENT_SHADER, fs));
-                gl.linkProgram(program);
-                gl.useProgram(program);
-
-                // Full-screen quad
-                const buf = gl.createBuffer();
-                gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
-                const aPos = gl.getAttribLocation(program, 'a_pos');
-                gl.enableVertexAttribArray(aPos);
-                gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
-
-                uVmin = gl.getUniformLocation(program, 'u_vmin');
-                uVmax = gl.getUniformLocation(program, 'u_vmax');
-                uOpacity = gl.getUniformLocation(program, 'u_opacity');
-                uNanValue = gl.getUniformLocation(program, 'u_nan');
-
-                dataTex = gl.createTexture();
-                cmapTex = gl.createTexture();
-
-                // Init colormap texture slot
-                gl.activeTexture(gl.TEXTURE1);
-                gl.bindTexture(gl.TEXTURE_2D, cmapTex);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-                gl.uniform1i(gl.getUniformLocation(program, 'u_cmap'), 1);
-
-                // Init data texture slot
-                gl.activeTexture(gl.TEXTURE0);
-                gl.bindTexture(gl.TEXTURE_2D, dataTex);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-                gl.uniform1i(gl.getUniformLocation(program, 'u_data'), 0);
-
-                return true;
             }
+            return undefined; // add on top if no label layer found
+        }
 
-            function uploadColormap(rgba256x4) {
-                gl.activeTexture(gl.TEXTURE1);
-                gl.bindTexture(gl.TEXTURE_2D, cmapTex);
-                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, rgba256x4);
+        function addWeatherOverlaySource() {
+            if (map.getSource('weather-overlay-a')) return;
+            // Double-buffered overlay: two image sources/layers for flash-free swaps
+            map.addSource('weather-overlay-a', { type: 'image', url: TRANSPARENT_PNG, coordinates: OVERLAY_BOUNDS });
+            map.addSource('weather-overlay-b', { type: 'image', url: TRANSPARENT_PNG, coordinates: OVERLAY_BOUNDS });
+            const beforeLayer = findFirstLabelLayer();
+            map.addLayer({
+                id: 'weather-overlay-b', type: 'raster', source: 'weather-overlay-b',
+                paint: { 'raster-opacity': 0 }, layout: { visibility: 'none' },
+            }, beforeLayer);
+            map.addLayer({
+                id: 'weather-overlay-a', type: 'raster', source: 'weather-overlay-a',
+                paint: { 'raster-opacity': 0.7 }, layout: { visibility: 'none' },
+            }, beforeLayer);
+            // Alias for compatibility checks
+            map._weatherOverlayActiveLayer = 'a';
+
+            // Bold white state/country borders above overlay
+            if (!map.getLayer('admin-borders-bold')) {
+                map.addLayer({
+                    id: 'admin-borders-bold',
+                    type: 'line',
+                    source: 'composite',
+                    'source-layer': 'admin',
+                    filter: ['==', ['get', 'admin_level'], 1],
+                    paint: {
+                        'line-color': '#ffffff',
+                        'line-width': 1.5,
+                        'line-opacity': 0.7,
+                    },
+                });
+                map.addLayer({
+                    id: 'country-borders-bold',
+                    type: 'line',
+                    source: 'composite',
+                    'source-layer': 'admin',
+                    filter: ['==', ['get', 'admin_level'], 0],
+                    paint: {
+                        'line-color': '#ffffff',
+                        'line-width': 2,
+                        'line-opacity': 0.8,
+                    },
+                });
+                // Coastline outlines (water polygon boundaries)
+                map.addLayer({
+                    id: 'coastline-bold',
+                    type: 'line',
+                    source: 'composite',
+                    'source-layer': 'water',
+                    paint: {
+                        'line-color': '#ffffff',
+                        'line-width': 1.2,
+                        'line-opacity': 0.5,
+                    },
+                });
             }
+        }
 
-            function render(float32Data, nx, ny, vmin, vmax, opacity, nanVal) {
-                canvas.width = nx;
-                canvas.height = ny;
-                gl.viewport(0, 0, nx, ny);
-
-                gl.activeTexture(gl.TEXTURE0);
-                gl.bindTexture(gl.TEXTURE_2D, dataTex);
-                gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, nx, ny, 0, gl.RED, gl.FLOAT, float32Data);
-
-                gl.uniform1f(uVmin, vmin);
-                gl.uniform1f(uVmax, vmax);
-                gl.uniform1f(uOpacity, opacity);
-                gl.uniform1f(uNanValue, nanVal);
-
-                gl.enable(gl.BLEND);
-                gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-                gl.clearColor(0, 0, 0, 0);
-                gl.clear(gl.COLOR_BUFFER_BIT);
-                gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-                return canvas.toDataURL('image/png');
-            }
-
-            return { init, uploadColormap, render };
-        })();
-
-        // Model Map Overlay controller
+        // Model Map Overlay controller (Mapbox GL JS version — always PNG, no WebGL)
         const modelMapOverlay = (function() {
             let enabled = false;
-            let overlay = null;
             let currentField = 'temperature';
             let currentLevel = 500;
-            let currentProduct = '';  // '' = custom single-field mode
+            let currentProduct = 'surface_analysis';
             let opacity = 0.7;
             let fieldsMetadata = null;
             let productsMetadata = null;
             let colormapLUTs = {};
             let abortCtrl = null;
-            let dataCache = new Map();  // key -> {arrayBuf/blob, headers}
-            const MAX_CACHE = 20;
-            let glReady = false;
-            // Loop state
+            let dataCache = new Map();
+            const MAX_CACHE = 40;
             let looping = false;
             let loopTimer = null;
             let loopFhrIndex = 0;
+            // Blob URL prefetch cache for animation
+            let frameBlobURLs = {};
+            // Preloaded Image objects (decoded and ready to swap without flash)
+            let frameImages = {};
+            // Swap guard: prevent overlapping swaps from racing
+            let _swapSeq = 0;
+            let _swapBusy = false;
+            // Debounce timer for slider-triggered updates
+            let _updateDebounceTimer = null;
+
+            // Double-buffer swap: load into back buffer, then instantly flip
+            function swapOverlayImage(url) {
+                const seq = ++_swapSeq;
+                return new Promise((resolve) => {
+                    // If another swap was queued after us, bail out
+                    if (seq !== _swapSeq) { resolve(false); return; }
+
+                    const active = map._weatherOverlayActiveLayer || 'a';
+                    const back = active === 'a' ? 'b' : 'a';
+                    const backSrc = map.getSource('weather-overlay-' + back);
+                    if (!backSrc) { resolve(false); return; }
+
+                    // Pre-decode image
+                    const img = new Image();
+                    img.onload = () => {
+                        // Stale check: if a newer swap was requested, skip this one
+                        if (seq !== _swapSeq) { resolve(false); return; }
+                        // Load into back buffer
+                        backSrc.updateImage({ url });
+                        // Wait a frame for Mapbox to process the image update
+                        requestAnimationFrame(() => {
+                            if (seq !== _swapSeq) { resolve(false); return; }
+                            const op = opacity !== undefined ? opacity : 0.7;
+                            // Show back buffer at full opacity
+                            map.setPaintProperty('weather-overlay-' + back, 'raster-opacity', op);
+                            // Hide front buffer
+                            map.setPaintProperty('weather-overlay-' + active, 'raster-opacity', 0);
+                            map._weatherOverlayActiveLayer = back;
+                            resolve(true);
+                        });
+                    };
+                    img.onerror = () => resolve(false);
+                    img.src = url;
+                });
+            }
 
             async function loadFieldsMeta() {
                 try {
@@ -4151,7 +4417,6 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 if (dataCache.size >= MAX_CACHE) {
                     const oldest = dataCache.keys().next().value;
                     const old = dataCache.get(oldest);
-                    // Revoke blob URLs to prevent memory leaks
                     if (old && old.blobUrl) URL.revokeObjectURL(old.blobUrl);
                     dataCache.delete(oldest);
                 }
@@ -4194,7 +4459,6 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             }
 
             function updateProductColorbar() {
-                // Show colorbar for product mode using fill field metadata
                 if (!currentProduct || !productsMetadata) return;
                 const pmeta = productsMetadata[currentProduct];
                 if (!pmeta) return;
@@ -4206,169 +4470,175 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 updateColorbar(vmin, vmax, units, pmeta.name, cmapName);
             }
 
-            async function update(fhr_override) {
-                if (!enabled) return;
-
-                // --- Product mode: server-rendered PNG ---
+            function buildOverlayURL(fhr) {
+                const params = new URLSearchParams({
+                    model: currentModel || 'hrrr',
+                    cycle: currentCycle || 'latest',
+                    fhr: fhr,
+                });
                 if (currentProduct) {
-                    const fhr = fhr_override !== undefined ? fhr_override : (activeFhr || 0);
-                    const key = cacheKey(fhr);
-                    let cached = dataCache.get(key);
-                    if (!cached) {
-                        if (abortCtrl) abortCtrl.abort();
-                        abortCtrl = new AbortController();
-                        const params = new URLSearchParams({
-                            product: currentProduct,
-                            model: currentModel || 'hrrr',
-                            cycle: currentCycle || 'latest',
-                            fhr: fhr,
-                            format: 'png',
-                            opacity: opacity,
-                        });
-                        try {
-                            const resp = await fetch('/api/v1/map-overlay?' + params, {signal: abortCtrl.signal});
-                            if (!resp.ok) return;
-                            const headers = {};
-                            ['X-Grid-Nx','X-Grid-Ny','X-Bounds-South','X-Bounds-North',
-                             'X-Bounds-West','X-Bounds-East','X-Value-Min','X-Value-Max',
-                             'X-Units'].forEach(h => { headers[h] = resp.headers.get(h); });
-                            const blob = await resp.blob();
-                            const blobUrl = URL.createObjectURL(blob);
-                            cached = { blobUrl, headers, isProduct: true };
-                            addToCache(key, cached);
-                        } catch (e) {
-                            if (e.name !== 'AbortError') console.error('Overlay fetch error:', e);
-                            return;
-                        }
+                    params.set('product', currentProduct);
+                } else {
+                    params.set('field', currentField);
+                    const meta = fieldsMetadata && fieldsMetadata[currentField];
+                    if (meta && meta.needs_level) params.set('level', currentLevel);
+                }
+                params.set('_v', '3');  // cache buster (v3 = webp)
+                return '/api/v1/map-overlay/frame?' + params;
+            }
+
+            let _updateSeq = 0;
+
+            async function update(fhr_override) {
+                if (!enabled || !mapStyleLoaded) return;
+                const mySeq = ++_updateSeq;
+                const fhr = fhr_override !== undefined ? fhr_override : (activeFhr || 0);
+
+                // Fast path: use prefetched blob URL (instant, no network)
+                if (frameBlobURLs[fhr]) {
+                    if (mySeq !== _updateSeq) return;  // stale
+                    await swapOverlayImage(frameBlobURLs[fhr]);
+                    if (currentProduct) updateProductColorbar();
+                    else {
+                        const meta = fieldsMetadata && fieldsMetadata[currentField];
+                        if (meta) updateColorbar(meta.default_vmin, meta.default_vmax, meta.units || '', meta.name, meta.default_cmap);
                     }
-                    const h = cached.headers;
-                    const south = parseFloat(h['X-Bounds-South']);
-                    const north = parseFloat(h['X-Bounds-North']);
-                    const west = parseFloat(h['X-Bounds-West']);
-                    const east = parseFloat(h['X-Bounds-East']);
-                    const bounds = L.latLngBounds([[south, west], [north, east]]);
-                    if (overlay) {
-                        overlay.setUrl(cached.blobUrl);
-                        overlay.setBounds(bounds);
-                    } else {
-                        overlay = L.imageOverlay(cached.blobUrl, bounds, {opacity: 1, interactive: false}).addTo(map);
-                    }
-                    updateProductColorbar();
+                    // Proactively fetch grid data for hover values
+                    if (typeof fetchOverlayGrid === 'function') fetchOverlayGrid(fhr);
                     return;
                 }
 
-                // --- Custom single-field mode: WebGL binary ---
-                if (!glReady) return;
-                const meta = fieldsMetadata && fieldsMetadata[currentField];
-                if (!meta) return;
-
-                const key = cacheKey();
+                const key = cacheKey(fhr);
                 let cached = dataCache.get(key);
+
                 if (!cached) {
                     if (abortCtrl) abortCtrl.abort();
                     abortCtrl = new AbortController();
-                    const params = new URLSearchParams({
-                        field: currentField,
-                        model: currentModel || 'hrrr',
-                        cycle: currentCycle || 'latest',
-                        fhr: activeFhr || 0,
-                        format: 'binary',
-                    });
-                    if (meta.needs_level) params.set('level', currentLevel);
                     try {
-                        const resp = await fetch('/api/v1/map-overlay?' + params, {signal: abortCtrl.signal});
+                        const resp = await fetch(buildOverlayURL(fhr), {signal: abortCtrl.signal});
                         if (!resp.ok) return;
-                        const headers = {};
-                        ['X-Grid-Nx','X-Grid-Ny','X-Bounds-South','X-Bounds-North',
-                         'X-Bounds-West','X-Bounds-East','X-Value-Min','X-Value-Max',
-                         'X-Units','X-NaN-Value'].forEach(h => { headers[h] = resp.headers.get(h); });
-                        cached = { buf: await resp.arrayBuffer(), headers };
+                        if (mySeq !== _updateSeq) return;  // stale — newer update in flight
+                        const blob = await resp.blob();
+                        const blobUrl = URL.createObjectURL(blob);
+                        cached = { blobUrl };
                         addToCache(key, cached);
+                        // Also store in prefetch cache for instant re-access
+                        frameBlobURLs[fhr] = blobUrl;
                     } catch (e) {
                         if (e.name !== 'AbortError') console.error('Overlay fetch error:', e);
                         return;
                     }
                 }
 
-                const h = cached.headers;
-                const nx = parseInt(h['X-Grid-Nx']);
-                const ny = parseInt(h['X-Grid-Ny']);
-                const south = parseFloat(h['X-Bounds-South']);
-                const north = parseFloat(h['X-Bounds-North']);
-                const west = parseFloat(h['X-Bounds-West']);
-                const east = parseFloat(h['X-Bounds-East']);
-                const vmin = meta.default_vmin;
-                const vmax = meta.default_vmax;
-                const nanVal = parseFloat(h['X-NaN-Value']) || -9999;
-                const units = h['X-Units'] || '';
+                if (mySeq !== _updateSeq) return;  // stale
 
-                const cmapName = meta.default_cmap;
-                const lut = colormapLUTs[cmapName];
-                if (lut) ModelMapGL.uploadColormap(lut);
+                // Pre-decode image then swap (no flash)
+                await swapOverlayImage(cached.blobUrl);
 
-                const f32 = new Float32Array(cached.buf);
-                const dataURL = ModelMapGL.render(f32, nx, ny, vmin, vmax, opacity, nanVal);
-
-                const bounds = L.latLngBounds([[south, west], [north, east]]);
-                if (overlay) {
-                    overlay.setUrl(dataURL);
-                    overlay.setBounds(bounds);
+                // Update colorbar
+                if (currentProduct) {
+                    updateProductColorbar();
                 } else {
-                    overlay = L.imageOverlay(dataURL, bounds, {opacity: 1, interactive: false}).addTo(map);
+                    const meta = fieldsMetadata && fieldsMetadata[currentField];
+                    if (meta) {
+                        updateColorbar(meta.default_vmin, meta.default_vmax, meta.units || '', meta.name, meta.default_cmap);
+                    }
                 }
-                updateColorbar(vmin, vmax, units, meta.name, cmapName);
+            }
+
+            // Debounced update for slider scrubbing — instant if prefetched, else waits for scrub to settle
+            function updateDebounced(fhr) {
+                // If frame is already prefetched, update immediately (no flash)
+                if (frameBlobURLs[fhr]) {
+                    if (_updateDebounceTimer) { clearTimeout(_updateDebounceTimer); _updateDebounceTimer = null; }
+                    update(fhr);
+                    return;
+                }
+                // Frame needs server fetch — debounce to avoid hammering
+                if (_updateDebounceTimer) clearTimeout(_updateDebounceTimer);
+                _updateDebounceTimer = setTimeout(() => {
+                    _updateDebounceTimer = null;
+                    update(fhr);
+                }, 120);
             }
 
             function setEnabled(on) {
                 enabled = on;
                 document.getElementById('overlay-controls').style.display = on ? 'block' : 'none';
                 if (on) {
-                    if (!glReady) glReady = ModelMapGL.init();
                     if (!fieldsMetadata) {
                         Promise.all([loadFieldsMeta(), loadProductsMeta()]).then(() => {
                             updateCustomControlsVisibility();
+                            if (mapStyleLoaded) {
+                                map.setLayoutProperty('weather-overlay-a', 'visibility', 'visible');
+                                map.setLayoutProperty('weather-overlay-b', 'visibility', 'visible');
+                            }
                             update();
+                            // Prefetch all FHR frames in background for instant slider
+                            prefetchAllFrames(getLoadedFHRs());
                         });
                     } else {
                         updateCustomControlsVisibility();
+                        if (mapStyleLoaded) {
+                            map.setLayoutProperty('weather-overlay-a', 'visibility', 'visible');
+                            map.setLayoutProperty('weather-overlay-b', 'visibility', 'visible');
+                        }
                         update();
+                        // Prefetch all FHR frames in background for instant slider
+                        prefetchAllFrames(getLoadedFHRs());
                     }
                 } else {
                     stopLoop();
-                    if (overlay) { map.removeLayer(overlay); overlay = null; }
+                    if (mapStyleLoaded && map.getLayer('weather-overlay-a')) {
+                        map.setLayoutProperty('weather-overlay-a', 'visibility', 'none');
+                        map.setLayoutProperty('weather-overlay-b', 'visibility', 'none');
+                    }
                     document.getElementById('overlay-colorbar').style.display = 'none';
                 }
             }
 
-            function setProduct(p) {
+            let _prefetchGeneration = 0;  // bump on product/field change to cancel stale prefetches
+
+            async function setProduct(p) {
                 currentProduct = p;
+                _prefetchGeneration++;
+                // Clear prefetched frames — product changed
+                for (const url of Object.values(frameBlobURLs)) URL.revokeObjectURL(url);
+                frameBlobURLs = {};
+                if (typeof clearOverlayGridCache === 'function') clearOverlayGridCache();
                 updateCustomControlsVisibility();
-                update();
+                // Immediately update colorbar for new product
+                if (currentProduct) updateProductColorbar();
+                // Fetch current frame first, THEN prefetch rest
+                await update();
+                if (enabled) prefetchAllFrames(getLoadedFHRs());
             }
 
-            function setField(f) { currentField = f; updateLevelVisibility(); update(); }
-            function setLevel(l) { currentLevel = parseInt(l); update(); }
+            async function setField(f) {
+                currentField = f;
+                _prefetchGeneration++;
+                for (const url of Object.values(frameBlobURLs)) URL.revokeObjectURL(url);
+                frameBlobURLs = {};
+                if (typeof clearOverlayGridCache === 'function') clearOverlayGridCache();
+                updateLevelVisibility();
+                await update();
+                if (enabled) prefetchAllFrames(getLoadedFHRs());
+            }
+            async function setLevel(l) {
+                currentLevel = parseInt(l);
+                _prefetchGeneration++;
+                for (const url of Object.values(frameBlobURLs)) URL.revokeObjectURL(url);
+                frameBlobURLs = {};
+                if (typeof clearOverlayGridCache === 'function') clearOverlayGridCache();
+                await update();
+                if (enabled) prefetchAllFrames(getLoadedFHRs());
+            }
             function setOpacity(v) {
                 opacity = v;
-                if (currentProduct) {
-                    // Product mode: need re-fetch with new opacity (server-rendered)
-                    dataCache.clear();
-                    update();
-                    return;
-                }
-                if (enabled && glReady) {
-                    const key = cacheKey();
-                    const cached = dataCache.get(key);
-                    if (cached && cached.buf) {
-                        const h = cached.headers;
-                        const nx = parseInt(h['X-Grid-Nx']), ny = parseInt(h['X-Grid-Ny']);
-                        const meta = fieldsMetadata[currentField];
-                        const lut = colormapLUTs[meta.default_cmap];
-                        if (lut) ModelMapGL.uploadColormap(lut);
-                        const dataURL = ModelMapGL.render(new Float32Array(cached.buf), nx, ny,
-                            meta.default_vmin, meta.default_vmax, opacity, parseFloat(h['X-NaN-Value'])||-9999);
-                        if (overlay) overlay.setUrl(dataURL);
-                    }
+                // Mapbox raster-opacity is instant — no re-fetch needed
+                const active = map._weatherOverlayActiveLayer || 'a';
+                if (mapStyleLoaded && map.getLayer('weather-overlay-' + active)) {
+                    map.setPaintProperty('weather-overlay-' + active, 'raster-opacity', v);
                 }
             }
             function invalidateCache() {
@@ -4376,49 +4646,38 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     if (v && v.blobUrl) URL.revokeObjectURL(v.blobUrl);
                 }
                 dataCache.clear();
+                // Clear animation blob URLs
+                for (const url of Object.values(frameBlobURLs)) URL.revokeObjectURL(url);
+                frameBlobURLs = {};
             }
 
-            // --- Animation loop ---
+            // --- Animation loop with prefetched blob URLs ---
             function getLoadedFHRs() {
                 const chips = document.querySelectorAll('#fhr-chips .chip.loaded, #fhr-chips .chip.active');
                 return Array.from(chips).map(c => parseInt(c.dataset.fhr || c.textContent)).filter(n => !isNaN(n));
             }
 
-            function prefetchFHRs(currentFhr, count) {
-                const fhrs = getLoadedFHRs();
-                if (fhrs.length === 0) return;
-                const idx = fhrs.indexOf(currentFhr);
-                if (idx < 0) return;
-                for (let i = 1; i <= count; i++) {
-                    const nextFhr = fhrs[(idx + i) % fhrs.length];
-                    const key = cacheKey(nextFhr);
-                    if (!dataCache.has(key)) {
-                        const params = new URLSearchParams({
-                            model: currentModel || 'hrrr',
-                            cycle: currentCycle || 'latest',
-                            fhr: nextFhr,
-                            format: 'png',
-                            opacity: opacity,
-                        });
-                        if (currentProduct) {
-                            params.set('product', currentProduct);
-                        } else {
-                            params.set('field', currentField);
-                            const meta = fieldsMetadata && fieldsMetadata[currentField];
-                            if (meta && meta.needs_level) params.set('level', currentLevel);
-                        }
-                        fetch('/api/v1/map-overlay?' + params).then(r => {
-                            if (!r.ok) return;
-                            const headers = {};
-                            ['X-Grid-Nx','X-Grid-Ny','X-Bounds-South','X-Bounds-North',
-                             'X-Bounds-West','X-Bounds-East','X-Value-Min','X-Value-Max',
-                             'X-Units','X-NaN-Value'].forEach(h => { headers[h] = r.headers.get(h); });
-                            return r.blob().then(blob => {
-                                const blobUrl = URL.createObjectURL(blob);
-                                addToCache(key, { blobUrl, headers, isProduct: true });
-                            });
-                        }).catch(() => {});
-                    }
+            async function prefetchAllFrames(fhrs) {
+                const gen = _prefetchGeneration;
+                // Fetch frames in batches of 6 — server cache hits are fast
+                const BATCH = 6;
+                for (let i = 0; i < fhrs.length; i += BATCH) {
+                    if (_prefetchGeneration !== gen) return;  // product/field changed, stop stale prefetch
+                    await Promise.all(fhrs.slice(i, i + BATCH).map(async fhr => {
+                        if (frameBlobURLs[fhr]) return;
+                        if (_prefetchGeneration !== gen) return;
+                        try {
+                            const resp = await fetch(buildOverlayURL(fhr));
+                            if (!resp.ok || _prefetchGeneration !== gen) return;
+                            const blob = await resp.blob();
+                            if (_prefetchGeneration !== gen) return;
+                            const blobUrl = URL.createObjectURL(blob);
+                            frameBlobURLs[fhr] = blobUrl;
+                            // Pre-decode into browser image cache for flash-free swap
+                            const img = new Image();
+                            img.src = blobUrl;
+                        } catch (e) {}
+                    }));
                 }
             }
 
@@ -4431,20 +4690,26 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 loopFhrIndex = fhrs.indexOf(activeFhr || 0);
                 if (loopFhrIndex < 0) loopFhrIndex = 0;
 
-                // Determine interval from GIF speed if available, else 500ms
+                // Prefetch all frames as blob URLs for smooth animation
+                prefetchAllFrames(fhrs);
+
                 const speedSel = document.getElementById('gif-speed');
-                const interval = speedSel ? parseInt(speedSel.value) || 500 : 500;
+                const interval = speedSel ? parseInt(speedSel.value) || 250 : 250;
 
                 loopTimer = setInterval(() => {
                     const loadedFhrs = getLoadedFHRs();
                     if (loadedFhrs.length < 2) { stopLoop(); return; }
                     loopFhrIndex = (loopFhrIndex + 1) % loadedFhrs.length;
                     const nextFhr = loadedFhrs[loopFhrIndex];
-                    // Prefetch upcoming frames
-                    prefetchFHRs(nextFhr, 3);
-                    // Use product mode for loop (always PNG)
-                    update(nextFhr);
-                    // Update colorbar title to show FHR
+
+                    // Use prefetched blob URL if available, else fetch from cache/server
+                    const blobUrl = frameBlobURLs[nextFhr];
+                    if (blobUrl) {
+                        swapOverlayImage(blobUrl);
+                    } else {
+                        update(nextFhr);
+                    }
+
                     const titleEl = document.getElementById('colorbar-title');
                     if (titleEl) {
                         const base = currentProduct ? (productsMetadata && productsMetadata[currentProduct] ? productsMetadata[currentProduct].name : currentProduct) : (fieldsMetadata && fieldsMetadata[currentField] ? fieldsMetadata[currentField].name : '');
@@ -4465,8 +4730,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             }
 
             return { setEnabled, setField, setLevel, setOpacity, setProduct, update,
-                     invalidateCache, loadFieldsMeta, toggleLoop };
+                     updateDebounced, invalidateCache, loadFieldsMeta, toggleLoop,
+                     _isEnabled: () => enabled,
+                     _getProduct: () => currentProduct,
+                     _getField: () => currentField,
+                     _getLevel: () => currentLevel };
         })();
+        _modelMapOverlayRef = modelMapOverlay;  // expose for readdCustomLayers
 
         // Wire up overlay UI controls
         document.getElementById('overlay-off').onclick = function() {
@@ -4497,6 +4767,122 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         };
 
         // =========================================================================
+        // Overlay data value readout — client-side grid lookup (instant, no server round-trip)
+        // =========================================================================
+        const _overlayTooltip = document.createElement('div');
+        _overlayTooltip.id = 'overlay-tooltip';
+        _overlayTooltip.style.cssText = 'position:fixed;z-index:999;pointer-events:none;display:none;background:rgba(15,23,42,0.92);color:#f4f4f4;font-family:system-ui;font-size:12px;padding:6px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);white-space:nowrap;backdrop-filter:blur(4px);box-shadow:0 2px 8px rgba(0,0,0,0.4);';
+        document.body.appendChild(_overlayTooltip);
+
+        // Grid data cache: binary uint16 grids for instant hover lookup
+        // cacheKey -> { bounds, rows, cols, lat_step, lon_step, fields: [{name,units,vmin,vmax,data:Uint16Array}] }
+        let _overlayGridCache = {};
+        let _overlayGridLoading = {};
+        const _NAN_SENTINEL = 65535;
+
+        function _gridCacheKey(fhr) {
+            const prod = modelMapOverlay._getProduct();
+            return fhr + ':' + (prod || (modelMapOverlay._getField() + ':' + modelMapOverlay._getLevel()));
+        }
+
+        function fetchOverlayGrid(fhr) {
+            const key = _gridCacheKey(fhr);
+            if (_overlayGridCache[key]) return Promise.resolve(_overlayGridCache[key]);
+            if (_overlayGridLoading[key]) return _overlayGridLoading[key];
+            const params = new URLSearchParams({
+                model: currentModel || 'hrrr',
+                cycle: currentCycle || 'latest',
+                fhr: fhr,
+            });
+            const prod = modelMapOverlay._getProduct();
+            if (prod) params.set('product', prod);
+            else {
+                params.set('field', modelMapOverlay._getField());
+                const lev = modelMapOverlay._getLevel();
+                if (lev) params.set('level', lev);
+            }
+            const promise = fetch('/api/v1/map-overlay/grid-sample?' + params, {cache: 'no-store'})
+                .then(r => { if (!r.ok) return null; return r.arrayBuffer(); })
+                .then(buf => {
+                    if (!buf) return null;
+                    const view = new DataView(buf);
+                    const headerLen = view.getUint32(0, true);
+                    const headerStr = new TextDecoder().decode(new Uint8Array(buf, 4, headerLen));
+                    const meta = JSON.parse(headerStr);
+                    // Parse binary uint16 fields
+                    let offset = 4 + headerLen;
+                    const count = meta.rows * meta.cols;
+                    for (const field of meta.fields) {
+                        // Copy to aligned buffer for Uint16Array
+                        const raw = new Uint8Array(buf, offset, count * 2);
+                        const aligned = new ArrayBuffer(count * 2);
+                        new Uint8Array(aligned).set(raw);
+                        field.data = new Uint16Array(aligned);
+                        offset += count * 2;
+                    }
+                    _overlayGridCache[key] = meta;
+                    delete _overlayGridLoading[key];
+                    return meta;
+                })
+                .catch(() => { delete _overlayGridLoading[key]; return null; });
+            _overlayGridLoading[key] = promise;
+            return promise;
+        }
+
+        function clearOverlayGridCache() { _overlayGridCache = {}; _overlayGridLoading = {}; }
+
+        function lookupGridValues(gridData, lat, lng) {
+            if (!gridData || !gridData.fields || gridData.fields.length === 0) return null;
+            const rowF = (lat - gridData.bounds.lat_min) / gridData.lat_step;
+            const colF = (lng - gridData.bounds.lon_min) / gridData.lon_step;
+            if (rowF < 0 || rowF > gridData.rows - 1 || colF < 0 || colF > gridData.cols - 1) return null;
+            const r0 = Math.floor(rowF), r1 = Math.min(r0 + 1, gridData.rows - 1);
+            const c0 = Math.floor(colF), c1 = Math.min(c0 + 1, gridData.cols - 1);
+            const dr = rowF - r0, dc = colF - c0;
+            const cols = gridData.cols;
+            const results = [];
+            for (const field of gridData.fields) {
+                const d = field.data;
+                const v00 = d[r0*cols+c0], v01 = d[r0*cols+c1], v10 = d[r1*cols+c0], v11 = d[r1*cols+c1];
+                if (v00 === _NAN_SENTINEL || v01 === _NAN_SENTINEL || v10 === _NAN_SENTINEL || v11 === _NAN_SENTINEL) continue;
+                const interp = v00*(1-dr)*(1-dc) + v01*(1-dr)*dc + v10*dr*(1-dc) + v11*dr*dc;
+                const val = field.vmin + (interp / 65534) * (field.vmax - field.vmin);
+                results.push({ name: field.name, value: Math.round(val * 10) / 10, units: field.units });
+            }
+            return results.length > 0 ? results : null;
+        }
+
+        map.on('mousemove', (e) => {
+            if (!modelMapOverlay._isEnabled()) { _overlayTooltip.style.display = 'none'; return; }
+            const lat = e.lngLat.lat, lng = e.lngLat.lng;
+            const fhr = activeFhr || 0;
+            // Reposition tooltip immediately (always follows cursor)
+            _overlayTooltip.style.left = (e.originalEvent.clientX + 16) + 'px';
+            _overlayTooltip.style.top = (e.originalEvent.clientY - 10) + 'px';
+            // Instant client-side grid lookup
+            const key = _gridCacheKey(fhr);
+            const gridData = _overlayGridCache[key];
+            if (gridData) {
+                const vals = lookupGridValues(gridData, lat, lng);
+                if (vals) {
+                    let html = '';
+                    vals.forEach(v => { html += '<strong>' + v.value + ' ' + v.units + '</strong> <span style="color:#94a3b8;">' + v.name + '</span><br>'; });
+                    _overlayTooltip.innerHTML = html;
+                    _overlayTooltip.style.display = 'block';
+                } else {
+                    _overlayTooltip.style.display = 'none';
+                }
+            } else {
+                // Grid not yet cached — fetch in background, show coords
+                fetchOverlayGrid(fhr);
+                _overlayTooltip.innerHTML = '<span style="color:#94a3b8;">' + lat.toFixed(2) + ', ' + lng.toFixed(2) + '</span>';
+                _overlayTooltip.style.display = 'block';
+            }
+        });
+
+        map.on('mouseout', () => { _overlayTooltip.style.display = 'none'; });
+
+        // =========================================================================
         // Toast Notification System
         // =========================================================================
         function showToast(message, type = 'loading', duration = null) {
@@ -4514,10 +4900,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
 
         function updateMemoryDisplay(memMb) {
-            const maxMem = 117000;  // 117GB memory cap
-            const pct = Math.min(100, (memMb / maxMem) * 100);
             document.getElementById('mem-text').textContent = `${Math.round(memMb)} MB`;
-            document.getElementById('mem-fill').style.width = `${pct}%`;
+            document.getElementById('mem-fill').style.width = `${Math.min(100, memMb / 500)}%`;
         }
 
         // =========================================================================
@@ -4652,43 +5036,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const cfg = fav.config;
                 // Apply the favorite config
                 if (cfg.start_lat && cfg.start_lon && cfg.end_lat && cfg.end_lon) {
-                    // Clear existing markers/line first
-                    if (startMarker) { map.removeLayer(startMarker); startMarker = null; }
-                    if (endMarker) { map.removeLayer(endMarker); endMarker = null; }
-                    if (line) { map.removeLayer(line); line = null; }
-
-                    // Create start marker
-                    startMarker = L.marker([cfg.start_lat, cfg.start_lon], {
-                        draggable: true,
-                        icon: L.divIcon({
-                            className: 'marker-start',
-                            html: `<div style="width:${markerSize}px;height:${markerSize}px;background:#38bdf8;border-radius:50%;border:2px solid white;"></div>`,
-                            iconSize: [markerSize, markerSize],
-                            iconAnchor: [markerAnchor, markerAnchor]
-                        })
-                    }).addTo(map);
-                    startMarker.on('drag', () => { updateLine(); liveDragRender(); });
-                    startMarker.on('dragend', () => { invalidatePrerender(); generateCrossSection(); });
-
-                    // Create end marker
-                    endMarker = L.marker([cfg.end_lat, cfg.end_lon], {
-                        draggable: true,
-                        icon: L.divIcon({
-                            className: 'marker-end',
-                            html: `<div style="width:${markerSize}px;height:${markerSize}px;background:#f87171;border-radius:50%;border:2px solid white;"></div>`,
-                            iconSize: [markerSize, markerSize],
-                            iconAnchor: [markerAnchor, markerAnchor]
-                        })
-                    }).addTo(map);
-                    endMarker.on('drag', () => { updateLine(); liveDragRender(); });
-                    endMarker.on('dragend', () => { invalidatePrerender(); generateCrossSection(); });
-
-                    // Create line
-                    line = L.polyline([[cfg.start_lat, cfg.start_lon], [cfg.end_lat, cfg.end_lon]], {
-                        color: '#f59e0b', weight: 3, opacity: 0.9
-                    }).addTo(map);
-
-                    map.fitBounds([[cfg.start_lat, cfg.start_lon], [cfg.end_lat, cfg.end_lon]], {padding: [50, 50]});
+                    clearXSMarkers();
+                    startMarker = setupStartMarker(cfg.start_lat, cfg.start_lon);
+                    endMarker = setupEndMarker(cfg.end_lat, cfg.end_lon);
+                    updateLine();
+                    fitBoundsLL([[cfg.start_lat, cfg.start_lon], [cfg.end_lat, cfg.end_lon]], 50);
                 }
                 if (cfg.style) document.getElementById('style-select').value = cfg.style;
                 if (cfg.y_axis) {
@@ -4707,7 +5059,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         };
 
         saveFavoriteBtn.onclick = async function() {
-            if (!startMarker._map || !endMarker._map) {
+            if (!startMarker || !endMarker) {
                 showToast('Draw a cross-section first!', true);
                 return;
             }
@@ -4752,10 +5104,6 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         // Request Custom Date/Cycle — Modal Dialog
         // =========================================================================
         document.getElementById('request-cycle-btn').onclick = function() {
-            if (!isAdmin) {
-                showToast('Admin key required', 'error');
-                return;
-            }
             document.getElementById('run-request-modal').classList.add('visible');
             // Set date default to today
             const today = new Date().toISOString().slice(0, 10);
@@ -4802,7 +5150,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
             try {
                 const res = await fetch(
-                    `/api/request_cycle?date=${dateStr}&hour=${hour}&fhr_start=${fhrStart}&fhr_end=${fhrEnd}${modelParam()}${adminParam()}`,
+                    `/api/request_cycle?date=${dateStr}&hour=${hour}&fhr_start=${fhrStart}&fhr_end=${fhrEnd}${modelParam()}`,
                     {method: 'POST'}
                 );
                 const data = await res.json();
@@ -5016,7 +5364,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
                     // Cancel button for admins on active pre-render and download jobs
                     let cancelBtn = '';
-                    if (isAdmin && !info.done && info.detail !== 'Cancelling...' && (info.op === 'prerender' || info.op === 'download')) {
+                    if (!info.done && info.detail !== 'Cancelling...' && (info.op === 'prerender' || info.op === 'download')) {
                         cancelBtn = `<button class="cancel-op-btn" data-op="${opId}" title="Cancel">\u2715</button>`;
                     }
 
@@ -5082,7 +5430,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             btn.disabled = true;
             btn.textContent = '...';
             try {
-                await fetch(`/api/cancel?op_id=${encodeURIComponent(opId)}&key=${encodeURIComponent(getAdminKey())}`, {method: 'POST'});
+                await fetch(`/api/cancel?op_id=${encodeURIComponent(opId)}`, {method: 'POST'});
             } catch(err) {
                 console.error('Cancel failed:', err);
             }
@@ -5101,7 +5449,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 // Need to load this cycle first
                 const toast = showToast(`Loading cycle (this may take a minute)...`);
                 try {
-                    const res = await fetch(`/api/load_cycle?cycle=${currentCycle}${modelParam()}${adminParam()}`, {method: 'POST'});
+                    const res = await fetch(`/api/load_cycle?cycle=${currentCycle}${modelParam()}`, {method: 'POST'});
                     const data = await res.json();
                     toast.remove();
 
@@ -5242,7 +5590,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const toast = showToast(`Unloading F${String(fhr).padStart(2,'0')}...`);
 
                 try {
-                    const res = await fetch(`/api/unload?cycle=${currentCycle}&fhr=${fhr}${modelParam()}${adminParam()}`, {method: 'POST'});
+                    const res = await fetch(`/api/unload?cycle=${currentCycle}&fhr=${fhr}${modelParam()}`, {method: 'POST'});
                     const data = await res.json();
 
                     if (data.success) {
@@ -5290,7 +5638,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
             try {
                 const loadStart = Date.now();
-                const res = await fetch(`/api/load?cycle=${currentCycle}&fhr=${fhr}${modelParam()}${adminParam()}`, {method: 'POST'});
+                const res = await fetch(`/api/load?cycle=${currentCycle}&fhr=${fhr}${modelParam()}`, {method: 'POST'});
                 const data = await res.json();
                 const loadSec = ((Date.now() - loadStart) / 1000).toFixed(1);
 
@@ -5410,7 +5758,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             } else {
                 generateCrossSection();
             }
-            modelMapOverlay.update();
+            modelMapOverlay.updateDebounced(fhr);
         });
 
         document.getElementById('play-btn').addEventListener('click', () => {
@@ -5966,137 +6314,115 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         // Map Interaction
         // =========================================================================
         map.on('click', e => {
-            const {lat, lng} = e.latlng;
+            // Don't create XS markers when clicking on city/event/cluster features
+            const features = map.queryRenderedFeatures(e.point, {
+                layers: ['city-points', 'city-clusters', 'event-points'].filter(id => map.getLayer(id))
+            });
+            if (features.length > 0) return;
+
+            const lat = e.lngLat.lat;
+            const lng = e.lngLat.lng;
 
             if (!startMarker) {
-                startMarker = L.marker([lat, lng], {
-                    draggable: true,
-                    icon: L.divIcon({
-                        className: 'marker-start',
-                        html: `<div style="width:${markerSize}px;height:${markerSize}px;background:#38bdf8;border-radius:50%;border:2px solid white;"></div>`,
-                        iconSize: [markerSize, markerSize],
-                        iconAnchor: [markerAnchor, markerAnchor]
-                    })
-                }).addTo(map);
-                startMarker.on('drag', () => { updateLine(); liveDragRender(); });
-                startMarker.on('dragend', () => { invalidatePrerender(); generateCrossSection(); });
+                startMarker = setupStartMarker(lat, lng);
             } else if (!endMarker) {
-                endMarker = L.marker([lat, lng], {
-                    draggable: true,
-                    icon: L.divIcon({
-                        className: 'marker-end',
-                        html: `<div style="width:${markerSize}px;height:${markerSize}px;background:#f87171;border-radius:50%;border:2px solid white;"></div>`,
-                        iconSize: [markerSize, markerSize],
-                        iconAnchor: [markerAnchor, markerAnchor]
-                    })
-                }).addTo(map);
-                endMarker.on('drag', () => { updateLine(); liveDragRender(); });
-                endMarker.on('dragend', () => { invalidatePrerender(); generateCrossSection(); });
-
-                line = L.polyline([startMarker.getLatLng(), endMarker.getLatLng()], {
-                    color: '#fbbf24', weight: 3, dashArray: '10, 5'
-                }).addTo(map);
-
+                endMarker = setupEndMarker(lat, lng);
+                updateLine();
                 generateCrossSection();
             }
         });
 
-        function updateLine() {
-            if (startMarker && endMarker && line) {
-                line.setLatLngs([startMarker.getLatLng(), endMarker.getLatLng()]);
-            }
-        }
-
         // POI markers (multiple, right-click or + POI button)
         const poiMarkerSize = isMobile ? 20 : 14;
-        const poiMarkerAnchor = poiMarkerSize / 2;
-        let poiPlaceMode = false;  // mobile tap-to-place mode
+        let poiPlaceMode = false;
 
         function buildMarkersParam() {
             if (poiMarkers.length === 0) return '';
-            const arr = poiMarkers.map(p => ({
-                lat: p.marker.getLatLng().lat,
-                lon: p.marker.getLatLng().lng,
-                label: p.label || ''
-            }));
+            const arr = poiMarkers.map(p => {
+                const ll = p.marker.getLngLat();
+                return { lat: ll.lat, lon: ll.lng, label: p.label || '' };
+            });
             return '&markers=' + encodeURIComponent(JSON.stringify(arr));
         }
         function buildMarkersBody() {
             if (poiMarkers.length === 0) return null;
-            return poiMarkers.map(p => ({
-                lat: p.marker.getLatLng().lat,
-                lon: p.marker.getLatLng().lng,
-                label: p.label || ''
-            }));
+            return poiMarkers.map(p => {
+                const ll = p.marker.getLngLat();
+                return { lat: ll.lat, lon: ll.lng, label: p.label || '' };
+            });
         }
         function poiPopupHtml(poi) {
             const safeLabel = (poi.label || '').replace(/"/g, '&quot;');
             const idx = poiMarkers.indexOf(poi);
-            return '<div style="min-width:150px">' +
-                '<input class="poi-label-input" data-poi-idx="' + idx + '" type="text" value="' + safeLabel + '" placeholder="Label (e.g. Camp Fire)" style="width:100%;box-sizing:border-box;padding:3px 6px;border:1px solid #ccc;border-radius:4px;font-size:12px;">' +
+            return '<div style="min-width:150px;background:#1e293b;color:#f4f4f4;">' +
+                '<input class="poi-label-input" data-poi-idx="' + idx + '" type="text" value="' + safeLabel + '" placeholder="Label (e.g. Camp Fire)" style="width:100%;box-sizing:border-box;padding:3px 6px;border:1px solid #475569;border-radius:4px;font-size:12px;background:#334155;color:#f4f4f4;">' +
                 '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">' +
-                '<span style="font-size:10px;color:#888">Enter to apply</span>' +
+                '<span style="font-size:10px;color:#94a3b8">Enter to apply</span>' +
                 '<button class="poi-remove-btn" data-poi-idx="' + idx + '" style="font-size:10px;color:#f87171;background:none;border:1px solid #f87171;border-radius:3px;padding:1px 6px;cursor:pointer">Remove</button>' +
                 '</div></div>';
         }
         function bindPoiPopup(poi) {
             const idx = poiMarkers.indexOf(poi);
-            poi.marker.bindPopup(poiPopupHtml(poi), {closeButton: true, minWidth: 160});
-            poi.marker.on('popupopen', () => {
-                const inp = document.querySelector('.poi-label-input[data-poi-idx="' + idx + '"]');
-                const rmBtn = document.querySelector('.poi-remove-btn[data-poi-idx="' + idx + '"]');
-                if (inp) {
-                    inp.focus();
-                    inp.addEventListener('keydown', e => {
-                        if (e.key === 'Enter') {
-                            poi.label = inp.value.trim();
-                            poi.marker.closePopup();
-                            invalidatePrerender();
-                            generateCrossSection();
-                        }
-                    });
-                    inp.addEventListener('blur', () => {
-                        const newVal = inp.value.trim();
-                        if (newVal !== poi.label) {
-                            poi.label = newVal;
-                            invalidatePrerender();
-                            generateCrossSection();
-                        }
-                    });
-                }
-                if (rmBtn) {
-                    rmBtn.addEventListener('click', () => {
-                        removePoi(poi);
-                    });
-                }
+            // Create a Mapbox popup and attach to marker
+            if (poi._popup) poi._popup.remove();
+            const popup = new mapboxgl.Popup({ closeButton: true, offset: 12, className: 'poi-popup' })
+                .setHTML(poiPopupHtml(poi));
+            poi._popup = popup;
+            poi.marker.setPopup(popup);
+            popup.on('open', () => {
+                setTimeout(() => {
+                    const inp = document.querySelector('.poi-label-input[data-poi-idx="' + idx + '"]');
+                    const rmBtn = document.querySelector('.poi-remove-btn[data-poi-idx="' + idx + '"]');
+                    if (inp) {
+                        inp.focus();
+                        inp.addEventListener('keydown', ev => {
+                            if (ev.key === 'Enter') {
+                                poi.label = inp.value.trim();
+                                popup.remove();
+                                invalidatePrerender();
+                                generateCrossSection();
+                            }
+                        });
+                        inp.addEventListener('blur', () => {
+                            const newVal = inp.value.trim();
+                            if (newVal !== poi.label) {
+                                poi.label = newVal;
+                                invalidatePrerender();
+                                generateCrossSection();
+                            }
+                        });
+                    }
+                    if (rmBtn) {
+                        rmBtn.addEventListener('click', () => { removePoi(poi); });
+                    }
+                }, 50);
             });
         }
         function removePoi(poi) {
-            map.removeLayer(poi.marker);
+            if (poi._popup) poi._popup.remove();
+            poi.marker.remove();
             poiMarkers = poiMarkers.filter(p => p !== poi);
-            // Rebind popups so data-poi-idx stays correct
-            poiMarkers.forEach(p => { p.marker.unbindPopup(); bindPoiPopup(p); });
+            poiMarkers.forEach(p => bindPoiPopup(p));
             invalidatePrerender();
             generateCrossSection();
             updatePoiBtn();
         }
-        function addPoi(lat, lng) {
-            const m = L.marker([lat, lng], {
-                draggable: true,
-                icon: L.divIcon({
-                    className: 'marker-poi',
-                    html: '<div style="width:' + poiMarkerSize + 'px;height:' + poiMarkerSize + 'px;background:#10b981;border-radius:50%;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);"></div>',
-                    iconSize: [poiMarkerSize, poiMarkerSize],
-                    iconAnchor: [poiMarkerAnchor, poiMarkerAnchor]
-                })
-            }).addTo(map);
-            const poi = {marker: m, label: ''};
+        function addPoi(lat, lng, label) {
+            const el = document.createElement('div');
+            el.style.cssText = 'width:' + poiMarkerSize + 'px;height:' + poiMarkerSize + 'px;background:#10b981;border-radius:50%;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);cursor:grab;';
+            const m = new mapboxgl.Marker({ element: el, draggable: true })
+                .setLngLat([lng, lat])
+                .addTo(map);
+            m.getLatLng = () => { const ll = m.getLngLat(); return { lat: ll.lat, lng: ll.lng }; };
+            const poi = { marker: m, label: label || '' };
             poiMarkers.push(poi);
             bindPoiPopup(poi);
             m.on('dragend', () => { invalidatePrerender(); generateCrossSection(); });
-            invalidatePrerender();
-            generateCrossSection();
-            m.openPopup();
+            if (!label) {
+                invalidatePrerender();
+                generateCrossSection();
+                if (poi._popup) poi._popup.addTo(map);
+            }
             updatePoiBtn();
         }
         function updatePoiBtn() {
@@ -6111,8 +6437,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
         // Right-click to place POI (desktop)
         map.on('contextmenu', e => {
-            e.originalEvent.preventDefault();
-            addPoi(e.latlng.lat, e.latlng.lng);
+            e.preventDefault();
+            addPoi(e.lngLat.lat, e.lngLat.lng);
         });
         // + POI button (mobile-friendly tap mode)
         document.getElementById('poi-btn').onclick = () => {
@@ -6122,10 +6448,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         // Intercept map clicks when in POI place mode
         map.on('click', e => {
             if (!poiPlaceMode) return;
-            // Don't intercept if we're still placing the cross-section line
             if (!startMarker || !endMarker) return;
-            addPoi(e.latlng.lat, e.latlng.lng);
-            // Stay in place mode so user can add multiple quickly
+            addPoi(e.lngLat.lat, e.lngLat.lng);
         });
 
         // =========================================================================
@@ -6239,10 +6563,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
         // Clear button
         document.getElementById('clear-btn').onclick = () => {
-            if (startMarker) { map.removeLayer(startMarker); startMarker = null; }
-            if (endMarker) { map.removeLayer(endMarker); endMarker = null; }
-            if (line) { map.removeLayer(line); line = null; }
-            poiMarkers.forEach(p => map.removeLayer(p.marker));
+            clearXSMarkers();
+            poiMarkers.forEach(p => p.marker.remove());
             poiMarkers = [];
             poiPlaceMode = false;
             updatePoiBtn();
@@ -6273,7 +6595,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 `&end_lat=${end.lat}&end_lon=${end.lng}&cycle=${currentCycle}&style=${style}` +
                 `&y_axis=${currentYAxis}&vscale=${vscale}&y_top=${ytop}&units=${units}&speed=${speed}` +
                 `&temp_cmap=${document.getElementById('temp-cmap-select').value}` +
-                `&anomaly=${anomalyMode ? 1 : 0}${modelParam()}` + adminParam() +
+                `&anomaly=${anomalyMode ? 1 : 0}${modelParam()}` +
                 (fhrMin ? `&fhr_min=${fhrMin}` : '') + (fhrMax ? `&fhr_max=${fhrMax}` : '');
             try {
                 const res = await fetch(url);
@@ -6308,9 +6630,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const startPos = startMarker.getLatLng();
             const endPos = endMarker.getLatLng();
 
-            // Swap positions
-            startMarker.setLatLng(endPos);
-            endMarker.setLatLng(startPos);
+            // Swap positions (Mapbox uses setLngLat with [lng, lat])
+            startMarker.setLngLat([endPos.lng, endPos.lat]);
+            endMarker.setLngLat([startPos.lng, startPos.lat]);
 
             // Update line
             updateLine();
@@ -6516,7 +6838,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         document.getElementById('ram-modal-close').onclick = () => ramModal.classList.remove('visible');
 
         // =====================================================================
-        // City Markers (232 dots, clustered)
+        // City Markers (232 dots, Mapbox GeoJSON clustering)
         // =====================================================================
         const REGION_COLORS = {
             california: '#f97316', pnw_rockies: '#22c55e', colorado_basin: '#3b82f6',
@@ -6526,6 +6848,104 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             california: 'California', pnw_rockies: 'PNW / Rockies', colorado_basin: 'Colorado Basin',
             southwest: 'Southwest', southern_plains: 'Southern Plains', southeast_misc: 'Southeast / Misc',
         };
+        // _citiesGeoJSON declared earlier (var) for readdCustomLayers forward reference
+
+        function addCityLayers(geojson) {
+            if (map.getSource('cities')) return;
+            const cityVis = document.getElementById('toggle-city-markers') && document.getElementById('toggle-city-markers').checked ? 'visible' : 'none';
+            map.addSource('cities', {
+                type: 'geojson',
+                data: geojson,
+                cluster: true,
+                clusterMaxZoom: 7,
+                clusterRadius: 40,
+            });
+            map.addLayer({
+                id: 'city-clusters',
+                type: 'circle',
+                source: 'cities',
+                filter: ['has', 'point_count'],
+                layout: { visibility: cityVis },
+                paint: {
+                    'circle-color': 'rgba(14,165,233,0.6)',
+                    'circle-radius': ['step', ['get', 'point_count'], 14, 10, 18, 50, 24],
+                    'circle-stroke-width': 1,
+                    'circle-stroke-color': 'rgba(14,165,233,0.3)',
+                },
+            });
+            map.addLayer({
+                id: 'city-cluster-count',
+                type: 'symbol',
+                source: 'cities',
+                filter: ['has', 'point_count'],
+                layout: { 'text-field': '{point_count_abbreviated}', 'text-size': 11, visibility: cityVis },
+                paint: { 'text-color': '#fff' },
+            });
+            map.addLayer({
+                id: 'city-points',
+                type: 'circle',
+                source: 'cities',
+                filter: ['!', ['has', 'point_count']],
+                layout: { visibility: cityVis },
+                paint: {
+                    'circle-color': ['match', ['get', 'region'],
+                        'california', '#f97316', 'pnw_rockies', '#22c55e',
+                        'colorado_basin', '#3b82f6', 'southwest', '#ef4444',
+                        'southern_plains', '#eab308', 'southeast_misc', '#a855f7',
+                        '#94a3b8'],
+                    'circle-radius': 5,
+                    'circle-stroke-width': 1.5,
+                    'circle-stroke-color': 'rgba(255,255,255,0.7)',
+                },
+            });
+
+            // Click cluster to zoom
+            map.on('click', 'city-clusters', (e) => {
+                const features = map.queryRenderedFeatures(e.point, { layers: ['city-clusters'] });
+                const clusterId = features[0].properties.cluster_id;
+                map.getSource('cities').getClusterExpansionZoom(clusterId, (err, zoom) => {
+                    if (err) return;
+                    map.easeTo({ center: features[0].geometry.coordinates, zoom });
+                });
+            });
+
+            // Click city point for popup
+            map.on('click', 'city-points', (e) => {
+                const f = e.features[0];
+                const p = f.properties;
+                const coords = f.geometry.coordinates.slice();
+                const regionLabel = REGION_LABELS[p.region] || p.region;
+                const elevText = p.elevation_ft ? ' &middot; ' + p.elevation_ft + ' ft' : '';
+                const wuiText = p.wui_exposure ? '<br><span style="font-size:11px;color:#f87171;">' + p.wui_exposure + '</span>' : '';
+                new mapboxgl.Popup({ offset: 8 })
+                    .setLngLat(coords)
+                    .setHTML(
+                        '<div style="font-family:system-ui;min-width:180px;">' +
+                        '<strong style="font-size:14px;">' + p.name + '</strong><br>' +
+                        '<span style="font-size:11px;color:#94a3b8;">' + regionLabel + elevText + '</span>' +
+                        wuiText +
+                        '<br><br>' +
+                        '<button data-action="profile" data-key="' + p.key + '" style="background:#0ea5e9;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;margin-right:4px;">Profile</button>' +
+                        '<button data-action="section" data-key="' + p.key + '" style="background:#334155;color:#f1f5f9;border:1px solid #475569;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">Set X-Sect</button>' +
+                        '</div>'
+                    ).addTo(map);
+                // Wire up data-action buttons in popup
+                setTimeout(() => {
+                    document.querySelectorAll('button[data-action="profile"]').forEach(btn => {
+                        btn.onclick = () => loadCityProfile(btn.dataset.key);
+                    });
+                    document.querySelectorAll('button[data-action="section"]').forEach(btn => {
+                        btn.onclick = () => setCitySection(btn.dataset.key);
+                    });
+                }, 50);
+            });
+
+            // Cursor changes
+            map.on('mouseenter', 'city-clusters', () => { map.getCanvas().style.cursor = 'pointer'; });
+            map.on('mouseleave', 'city-clusters', () => { map.getCanvas().style.cursor = ''; });
+            map.on('mouseenter', 'city-points', () => { map.getCanvas().style.cursor = 'pointer'; });
+            map.on('mouseleave', 'city-points', () => { map.getCanvas().style.cursor = ''; });
+        }
 
         async function loadCityMarkers() {
             try {
@@ -6533,40 +6953,23 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const data = await res.json();
                 allCities = data.cities || [];
 
-                cityClusterGroup = L.markerClusterGroup({
-                    maxClusterRadius: 40,
-                    spiderfyOnMaxZoom: true,
-                    showCoverageOnHover: false,
-                    disableClusteringAtZoom: 8,
-                });
+                // Build GeoJSON
+                _citiesGeoJSON = {
+                    type: 'FeatureCollection',
+                    features: allCities.map(city => ({
+                        type: 'Feature',
+                        geometry: { type: 'Point', coordinates: [city.lon, city.lat] },
+                        properties: {
+                            key: city.key,
+                            name: city.name,
+                            region: city.region,
+                            elevation_ft: city.elevation_ft || '',
+                            wui_exposure: city.wui_exposure || '',
+                        },
+                    })),
+                };
 
-                allCities.forEach(city => {
-                    const color = REGION_COLORS[city.region] || '#94a3b8';
-                    const marker = L.marker([city.lat, city.lon], {
-                        icon: L.divIcon({
-                            className: '',
-                            html: `<div class="city-dot ${city.region}" title="${city.name}"></div>`,
-                            iconSize: [10, 10],
-                            iconAnchor: [5, 5],
-                        }),
-                    });
-
-                    marker.bindPopup(`
-                        <div style="font-family:system-ui;min-width:180px;">
-                            <strong style="font-size:14px;">${city.name}</strong><br>
-                            <span style="font-size:11px;color:#666;">${REGION_LABELS[city.region] || city.region}${city.elevation_ft ? ' · ' + city.elevation_ft + ' ft' : ''}</span>
-                            ${city.wui_exposure ? '<br><span style="font-size:11px;color:#c55;">' + city.wui_exposure + '</span>' : ''}
-                            <br><br>
-                            <button onclick="loadCityProfile('${city.key}')" style="background:#0ea5e9;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;margin-right:4px;">Profile</button>
-                            <button onclick="setCitySection('${city.key}')" style="background:#334155;color:#f1f5f9;border:1px solid #475569;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">Set X-Sect</button>
-                        </div>
-                    `, {maxWidth: 250});
-
-                    marker._cityKey = city.key;
-                    cityClusterGroup.addLayer(marker);
-                });
-
-                map.addLayer(cityClusterGroup);
+                if (mapStyleLoaded) addCityLayers(_citiesGeoJSON);
                 renderCityList();
             } catch (e) {
                 console.error('Failed to load cities:', e);
@@ -6633,7 +7036,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             selectedCityKey = key;
             const city = allCities.find(c => c.key === key);
             if (city) {
-                map.flyTo([city.lat, city.lon], 9, { duration: 1 });
+                map.flyTo({ center: [city.lon, city.lat], zoom: 9, duration: 1000 });
             }
 
             // Switch to cities tab and show detail
@@ -6752,38 +7155,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 }
 
                 // Clear existing
-                if (startMarker) { map.removeLayer(startMarker); startMarker = null; }
-                if (endMarker) { map.removeLayer(endMarker); endMarker = null; }
-                if (line) { map.removeLayer(line); line = null; }
+                clearXSMarkers();
 
                 // Place markers
-                startMarker = L.marker([startLat, startLon], {
-                    draggable: true,
-                    icon: L.divIcon({
-                        className: 'marker-start',
-                        html: `<div style="width:${markerSize}px;height:${markerSize}px;background:#38bdf8;border-radius:50%;border:2px solid white;"></div>`,
-                        iconSize: [markerSize, markerSize], iconAnchor: [markerAnchor, markerAnchor]
-                    })
-                }).addTo(map);
-                startMarker.on('drag', () => { updateLine(); liveDragRender(); });
-                startMarker.on('dragend', () => { invalidatePrerender(); generateCrossSection(); });
-
-                endMarker = L.marker([endLat, endLon], {
-                    draggable: true,
-                    icon: L.divIcon({
-                        className: 'marker-end',
-                        html: `<div style="width:${markerSize}px;height:${markerSize}px;background:#f87171;border-radius:50%;border:2px solid white;"></div>`,
-                        iconSize: [markerSize, markerSize], iconAnchor: [markerAnchor, markerAnchor]
-                    })
-                }).addTo(map);
-                endMarker.on('drag', () => { updateLine(); liveDragRender(); });
-                endMarker.on('dragend', () => { invalidatePrerender(); generateCrossSection(); });
-
-                line = L.polyline([[startLat, startLon], [endLat, endLon]], {
-                    color: '#fbbf24', weight: 3, dashArray: '10, 5'
-                }).addTo(map);
-
-                map.fitBounds([[startLat, startLon], [endLat, endLon]], {padding: [60, 60]});
+                startMarker = setupStartMarker(startLat, startLon);
+                endMarker = setupEndMarker(endLat, endLon);
+                updateLine();
+                fitBoundsLL([[startLat, startLon], [endLat, endLon]], 60);
                 closePanelMobile();
                 generateCrossSection();
                 showToast(`Cross-section set for ${p.name}`, 'success');
@@ -6793,48 +7171,124 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         };
 
         // =====================================================================
-        // Event Markers (22 with coordinates)
+        // Event Markers (22 with coordinates, Mapbox GeoJSON)
         // =====================================================================
+        // _eventsGeoJSON declared earlier (var) for readdCustomLayers forward reference
+        let _eventsLookup = {};  // cycle_key -> evt object for popup rendering
+
+        function addEventLayers(geojson) {
+            if (map.getSource('events')) return;
+            const evtVis = document.getElementById('toggle-event-markers') && document.getElementById('toggle-event-markers').checked ? 'visible' : 'none';
+            map.addSource('events', { type: 'geojson', data: geojson });
+            map.addLayer({
+                id: 'event-points',
+                type: 'circle',
+                source: 'events',
+                layout: { visibility: evtVis },
+                paint: {
+                    'circle-color': '#f43f5e',
+                    'circle-radius': 7,
+                    'circle-stroke-width': 2,
+                    'circle-stroke-color': '#fff',
+                },
+            });
+            map.addLayer({
+                id: 'event-stars',
+                type: 'symbol',
+                source: 'events',
+                layout: {
+                    'text-field': '★',
+                    'text-size': 10,
+                    'text-allow-overlap': true,
+                    visibility: evtVis,
+                },
+                paint: { 'text-color': '#fff' },
+            });
+
+            // Click event point for popup
+            map.on('click', 'event-points', (e) => {
+                const f = e.features[0];
+                const p = f.properties;
+                const coords = f.geometry.coordinates.slice();
+                const evt = _eventsLookup[p.cycle_key] || _eventsLookup[p.archive_cycle];
+
+                let sectionsHtml = '';
+                if (evt && evt.coordinates && evt.coordinates.suggested_sections) {
+                    const cycleKey = evt.archive_cycle || evt.cycle_key;
+                    const offset = evt.fhr_offset || 0;
+                    sectionsHtml = evt.coordinates.suggested_sections.map((s, i) => {
+                        return '<button class="evt-section-btn" data-cycle="' + cycleKey + '" data-sidx="' + i + '" data-offset="' + offset + '" style="background:#334155;color:#f1f5f9;border:1px solid #475569;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:11px;margin:2px;">' + (s.label || 'Load') + '</button>';
+                    }).join('');
+                }
+
+                const heroInfo = p.hero_product ? '<br><span style="font-size:10px;background:#0ea5e9;color:#fff;padding:1px 6px;border-radius:4px;font-weight:600;">Best: ' + p.hero_product + ' F' + String(p.hero_fhr || 0).padStart(2,'0') + '</span>' : '';
+                const descText = p.description ? '<br><span style="font-size:11px;color:#94a3b8;">' + p.description.substring(0, 180) + '</span>' : '';
+
+                const popup = new mapboxgl.Popup({ offset: 10 })
+                    .setLngLat(coords)
+                    .setHTML(
+                        '<div style="font-family:system-ui;min-width:220px;">' +
+                        '<strong style="font-size:13px;">' + p.name + '</strong><br>' +
+                        '<span style="font-size:11px;color:#94a3b8;">' + (p.date_local || p.cycle_key) + ' &middot; ' + (p.category || '') + '</span>' +
+                        heroInfo + descText +
+                        (sectionsHtml ? '<br><div style="margin-top:6px;">' + sectionsHtml + '</div>' : '') +
+                        '</div>'
+                    ).addTo(map);
+
+                // Attach click handlers to section buttons after popup opens
+                popup.on('open', () => {
+                    setTimeout(() => {
+                        document.querySelectorAll('.evt-section-btn').forEach(btn => {
+                            btn.addEventListener('click', () => {
+                                const ck = btn.dataset.cycle;
+                                const sidx = parseInt(btn.dataset.sidx);
+                                const off = parseInt(btn.dataset.offset);
+                                const evtData = _eventsLookup[ck];
+                                if (evtData && evtData.coordinates && evtData.coordinates.suggested_sections[sidx]) {
+                                    loadEventSection(ck, evtData.coordinates.suggested_sections[sidx], off);
+                                }
+                            });
+                        });
+                    }, 50);
+                });
+            });
+
+            map.on('mouseenter', 'event-points', () => { map.getCanvas().style.cursor = 'pointer'; });
+            map.on('mouseleave', 'event-points', () => { map.getCanvas().style.cursor = ''; });
+        }
+
         async function loadEventMarkers() {
             try {
                 const res = await fetch('/api/v1/events');
                 const data = await res.json();
                 allEvents = data.events || [];
 
-                eventLayerGroup = L.layerGroup();
-
-                allEvents.filter(e => e.coordinates && e.coordinates.center).forEach(evt => {
-                    const [lat, lon] = evt.coordinates.center;
-                    const marker = L.marker([lat, lon], {
-                        icon: L.divIcon({
-                            className: '',
-                            html: '<div style="width:14px;height:14px;background:#f43f5e;border-radius:50%;border:2px solid #fff;box-shadow:0 0 6px rgba(244,63,94,0.6);display:flex;align-items:center;justify-content:center;font-size:8px;">&#9733;</div>',
-                            iconSize: [14, 14], iconAnchor: [7, 7],
-                        }),
-                    });
-
-                    const sections = (evt.coordinates.suggested_sections || []).map(s => {
-                        const sJson = JSON.stringify(s).replace(/'/g, "\\\\'").replace(/"/g, '&quot;');
-                        return `<button onclick="loadEventSection('${evt.archive_cycle || evt.cycle_key}', '${sJson}', ${evt.fhr_offset || 0})" style="background:#334155;color:#f1f5f9;border:1px solid #475569;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:11px;margin:2px;">${s.label || 'Load'}</button>`;
-                    }).join('');
-
-                    const heroInfo = evt.hero_product ? `<br><span style="font-size:10px;background:#0ea5e9;color:#fff;padding:1px 6px;border-radius:4px;font-weight:600;">Best: ${evt.hero_product} F${String(evt.hero_fhr).padStart(2,'0')}</span>` : '';
-                    const descText = evt.description ? '<br><span style="font-size:11px;color:#888;">' + evt.description.substring(0, 180) + '</span>' : (evt.notes ? '<br><span style="font-size:11px;color:#888;">' + evt.notes.substring(0, 150) + '</span>' : '');
-
-                    marker.bindPopup(`
-                        <div style="font-family:system-ui;min-width:220px;">
-                            <strong style="font-size:13px;">${evt.name}</strong><br>
-                            <span style="font-size:11px;color:#666;">${evt.date_local || evt.cycle_key} · ${evt.category}</span>
-                            ${heroInfo}
-                            ${descText}
-                            ${sections ? '<br><div style="margin-top:6px;">' + sections + '</div>' : ''}
-                        </div>
-                    `, {maxWidth: 320});
-
-                    eventLayerGroup.addLayer(marker);
+                // Build lookup
+                allEvents.forEach(evt => {
+                    _eventsLookup[evt.cycle_key] = evt;
+                    if (evt.archive_cycle) _eventsLookup[evt.archive_cycle] = evt;
                 });
 
-                map.addLayer(eventLayerGroup);
+                // Build GeoJSON
+                const features = allEvents
+                    .filter(e => e.coordinates && e.coordinates.center)
+                    .map(evt => ({
+                        type: 'Feature',
+                        geometry: { type: 'Point', coordinates: [evt.coordinates.center[1], evt.coordinates.center[0]] },
+                        properties: {
+                            name: evt.name || '',
+                            cycle_key: evt.cycle_key || '',
+                            archive_cycle: evt.archive_cycle || '',
+                            date_local: evt.date_local || '',
+                            category: evt.category || '',
+                            hero_product: evt.hero_product || '',
+                            hero_fhr: evt.hero_fhr || 0,
+                            description: evt.description || evt.notes || '',
+                        },
+                    }));
+
+                _eventsGeoJSON = { type: 'FeatureCollection', features };
+                if (mapStyleLoaded) addEventLayers(_eventsGeoJSON);
                 renderEventList();
             } catch (e) {
                 console.error('Failed to load events:', e);
@@ -6847,40 +7301,17 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             fhrOffset = fhrOffset || 0;
             if (!section.start || !section.end) return;
 
-            if (startMarker) { map.removeLayer(startMarker); startMarker = null; }
-            if (endMarker) { map.removeLayer(endMarker); endMarker = null; }
-            if (line) { map.removeLayer(line); line = null; }
+            clearXSMarkers();
             // Clear existing POI markers
-            poiMarkers.forEach(p => map.removeLayer(p.marker));
+            poiMarkers.forEach(p => p.marker.remove());
             poiMarkers = [];
             poiPlaceMode = false;
             updatePoiBtn();
 
-            startMarker = L.marker(section.start, {
-                draggable: true,
-                icon: L.divIcon({
-                    className: 'marker-start',
-                    html: `<div style="width:${markerSize}px;height:${markerSize}px;background:#38bdf8;border-radius:50%;border:2px solid white;"></div>`,
-                    iconSize: [markerSize, markerSize], iconAnchor: [markerAnchor, markerAnchor]
-                })
-            }).addTo(map);
-            startMarker.on('drag', () => { updateLine(); liveDragRender(); });
-            startMarker.on('dragend', () => { invalidatePrerender(); generateCrossSection(); });
-
-            endMarker = L.marker(section.end, {
-                draggable: true,
-                icon: L.divIcon({
-                    className: 'marker-end',
-                    html: `<div style="width:${markerSize}px;height:${markerSize}px;background:#f87171;border-radius:50%;border:2px solid white;"></div>`,
-                    iconSize: [markerSize, markerSize], iconAnchor: [markerAnchor, markerAnchor]
-                })
-            }).addTo(map);
-            endMarker.on('drag', () => { updateLine(); liveDragRender(); });
-            endMarker.on('dragend', () => { invalidatePrerender(); generateCrossSection(); });
-
-            line = L.polyline([section.start, section.end], {
-                color: '#fbbf24', weight: 3, dashArray: '10, 5'
-            }).addTo(map);
+            // section.start/end are [lat, lon] arrays
+            startMarker = setupStartMarker(section.start[0], section.start[1]);
+            endMarker = setupEndMarker(section.end[0], section.end[1]);
+            updateLine();
 
             // Load POI markers from section if present
             if (section.markers && Array.isArray(section.markers)) {
@@ -6888,23 +7319,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     const lat = mkr.lat || mkr[0];
                     const lon = mkr.lon || mkr[1];
                     const label = mkr.label || '';
-                    const m = L.marker([lat, lon], {
-                        draggable: true,
-                        icon: L.divIcon({
-                            className: 'marker-poi',
-                            html: '<div style="width:' + poiMarkerSize + 'px;height:' + poiMarkerSize + 'px;background:#10b981;border-radius:50%;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);"></div>',
-                            iconSize: [poiMarkerSize, poiMarkerSize],
-                            iconAnchor: [poiMarkerAnchor, poiMarkerAnchor]
-                        })
-                    }).addTo(map);
-                    const poi = {marker: m, label: label};
-                    poiMarkers.push(poi);
-                    bindPoiPopup(poi);
-                    m.on('dragend', () => { invalidatePrerender(); generateCrossSection(); });
+                    addPoi(lat, lon, label);
                 });
             }
 
-            map.fitBounds([section.start, section.end], {padding: [60, 60]});
+            fitBoundsLL([section.start, section.end], 60);
             closePanelMobile();
 
             // Set product if suggested
@@ -7162,7 +7581,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const fhrOffset = evt.fhr_offset || 0;
             const toast = showToast(`Loading ${evt.name || cycleKey}...`);
             try {
-                const res = await fetch(`/api/load_cycle?cycle=${dataCycle}${adminParam()}`, {method: 'POST'});
+                const res = await fetch(`/api/load_cycle?cycle=${dataCycle}`, {method: 'POST'});
                 const data = await res.json();
                 toast.remove();
 
@@ -7219,7 +7638,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
             // Fly to location and set up cross-section if event has coordinates
             if (evt.coordinates && evt.coordinates.center) {
-                map.flyTo(evt.coordinates.center, 8, { duration: 1 });
+                map.flyTo({ center: [evt.coordinates.center[1], evt.coordinates.center[0]], zoom: 8, duration: 1000 });
                 if (evt.coordinates.suggested_sections && evt.coordinates.suggested_sections.length > 0) {
                     loadEventSection(dataCycle, evt.coordinates.suggested_sections[0], fhrOffset);
                 }
@@ -7266,7 +7685,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             // Load cycle
             const toast = showToast(`Loading ${evt.name || cycleKey}...`);
             try {
-                const res = await fetch(`/api/load_cycle?cycle=${cycleKey}${adminParam()}`, {method: 'POST'});
+                const res = await fetch(`/api/load_cycle?cycle=${cycleKey}`, {method: 'POST'});
                 const data = await res.json();
                 toast.remove();
                 if (!data.success) {
@@ -7324,7 +7743,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
             // Fly to location
             if (evt.coordinates && evt.coordinates.center) {
-                map.flyTo(evt.coordinates.center, 8, { duration: 1 });
+                map.flyTo({ center: [evt.coordinates.center[1], evt.coordinates.center[0]], zoom: 8, duration: 1000 });
             }
 
             // Load first cross-section line
@@ -7601,34 +8020,56 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         // Settings: Marker visibility toggles
         // =====================================================================
         document.getElementById('toggle-city-markers').onchange = function() {
-            if (this.checked && cityClusterGroup) map.addLayer(cityClusterGroup);
-            else if (cityClusterGroup) map.removeLayer(cityClusterGroup);
+            const vis = this.checked ? 'visible' : 'none';
+            ['city-clusters', 'city-cluster-count', 'city-points'].forEach(id => {
+                if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis);
+            });
         };
         document.getElementById('toggle-event-markers').onchange = function() {
-            if (this.checked && eventLayerGroup) map.addLayer(eventLayerGroup);
-            else if (eventLayerGroup) map.removeLayer(eventLayerGroup);
+            const vis = this.checked ? 'visible' : 'none';
+            ['event-points', 'event-stars'].forEach(id => {
+                if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis);
+            });
         };
         document.getElementById('toggle-clustering').onchange = function() {
-            // Toggle clustering by adjusting maxClusterRadius
-            if (cityClusterGroup) {
-                map.removeLayer(cityClusterGroup);
-                cityClusterGroup.options.disableClusteringAtZoom = this.checked ? 8 : 1;
-                map.addLayer(cityClusterGroup);
+            // With Mapbox built-in clustering, toggle by changing clusterMaxZoom
+            if (map.getSource('cities')) {
+                // Re-create source with different cluster setting
+                const data = _citiesGeoJSON;
+                ['city-clusters', 'city-cluster-count', 'city-points'].forEach(id => {
+                    if (map.getLayer(id)) map.removeLayer(id);
+                });
+                map.removeSource('cities');
+                addCityLayers(data);
             }
         };
 
         // =====================================================================
-        // Admin status display in settings
+        // Settings: Menu position (mobile only)
         // =====================================================================
-        function updateAdminStatus() {
-            const el = document.getElementById('admin-status');
-            if (el) el.textContent = isAdmin ? 'Admin active' : '';
-        }
-        const origSetAdminState = setAdminState;
-        setAdminState = function(valid, prot) {
-            origSetAdminState(valid, prot);
-            updateAdminStatus();
-        };
+        (function() {
+            const sel = document.getElementById('menu-position-select');
+            const settings = document.querySelectorAll('.mobile-only-setting');
+            const isMob = window.matchMedia('(max-width: 768px)').matches || ('ontouchstart' in window && window.innerWidth < 900);
+            // Show the setting only on mobile
+            if (isMob) settings.forEach(s => s.style.display = '');
+            // Restore saved preference
+            const saved = localStorage.getItem('wxs-menu-pos');
+            if (saved === 'top' && isMob) {
+                document.body.classList.add('menu-top');
+                sel.value = 'top';
+            }
+            sel.onchange = function() {
+                if (this.value === 'top') {
+                    document.body.classList.add('menu-top');
+                    localStorage.setItem('wxs-menu-pos', 'top');
+                } else {
+                    document.body.classList.remove('menu-top');
+                    localStorage.setItem('wxs-menu-pos', 'bottom');
+                }
+                map.resize();
+            };
+        })();
 
         // =====================================================================
         // Initialize everything
@@ -7652,7 +8093,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
 @app.route('/')
 def index():
-    return HTML_TEMPLATE
+    return HTML_TEMPLATE.replace('%%MAPBOX_TOKEN%%', MAPBOX_TOKEN)
 
 @app.route('/api/models')
 def api_models():
@@ -7673,11 +8114,6 @@ def api_cycles():
         'model': mgr.model_name,
     })
 
-@app.route('/api/check_key')
-def api_check_key():
-    """Check if the provided admin key is valid."""
-    mgr = get_manager_from_request() or data_manager
-    return jsonify({'valid': check_admin_key(), 'protected': list(mgr.get_protected_cycles())})
 
 @app.route('/api/climatology_status')
 def api_climatology_status():
@@ -7830,10 +8266,9 @@ def api_progress():
     return jsonify(result)
 
 @app.route('/api/cancel', methods=['POST'])
+@rate_limit
 def api_cancel():
-    """Cancel an active progress operation. Requires admin key."""
-    if not check_admin_key():
-        return jsonify({'error': 'Admin key required'}), 403
+    """Cancel an active progress operation."""
     op_id = request.args.get('op_id', '')
     if not op_id:
         return jsonify({'error': 'op_id required'}), 400
@@ -7848,7 +8283,7 @@ def api_cancel():
 @app.route('/api/load', methods=['POST'])
 @rate_limit
 def api_load():
-    """Load a forecast hour into memory. Archive cycles require admin key."""
+    """Load a forecast hour into memory."""
     cycle_key = request.args.get('cycle')
     fhr = request.args.get('fhr')
 
@@ -7867,7 +8302,7 @@ def api_load():
 @app.route('/api/load_cycle', methods=['POST'])
 @rate_limit
 def api_load_cycle():
-    """Load an entire cycle (all FHRs) into memory. Archive cycles require admin key."""
+    """Load an entire cycle (all FHRs) into memory."""
     cycle_key = request.args.get('cycle')
 
     if not cycle_key:
@@ -7894,7 +8329,7 @@ def api_unload():
         return jsonify({'success': False, 'error': 'Invalid fhr'}), 400
 
     mgr = get_manager_from_request() or data_manager
-    result = mgr.unload_forecast_hour(cycle_key, fhr, is_admin=check_admin_key())
+    result = mgr.unload_forecast_hour(cycle_key, fhr)
     return jsonify(result)
 
 def _parse_markers(args_or_data):
@@ -7963,10 +8398,20 @@ def api_xsect():
         temp_cmap_param = 'standard'
     anomaly_param = request.args.get('anomaly', '0') == '1'
     markers, marker, marker_label = _parse_markers(request.args)
+
+    # Lazy wrfnat download for smoke style — trigger background download if needed
+    mgr = get_manager_from_request() or data_manager
+    if style == 'smoke' and mgr.model_name == 'hrrr':
+        downloading = _trigger_lazy_wrfnat_download('hrrr', cycle_key, fhr)
+        if downloading:
+            return jsonify({
+                'error': 'Smoke data (wrfnat) is downloading in the background. This is a ~663MB file and may take 1-2 minutes. Please try again shortly.',
+                'smoke_downloading': True,
+            }), 202
+
     acquired = RENDER_SEMAPHORE.acquire(timeout=10)
     if not acquired:
         return jsonify({'error': 'Server busy, try again in a moment'}), 503
-    mgr = get_manager_from_request() or data_manager
     try:
         buf = mgr.generate_cross_section(start, end, cycle_key, fhr, style, y_axis, vscale, y_top, units=dist_units, temp_cmap=temp_cmap_param, anomaly=anomaly_param, marker=marker, marker_label=marker_label, markers=markers)
     finally:
@@ -9945,6 +10390,540 @@ def api_v1_map_overlay_products():
     return jsonify({'products': products})
 
 
+def _png_to_webp(png_bytes: bytes, quality: int = 80) -> bytes:
+    """Convert PNG bytes to WebP for ~70-80% size reduction with transparency."""
+    try:
+        from PIL import Image as PILImage
+        img = PILImage.open(io.BytesIO(png_bytes))
+        buf = io.BytesIO()
+        img.save(buf, format='WEBP', quality=quality, method=4)
+        return buf.getvalue()
+    except Exception:
+        return png_bytes  # fallback to original PNG
+
+
+@app.route('/api/v1/map-overlay/frame')
+def api_v1_overlay_frame():
+    """Get a single prerendered overlay frame. Cache-first, then render on-demand."""
+    model_name = request.args.get('model', 'hrrr')
+    cycle = request.args.get('cycle', 'latest')
+    fhr = int(request.args.get('fhr', 0))
+    product = request.args.get('product', '')
+    field = request.args.get('field', '')
+    level = request.args.get('level', None)
+    # If neither product nor field specified, default to surface_analysis
+    if not product and not field:
+        product = 'surface_analysis'
+
+    product_or_field = product if product else field
+    key = overlay_cache_key(model_name, cycle, fhr, product_or_field, level)
+    cached = overlay_cache_get(key)
+    if cached:
+        return send_file(io.BytesIO(cached), mimetype='image/webp',
+                         download_name=f'overlay_F{fhr:02d}.webp',
+                         max_age=300)
+
+    # Render on-demand and cache
+    mgr = get_manager_from_request() or data_manager
+    if mgr is None:
+        return jsonify({'error': 'No data manager'}), 503
+    cycle_key = mgr.resolve_cycle(cycle, fhr) if hasattr(mgr, 'resolve_cycle') else cycle
+    if cycle_key is None:
+        return jsonify({'error': 'No data loaded'}), 404
+    # Auto-load from mmap/GRIB if needed (supports archive cycles)
+    if not mgr.ensure_loaded(cycle_key, fhr):
+        return jsonify({'error': f'FHR {fhr} not available for {cycle_key}'}), 404
+    fhr_data = mgr.get_forecast_hour(cycle_key, fhr)
+    if fhr_data is None:
+        return jsonify({'error': f'FHR {fhr} not loaded'}), 404
+
+    # Also cache with resolved cycle_key (in case request used 'latest')
+    resolved_key = overlay_cache_key(model_name, cycle_key, fhr, product_or_field, level)
+    cached2 = overlay_cache_get(resolved_key)
+    if cached2:
+        return send_file(io.BytesIO(cached2), mimetype='image/webp',
+                         download_name=f'overlay_F{fhr:02d}.webp',
+                         max_age=300)
+
+    cache_dir = mgr.cache_dir if hasattr(mgr, 'cache_dir') else ''
+    overlay_engine = _get_overlay_engine(model_name, cache_dir)
+
+    try:
+        if product:
+            from core.map_overlay import PRODUCT_PRESETS
+            spec = PRODUCT_PRESETS.get(product)
+            if not spec:
+                return jsonify({'error': f'Unknown product: {product}'}), 400
+            result = overlay_engine.render_composite(fhr_data, spec, opacity=1.0)
+        else:
+            result = overlay_engine.render_png(fhr_data, field, level=int(level) if level else None, opacity=1.0)
+    except Exception as exc:
+        return jsonify({'error': str(exc)}), 500
+
+    # Convert PNG → WebP for ~70-80% size reduction
+    webp_data = _png_to_webp(result.data)
+    overlay_cache_put(resolved_key, webp_data)
+    resp = send_file(io.BytesIO(webp_data), mimetype='image/webp',
+                     download_name=f'overlay_F{fhr:02d}.webp',
+                     max_age=300)
+    return resp
+
+
+@app.route('/api/v1/map-overlay/prerender', methods=['POST'])
+def api_v1_overlay_prerender():
+    """Batch prerender overlay frames for all FHRs of a product."""
+    body = request.get_json(force=True, silent=True) or {}
+    model_name = body.get('model', 'hrrr')
+    cycle = body.get('cycle', 'latest')
+    product = body.get('product', 'surface_analysis')
+    fhrs = body.get('fhrs', [])
+
+    if not fhrs:
+        return jsonify({'error': 'No FHRs specified'}), 400
+
+    mgr = get_manager_from_request() or data_manager
+    if mgr is None:
+        return jsonify({'error': 'No data manager'}), 503
+
+    cycle_key = cycle
+    if cycle == 'latest':
+        times = mgr.get_available_times()
+        if times:
+            cycle_key = times[0].get('cycle', cycle)
+
+    # Check how many are already cached
+    to_render = []
+    for fhr in fhrs:
+        key = overlay_cache_key(model_name, cycle_key, fhr, product)
+        if not overlay_cache_get(key):
+            to_render.append(fhr)
+
+    if not to_render:
+        return jsonify({'status': 'all_cached', 'cached': len(fhrs), 'rendered': 0})
+
+    # Render missing frames in a background thread
+    session_id = f"overlay_prerender_{int(time.time())}"
+
+    def _do_prerender():
+        cache_dir = mgr.cache_dir if hasattr(mgr, 'cache_dir') else ''
+        engine = _get_overlay_engine(model_name, cache_dir)
+        from core.map_overlay import PRODUCT_PRESETS
+        spec = PRODUCT_PRESETS.get(product)
+        if not spec:
+            return
+        rendered = 0
+        for fhr in to_render:
+            fhr_data = mgr.get_forecast_hour(cycle_key, fhr)
+            if fhr_data is None:
+                continue
+            try:
+                result = engine.render_composite(fhr_data, spec, opacity=1.0)
+                webp_data = _png_to_webp(result.data)
+                key = overlay_cache_key(model_name, cycle_key, fhr, product)
+                overlay_cache_put(key, webp_data)
+                rendered += 1
+            except Exception as exc:
+                logger.warning(f"Overlay prerender F{fhr:02d} failed: {exc}")
+
+    threading.Thread(target=_do_prerender, daemon=True).start()
+    return jsonify({'status': 'started', 'session_id': session_id,
+                    'to_render': len(to_render), 'already_cached': len(fhrs) - len(to_render)})
+
+
+@app.route('/api/v1/map-overlay/value')
+def api_v1_overlay_value():
+    """Query the data value at a specific lat/lng point for the current overlay."""
+    import numpy as np
+    lat = float(request.args.get('lat', 0))
+    lng = float(request.args.get('lng', 0))
+    model_name = request.args.get('model', 'hrrr')
+    cycle = request.args.get('cycle', 'latest')
+    fhr = int(request.args.get('fhr', 0))
+    product = request.args.get('product', '')
+    field = request.args.get('field', '')
+    level = request.args.get('level', None)
+
+    mgr = get_manager_from_request() or data_manager
+    if mgr is None:
+        return jsonify({'error': 'No data manager'}), 503
+
+    cycle_key = mgr.resolve_cycle(cycle, fhr) if hasattr(mgr, 'resolve_cycle') else cycle
+    if cycle_key is None:
+        return jsonify({'error': 'No data loaded'}), 404
+    if not mgr.ensure_loaded(cycle_key, fhr):
+        return jsonify({'error': f'FHR {fhr} not available'}), 404
+    fhr_data = mgr.get_forecast_hour(cycle_key, fhr)
+    if fhr_data is None:
+        return jsonify({'error': f'FHR {fhr} not loaded'}), 404
+
+    from core.map_overlay import OVERLAY_FIELDS, PRODUCT_PRESETS, _apply_transform
+
+    results = []
+    # Determine which fields to query
+    if product:
+        spec = PRODUCT_PRESETS.get(product)
+        if not spec:
+            return jsonify({'error': f'Unknown product: {product}'}), 400
+        field_ids = [spec.fill_field]
+        if spec.contours:
+            field_ids += [c.field_id for c in spec.contours]
+    elif field:
+        field_ids = [field]
+    else:
+        field_ids = ['t2m']
+
+    # Find nearest grid point index once
+    lats_arr = np.asarray(fhr_data.lats)
+    lons_arr = np.asarray(fhr_data.lons)
+    if lats_arr.ndim == 1 and lons_arr.ndim == 1:
+        lat_idx = int(np.argmin(np.abs(lats_arr - lat)))
+        lon_idx = int(np.argmin(np.abs(lons_arr - lng)))
+        grid_idx = (lat_idx, lon_idx)
+    elif lats_arr.ndim == 2:
+        dist = (lats_arr - lat)**2 + (lons_arr - lng)**2
+        grid_idx = np.unravel_index(np.argmin(dist), dist.shape)
+    else:
+        return jsonify({'error': 'Unsupported grid'}), 500
+
+    for fid in field_ids:
+        fspec = OVERLAY_FIELDS.get(fid)
+        if not fspec:
+            continue
+        try:
+            # Extract raw value from native grid
+            if fspec.derived_from:
+                # Derived field (wind speed, RH, etc.)
+                components = []
+                for comp_name in fspec.derived_from:
+                    arr = getattr(fhr_data, comp_name, None)
+                    if arr is None:
+                        break
+                    if arr.ndim == 3 and level is not None:
+                        # Find pressure level index
+                        plevs = getattr(fhr_data, 'pressure_levels', None)
+                        if plevs is not None:
+                            lvl_idx = int(np.argmin(np.abs(np.asarray(plevs) - int(level))))
+                            arr = arr[lvl_idx]
+                        else:
+                            break
+                    elif arr.ndim == 3:
+                        break
+                    components.append(np.asarray(arr, dtype=np.float32))
+                if len(components) < len(fspec.derived_from):
+                    continue
+                # Field-specific derivation (mirrors map_overlay.py)
+                if fid in ('wind_speed_10m', 'wind_speed') and len(components) == 2:
+                    val = float(np.sqrt(components[0][grid_idx]**2 + components[1][grid_idx]**2))
+                elif fid == 'rh_surface' and len(components) == 2:
+                    t_c = float(components[0][grid_idx]) - 273.15
+                    td_c = float(components[1][grid_idx]) - 273.15
+                    val = min(100.0, max(0.0, 100.0 * np.exp(17.625 * td_c / (243.04 + td_c)) / np.exp(17.625 * t_c / (243.04 + t_c))))
+                elif fid == 'wind_chill' and len(components) == 3:
+                    t_f = (float(components[0][grid_idx]) - 273.15) * 9.0 / 5.0 + 32.0
+                    ws_mph = float(np.sqrt(components[1][grid_idx]**2 + components[2][grid_idx]**2)) * 2.23694
+                    val = 35.74 + 0.6215 * t_f - 35.75 * max(ws_mph, 0.5)**0.16 + 0.4275 * t_f * max(ws_mph, 0.5)**0.16 if t_f <= 50 else t_f
+                elif fid == 'heat_index' and len(components) == 2:
+                    t_f = (float(components[0][grid_idx]) - 273.15) * 9.0 / 5.0 + 32.0
+                    td_c = float(components[1][grid_idx]) - 273.15
+                    rh = min(100.0, max(0.0, 100.0 * np.exp(17.625 * td_c / (243.04 + td_c)) / np.exp(17.625 * (float(components[0][grid_idx]) - 273.15) / (243.04 + (float(components[0][grid_idx]) - 273.15)))))
+                    val = (-42.379 + 2.04901523 * t_f + 10.14333127 * rh - 0.22475541 * t_f * rh - 0.00683783 * t_f**2 - 0.05481717 * rh**2 + 0.00122874 * t_f**2 * rh + 0.00085282 * t_f * rh**2 - 0.00000199 * t_f**2 * rh**2) if t_f >= 80 else t_f
+                elif fid in ('hdw', 'hdw_paired') and len(components) == 4:
+                    # HDW: scan lowest 50 hPa AGL for max VPD and wind
+                    import math
+                    DEPTH = 50.0
+                    is_paired = (fid == 'hdw_paired')
+                    plevs = getattr(fhr_data, 'pressure_levels', None)
+                    sp = getattr(fhr_data, 'surface_pressure', None)
+                    t3d = getattr(fhr_data, 'temperature', None)
+                    td3d = getattr(fhr_data, 'dew_point', None)
+                    u3d = getattr(fhr_data, 'u_wind', None)
+                    v3d = getattr(fhr_data, 'v_wind', None)
+                    # Surface values
+                    t_c = float(components[0][grid_idx]) - 273.15
+                    td_c = float(components[1][grid_idx]) - 273.15
+                    es_s = 6.112 * math.exp(17.67 * t_c / (t_c + 243.5))
+                    ea_s = 6.112 * math.exp(17.67 * td_c / (td_c + 243.5))
+                    sfc_vpd = max(es_s - ea_s, 0.0)
+                    sfc_ws = math.sqrt(float(components[2][grid_idx])**2 + float(components[3][grid_idx])**2)
+                    if is_paired:
+                        max_product = sfc_vpd * sfc_ws
+                    else:
+                        max_vpd = sfc_vpd
+                        max_ws = sfc_ws
+                    if plevs is not None and sp is not None and t3d is not None and t3d.ndim == 3:
+                        sp_val = float(sp[grid_idx])
+                        for li in range(len(plevs)):
+                            p = float(plevs[li])
+                            if p > sp_val or p < sp_val - DEPTH:
+                                continue
+                            tc = float(t3d[li][grid_idx]) - 273.15
+                            tdc = float(td3d[li][grid_idx]) - 273.15
+                            es_l = 6.112 * math.exp(17.67 * tc / (tc + 243.5))
+                            ea_l = 6.112 * math.exp(17.67 * tdc / (tdc + 243.5))
+                            vpd_l = max(es_l - ea_l, 0.0)
+                            ws_l = math.sqrt(float(u3d[li][grid_idx])**2 + float(v3d[li][grid_idx])**2)
+                            if is_paired:
+                                product_l = vpd_l * ws_l
+                                if product_l > max_product:
+                                    max_product = product_l
+                            else:
+                                if vpd_l > max_vpd:
+                                    max_vpd = vpd_l
+                                if ws_l > max_ws:
+                                    max_ws = ws_l
+                    val = max_product if is_paired else max_vpd * max_ws
+                elif len(components) == 2:
+                    val = float(np.sqrt(components[0][grid_idx]**2 + components[1][grid_idx]**2))
+                elif len(components) == 3:
+                    val = float(components[0][grid_idx])
+                else:
+                    continue
+            else:
+                arr = getattr(fhr_data, fspec.attr_name, None)
+                if arr is None:
+                    continue
+                if arr.ndim == 3 and fspec.needs_level and level is not None:
+                    plevs = getattr(fhr_data, 'pressure_levels', None)
+                    if plevs is not None:
+                        lvl_idx = int(np.argmin(np.abs(np.asarray(plevs) - int(level))))
+                        arr = arr[lvl_idx]
+                    else:
+                        continue
+                val = float(arr[grid_idx])
+
+            if not np.isfinite(val):
+                continue
+            # Apply transform (K→C, m/s→kt, etc)
+            transformed = _apply_transform(np.array([val]), fspec.transform)
+            val_out = round(float(transformed[0]), 1)
+            results.append({
+                'field': fid,
+                'name': fspec.name,
+                'value': val_out,
+                'units': fspec.units,
+            })
+        except Exception:
+            continue
+
+    return jsonify({'lat': lat, 'lng': lng, 'fhr': fhr, 'cycle': cycle_key, 'values': results})
+
+
+@app.route('/api/v1/map-overlay/grid-sample')
+def api_v1_overlay_grid_sample():
+    """Return a binary grid of overlay values for instant client-side hover.
+
+    Binary format: [4B header_len][JSON header][uint16 field0][uint16 field1]...
+    Values encoded as uint16: encoded = (val - vmin) / (vmax - vmin) * 65534, 65535 = NaN.
+    Response is gzip-compressed. ~200-800KB at 0.05deg for 3 fields.
+    """
+    import numpy as np
+    import gzip as gzip_mod
+    import struct
+    model_name = request.args.get('model', 'hrrr')
+    cycle = request.args.get('cycle', 'latest')
+    fhr = int(request.args.get('fhr', 0))
+    product = request.args.get('product', '')
+    field = request.args.get('field', '')
+    level = request.args.get('level', None)
+
+    mgr = get_manager_from_request() or data_manager
+    if mgr is None:
+        return jsonify({'error': 'No data manager'}), 503
+
+    cycle_key = mgr.resolve_cycle(cycle, fhr) if hasattr(mgr, 'resolve_cycle') else cycle
+    if cycle_key is None:
+        return jsonify({'error': 'No data loaded'}), 404
+    if not mgr.ensure_loaded(cycle_key, fhr):
+        return jsonify({'error': f'FHR {fhr} not available'}), 404
+    fhr_data = mgr.get_forecast_hour(cycle_key, fhr)
+    if fhr_data is None:
+        return jsonify({'error': f'FHR {fhr} not loaded'}), 404
+
+    from core.map_overlay import OVERLAY_FIELDS, PRODUCT_PRESETS, _apply_transform
+
+    # Determine fields to sample
+    if product:
+        spec = PRODUCT_PRESETS.get(product)
+        if not spec:
+            return jsonify({'error': f'Unknown product: {product}'}), 400
+        field_ids = [spec.fill_field]
+        if spec.contours:
+            field_ids += [c.field_id for c in spec.contours]
+        if spec.hover_extra:
+            field_ids += [f for f in spec.hover_extra if f not in field_ids]
+    elif field:
+        field_ids = [field]
+    else:
+        field_ids = ['t2m']
+
+    # Output grid: 0.05 deg over CONUS (full-res feel, compact binary)
+    STEP = 0.05
+    out_lats = np.arange(21.0, 53.001, STEP)
+    out_lons = np.arange(-135.0, -59.999, STEP)
+    n_rows = len(out_lats)
+    n_cols = len(out_lons)
+
+    # Build native grid index mapping
+    native_lats = np.asarray(fhr_data.lats)
+    native_lons = np.asarray(fhr_data.lons)
+
+    if native_lats.ndim == 1 and native_lons.ndim == 1:
+        lat_indices = np.searchsorted(native_lats if native_lats[0] < native_lats[-1] else native_lats[::-1], out_lats).clip(0, len(native_lats) - 1)
+        if native_lats[0] > native_lats[-1]:
+            lat_indices = len(native_lats) - 1 - lat_indices
+        lon_indices = np.searchsorted(native_lons if native_lons[0] < native_lons[-1] else native_lons[::-1], out_lons).clip(0, len(native_lons) - 1)
+        if native_lons[0] > native_lons[-1]:
+            lon_indices = len(native_lons) - 1 - lon_indices
+        use_2d = False
+        domain_mask_2d = None  # no masking for regular grids
+    else:
+        try:
+            from scipy.spatial import cKDTree
+            tree = cKDTree(np.column_stack([native_lats.ravel(), native_lons.ravel()]))
+            out_mesh_lat, out_mesh_lon = np.meshgrid(out_lats, out_lons, indexing='ij')
+            dists, flat_indices = tree.query(np.column_stack([out_mesh_lat.ravel(), out_mesh_lon.ravel()]))
+            flat_indices = flat_indices.reshape(n_rows, n_cols)
+            # Mask points too far from native grid (HRRR ~3km ≈ 0.03°, threshold ~0.1°)
+            domain_mask_2d = dists.reshape(n_rows, n_cols) > 0.1
+            use_2d = True
+        except ImportError:
+            flat_lats = native_lats.ravel().astype(np.float32)
+            flat_lons = native_lons.ravel().astype(np.float32)
+            flat_indices = np.zeros((n_rows, n_cols), dtype=np.int64)
+            for i, olat in enumerate(out_lats):
+                for j, olon in enumerate(out_lons):
+                    dist = (flat_lats - olat)**2 + (flat_lons - olon)**2
+                    flat_indices[i, j] = np.argmin(dist)
+            domain_mask_2d = None
+            use_2d = True
+
+    fields_meta = []
+    binary_chunks = []
+    NAN_SENTINEL = 65535
+
+    for fid in field_ids:
+        fspec = OVERLAY_FIELDS.get(fid)
+        if not fspec:
+            continue
+        try:
+            if fspec.derived_from:
+                components = []
+                for comp_name in fspec.derived_from:
+                    arr = getattr(fhr_data, comp_name, None)
+                    if arr is None:
+                        break
+                    if arr.ndim == 3 and level is not None:
+                        plevs = getattr(fhr_data, 'pressure_levels', None)
+                        if plevs is not None:
+                            lvl_idx = int(np.argmin(np.abs(np.asarray(plevs) - int(level))))
+                            arr = arr[lvl_idx]
+                        else:
+                            break
+                    elif arr.ndim == 3:
+                        break
+                    components.append(np.asarray(arr, dtype=np.float32))
+                if len(components) < len(fspec.derived_from):
+                    continue
+                # Field-specific derivation (mirrors map_overlay.py)
+                if fid in ('wind_speed_10m', 'wind_speed') and len(components) == 2:
+                    full_grid = np.sqrt(components[0]**2 + components[1]**2)
+                elif fid == 'rh_surface' and len(components) == 2:
+                    t_c = components[0] - 273.15
+                    td_c = components[1] - 273.15
+                    full_grid = np.clip(100.0 * np.exp(17.625 * td_c / (243.04 + td_c)) / np.exp(17.625 * t_c / (243.04 + t_c)), 0, 100)
+                elif fid == 'wind_chill' and len(components) == 3:
+                    t_f = (components[0] - 273.15) * 9.0 / 5.0 + 32.0
+                    ws_mph = np.sqrt(components[1]**2 + components[2]**2) * 2.23694
+                    wc = 35.74 + 0.6215 * t_f - 35.75 * np.power(np.maximum(ws_mph, 0.5), 0.16) + 0.4275 * t_f * np.power(np.maximum(ws_mph, 0.5), 0.16)
+                    full_grid = np.where(t_f <= 50, wc, t_f)
+                elif fid == 'heat_index' and len(components) == 2:
+                    t_f = (components[0] - 273.15) * 9.0 / 5.0 + 32.0
+                    td_c = components[1] - 273.15
+                    rh = np.clip(100.0 * np.exp(17.625 * td_c / (243.04 + td_c)) / np.exp(17.625 * (components[0] - 273.15) / (243.04 + (components[0] - 273.15))), 0, 100)
+                    hi = (-42.379 + 2.04901523 * t_f + 10.14333127 * rh - 0.22475541 * t_f * rh - 0.00683783 * t_f**2 - 0.05481717 * rh**2 + 0.00122874 * t_f**2 * rh + 0.00085282 * t_f * rh**2 - 0.00000199 * t_f**2 * rh**2)
+                    full_grid = np.where(t_f >= 80, hi, t_f)
+                elif fid in ('hdw', 'hdw_paired') and len(components) == 4:
+                    # HDW via overlay engine — paired or USFS mode
+                    cache_dir = mgr.cache_dir if hasattr(mgr, 'cache_dir') else ''
+                    oe = _get_overlay_engine(model_name, cache_dir)
+                    full_grid = oe._compute_hdw(fhr_data, components, paired=(fid == 'hdw_paired'))
+                elif len(components) == 2:
+                    full_grid = np.sqrt(components[0]**2 + components[1]**2)
+                else:
+                    full_grid = components[0]
+            else:
+                arr = getattr(fhr_data, fspec.attr_name, None)
+                if arr is None:
+                    continue
+                if arr.ndim == 3 and fspec.needs_level and level is not None:
+                    plevs = getattr(fhr_data, 'pressure_levels', None)
+                    if plevs is not None:
+                        lvl_idx = int(np.argmin(np.abs(np.asarray(plevs) - int(level))))
+                        arr = arr[lvl_idx]
+                    else:
+                        continue
+                full_grid = np.asarray(arr, dtype=np.float32)
+
+            full_grid = _apply_transform(full_grid, fspec.transform)
+
+            if not use_2d:
+                sampled = full_grid[np.ix_(lat_indices, lon_indices)]
+            else:
+                sampled = full_grid.ravel()[flat_indices]
+
+            # Mask out-of-domain pixels for curvilinear grids (HRRR/RRFS)
+            if domain_mask_2d is not None:
+                sampled = sampled.copy()
+                sampled[domain_mask_2d] = np.nan
+
+            # Compute vmin/vmax from actual data (robust: 0.5th-99.5th percentile)
+            finite_vals = sampled[np.isfinite(sampled)]
+            if len(finite_vals) == 0:
+                continue
+            vmin = float(np.percentile(finite_vals, 0.5))
+            vmax = float(np.percentile(finite_vals, 99.5))
+            if vmax <= vmin:
+                vmax = vmin + 1.0
+
+            # Encode to uint16: 0-65534 = data range, 65535 = NaN
+            normalized = (sampled - vmin) / (vmax - vmin)
+            encoded = np.clip(normalized * 65534, 0, 65534).astype(np.uint16)
+            encoded[~np.isfinite(sampled)] = NAN_SENTINEL
+
+            fields_meta.append({
+                'field': fid,
+                'name': fspec.name,
+                'units': fspec.units,
+                'vmin': round(vmin, 2),
+                'vmax': round(vmax, 2),
+            })
+            binary_chunks.append(encoded.tobytes())
+        except Exception:
+            continue
+
+    # Build binary response: [4B header_len_LE][header JSON][field0 uint16][field1 uint16]...
+    header = json.dumps({
+        'bounds': {'lat_min': 21.0, 'lat_max': 53.0, 'lon_min': -135.0, 'lon_max': -60.0},
+        'rows': n_rows,
+        'cols': n_cols,
+        'lat_step': STEP,
+        'lon_step': STEP,
+        'fields': fields_meta,
+    }).encode('utf-8')
+    # Pad header to even length for uint16 alignment
+    if len(header) % 2 != 0:
+        header += b' '
+
+    buf = struct.pack('<I', len(header)) + header
+    for chunk in binary_chunks:
+        buf += chunk
+
+    compressed = gzip_mod.compress(buf, compresslevel=6)
+
+    return Response(compressed, mimetype='application/octet-stream',
+                    headers={'Content-Encoding': 'gzip', 'Cache-Control': 'no-store'})
+
+
 # Legacy endpoint for compatibility
 @app.route('/api/info')
 def api_info():
@@ -10010,9 +10989,7 @@ def api_request():
 @app.route('/api/request_cycle', methods=['POST'])
 @rate_limit
 def api_request_cycle():
-    """Download specific FHR range for a date/init cycle. Requires admin key."""
-    if not check_admin_key():
-        return jsonify({'error': 'Admin key required to download archive data'}), 403
+    """Download specific FHR range for a date/init cycle."""
 
     date_str = request.args.get('date', '')  # YYYYMMDD
     hour = int(request.args.get('hour', -1))
@@ -10179,6 +11156,101 @@ def api_favorite_delete(fav_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
+# =============================================================================
+# Oregon WFO Agent Swarm API Endpoints
+# =============================================================================
+
+@app.route('/api/v1/oregon/zones')
+@rate_limit
+def api_v1_oregon_zones():
+    """List all Oregon WFO coverage zones."""
+    try:
+        from tools.agent_tools.data.oregon_zones import list_zones
+        from tools.agent_tools.wfo_swarm.scheduler import output_store
+
+        zones = list_zones()
+        for z in zones:
+            status = output_store.get_status(z["zone_id"])
+            z["status"] = status.get("status", "not_run") if status else "not_run"
+            z["last_cycle"] = status.get("cycle", "") if status else ""
+        return jsonify(zones)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/v1/oregon/zones/<zone_id>/bulletin')
+@rate_limit
+def api_v1_oregon_zone_bulletin(zone_id):
+    """Get the latest fire weather bulletin for a zone."""
+    try:
+        from tools.agent_tools.wfo_swarm.scheduler import get_zone_bulletin
+        bulletin = get_zone_bulletin(zone_id)
+        if bulletin is None:
+            return jsonify({
+                'error': f'No bulletin available for {zone_id}. Run the swarm first.',
+            }), 404
+        return jsonify(bulletin)
+    except KeyError:
+        return jsonify({'error': f'Unknown zone: {zone_id}'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/v1/oregon/zones/<zone_id>/forecast/<town>')
+@rate_limit
+def api_v1_oregon_zone_forecast(zone_id, town):
+    """Get a specific town's forecast from the latest bulletin."""
+    try:
+        from tools.agent_tools.wfo_swarm.scheduler import get_zone_town_forecast
+        forecast = get_zone_town_forecast(zone_id, town)
+        if forecast is None:
+            return jsonify({
+                'error': f"No forecast for '{town}' in {zone_id}.",
+            }), 404
+        return jsonify(forecast)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/v1/oregon/zones/<zone_id>/ranking')
+@rate_limit
+def api_v1_oregon_zone_ranking(zone_id):
+    """Get all towns ranked by fire risk for a zone."""
+    try:
+        from tools.agent_tools.wfo_swarm.scheduler import get_zone_risk_ranking
+        ranking = get_zone_risk_ranking(zone_id)
+        if ranking is None:
+            return jsonify({
+                'error': f'No ranking available for {zone_id}.',
+            }), 404
+        return jsonify(ranking)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/v1/oregon/scan')
+@rate_limit
+def api_v1_oregon_scan():
+    """Quick fire weather scan across all 7 Oregon zones."""
+    try:
+        from tools.agent_tools.wfo_swarm.scheduler import oregon_fire_scan
+        return jsonify(oregon_fire_scan())
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/v1/oregon/bulletin')
+@rate_limit
+def api_v1_oregon_bulletin():
+    """State-level aggregated fire weather bulletin for all Oregon zones."""
+    try:
+        from tools.agent_tools.wfo_swarm.scheduler import oregon_state_bulletin
+        return jsonify(oregon_state_bulletin())
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 # =============================================================================
 # MAIN
 # =============================================================================
@@ -10192,7 +11264,6 @@ def main():
     parser.add_argument('--max-hours', type=int, default=18, help='Max forecast hour to download')
     parser.add_argument('--port', type=int, default=5000, help='Server port')
     parser.add_argument('--host', type=str, default='0.0.0.0', help='Server host')
-    parser.add_argument('--production', action='store_true', help='Enable rate limiting')
     parser.add_argument('--models', type=str, default='hrrr',
                         help='Comma-separated list of models to enable (e.g. hrrr,gfs)')
     parser.add_argument('--grib-workers', type=int, default=_env_int('XSECT_GRIB_WORKERS', 4),
@@ -10201,8 +11272,6 @@ def main():
                         help='Workers for cached mmap loads (default: env XSECT_PRELOAD_WORKERS or 20)')
 
     args = parser.parse_args()
-    app.config['PRODUCTION'] = args.production
-
     # Register requested models
     enabled_models = [m.strip().lower() for m in args.models.split(',') if m.strip()]
     for model_name in enabled_models:
