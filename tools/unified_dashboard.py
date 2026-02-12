@@ -2981,19 +2981,28 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             border-bottom: 1px solid var(--border);
         }
         #bottom-handle .drag-indicator {
-            width: 40px;
-            height: 4px;
-            background: var(--border);
-            border-radius: 2px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
             position: absolute;
             left: 50%;
             transform: translateX(-50%);
             top: 4px;
+            transition: opacity var(--transition-fast);
+            opacity: 0.5;
+        }
+        #bottom-handle .drag-indicator span {
+            display: block;
+            width: 32px;
+            height: 2px;
+            background: var(--border);
+            border-radius: 1px;
             transition: background var(--transition-fast), width var(--transition-fast);
         }
-        #bottom-handle:hover .drag-indicator {
+        #bottom-handle:hover .drag-indicator { opacity: 1; }
+        #bottom-handle:hover .drag-indicator span {
             background: var(--accent);
-            width: 56px;
+            width: 40px;
         }
         #bottom-status {
             font-size: 12px;
@@ -3358,7 +3367,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             text-transform: uppercase;
             letter-spacing: 0.5px;
             color: var(--muted);
-            padding: 6px 6px 2px;
+            padding: 6px 8px 3px;
+            margin-top: 2px;
+            border-radius: var(--radius-sm);
         }
         .pp-item {
             display: flex;
@@ -3381,6 +3392,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .pp-item-text { flex: 1; min-width: 0; }
         .pp-item-name { font-size: 12px; font-weight: 500; }
         .pp-item-desc { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .pp-item mark { background: rgba(14,165,233,0.25); color: inherit; border-radius: 2px; padding: 0 1px; }
 
         /* ===== Cities Tab ===== */
         #city-search {
@@ -3626,6 +3638,16 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             to { transform: translateY(0); opacity: 1; }
         }
         @keyframes pulse { 50% { opacity: 0.6; } }
+        @keyframes play-glow {
+            0%, 100% { box-shadow: 0 0 4px rgba(14,165,233,0.3); }
+            50% { box-shadow: 0 0 12px rgba(14,165,233,0.6); }
+        }
+        #play-btn.playing {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+            animation: play-glow 1.5s ease-in-out infinite;
+        }
 
         #progress-panel {
             position: fixed;
@@ -4508,7 +4530,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     <img id="peek-img" style="width:100%;height:auto;object-fit:cover;object-position:center 60%;opacity:0.15;filter:blur(1px);">
                 </div>
                 <div id="bottom-handle">
-                    <div class="drag-indicator"></div>
+                    <div class="drag-indicator"><span></span><span></span><span></span></div>
                     <div id="bottom-status">
                         <span id="bottom-model-label">Cross-Section</span>
                         <span id="active-product-badge" style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.1);padding:1px 8px;border-radius:10px;font-size:10px;color:var(--muted);"><span id="active-product-chip" style="width:12px;height:7px;border-radius:2px;"></span><span id="active-product-name"></span></span>
@@ -6419,6 +6441,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             });
             ppDropdown.appendChild(chipRow);
             const srch = ppSearchText.toLowerCase().trim();
+            function ppHighlight(text) {
+                if (!srch || !text) return text;
+                const i = text.toLowerCase().indexOf(srch);
+                if (i === -1) return text;
+                return text.slice(0, i) + '<mark>' + text.slice(i, i + srch.length) + '</mark>' + text.slice(i + srch.length);
+            }
             styleGroups.filter(([gn]) => !ppFilterCat || gn === ppFilterCat).forEach(([groupName, items]) => {
                 const filteredItems = srch ? items.filter(([val, name, desc]) =>
                     name.toLowerCase().includes(srch) || (desc && desc.toLowerCase().includes(srch)) || val.toLowerCase().includes(srch)
@@ -6426,7 +6454,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 if (filteredItems.length === 0) return;
                 const label = document.createElement('div');
                 label.className = 'pp-group-label';
-                const dot = ppGroupColors[groupName] ? `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${ppGroupColors[groupName]};margin-right:4px;vertical-align:middle;"></span>` : '';
+                const gc = ppGroupColors[groupName];
+                if (gc) label.style.background = gc + '14';
+                const dot = gc ? `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${gc};margin-right:4px;vertical-align:middle;"></span>` : '';
                 label.innerHTML = dot + groupName;
                 ppDropdown.appendChild(label);
                 filteredItems.forEach(([val, name, desc]) => {
@@ -6437,8 +6467,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     item.dataset.value = val;
                     const grad = cmapGradients[val] || cmapGradients.temp;
                     item.innerHTML = `<span class="pp-chip" style="background:${grad}"></span>`
-                        + `<div class="pp-item-text"><div class="pp-item-name">${name}</div>`
-                        + (desc ? `<div class="pp-item-desc" title="${desc}">${desc}</div>` : '')
+                        + `<div class="pp-item-text"><div class="pp-item-name">${ppHighlight(name)}</div>`
+                        + (desc ? `<div class="pp-item-desc" title="${desc}">${ppHighlight(desc)}</div>` : '')
                         + `</div>`;
                     item.onclick = () => {
                         styleSelect.value = val;
@@ -7661,6 +7691,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const playBtn = document.getElementById('play-btn');
             playBtn.innerHTML = '&#9646;&#9646;';
             playBtn.title = 'Pause (Space)';
+            playBtn.classList.add('playing');
             const counter = document.getElementById('frame-counter');
             if (counter) counter.style.display = '';
             const speed = parseInt(document.getElementById('play-speed').value);
@@ -7685,6 +7716,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const playBtn = document.getElementById('play-btn');
             playBtn.innerHTML = '&#9654;';
             playBtn.title = 'Auto-play (Space)';
+            playBtn.classList.remove('playing');
             const counter = document.getElementById('frame-counter');
             if (counter) counter.style.display = 'none';
             if (playInterval) {
