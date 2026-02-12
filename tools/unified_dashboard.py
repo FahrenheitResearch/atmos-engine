@@ -3224,9 +3224,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         #compare-divider {
             display: none; position: absolute; top: 0; bottom: 0; width: 6px;
             background: var(--accent); cursor: col-resize; z-index: var(--z-divider); left: 50%;
-            transform: translateX(-50%); opacity: 0.6; transition: opacity var(--transition-fast);
+            transform: translateX(-50%); opacity: 0.6;
+            transition: opacity var(--transition-fast), box-shadow var(--transition-fast);
+            box-shadow: 0 0 8px rgba(14,165,233,0.2);
         }
-        #compare-divider:hover, #compare-divider.dragging { opacity: 1; }
+        #compare-divider:hover, #compare-divider.dragging { opacity: 1; box-shadow: 0 0 16px rgba(14,165,233,0.4); }
         #compare-divider::after {
             content: '\u2195'; position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%) rotate(90deg); color: #fff; font-size: 11px; font-weight: 700;
@@ -4563,6 +4565,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <span id="bottom-model-label">Cross-Section</span>
                         <span id="active-product-badge" style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.1);padding:1px 8px;border-radius:10px;font-size:10px;color:var(--muted);"><span id="active-product-chip" style="width:12px;height:7px;border-radius:2px;"></span><span id="active-product-name"></span></span>
                         <span class="fhr-label" id="active-fhr"></span>
+                        <span id="loaded-count" style="font-size:9px;color:var(--muted);opacity:0.7;"></span>
                     </div>
                     <div id="bottom-actions">
                         <button class="bottom-action-btn" id="bottom-expand-btn" title="Expand">&#9650;</button>
@@ -7526,13 +7529,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             });
             updateSliderVisibility();
             // Update loaded count display
+            const total = document.querySelectorAll('#fhr-chips .chip:not(.unavailable)').length;
+            const countText = selectedFhrs.length > 0 ? `(${selectedFhrs.length}/${total} loaded)` : '';
             const countEl = document.getElementById('fhr-loaded-count');
-            if (countEl && selectedFhrs.length > 0) {
-                const total = document.querySelectorAll('#fhr-chips .chip:not(.unavailable)').length;
-                countEl.textContent = `(${selectedFhrs.length}/${total} loaded)`;
-            } else if (countEl) {
-                countEl.textContent = '';
-            }
+            if (countEl) countEl.textContent = countText;
+            const bottomCount = document.getElementById('loaded-count');
+            if (bottomCount) bottomCount.textContent = selectedFhrs.length > 0 ? `${selectedFhrs.length}/${total}` : '';
         }
 
         async function refreshLoadedStatus() {
