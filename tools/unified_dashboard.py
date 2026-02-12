@@ -2799,6 +2799,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .model-pill .model-dot.partial { background: var(--warning); }
         .model-pill.active .model-dot.loaded { background: #065f46; }
         .model-pill.active .model-dot.partial { background: #92400e; }
+        @keyframes dot-pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16,185,129,0.6); }
+            50% { transform: scale(1.6); box-shadow: 0 0 6px 2px rgba(16,185,129,0.3); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+        }
+        .model-pill .model-dot.dot-flash { animation: dot-pulse 0.5s ease-out; }
 
         /* ===== Quick Workflow Buttons ===== */
         .workflow-grid {
@@ -5144,8 +5150,16 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 (data.models || []).forEach(m => {
                     const dot = document.getElementById('model-dot-' + m.id);
                     if (dot) {
+                        const prev = dot.className;
                         const state = m.loaded_count > 0 ? (m.loaded_count >= 10 ? ' loaded' : ' partial') : '';
-                        dot.className = 'model-dot' + state;
+                        const next = 'model-dot' + state;
+                        if (next !== prev.replace(' dot-flash', '')) {
+                            dot.className = next;
+                            if (state === ' loaded') {
+                                dot.classList.add('dot-flash');
+                                dot.addEventListener('animationend', () => dot.classList.remove('dot-flash'), { once: true });
+                            }
+                        }
                     }
                 });
             }).catch(() => {});
@@ -6338,9 +6352,25 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             container.innerHTML = `<div style="color:var(--danger-light);text-align:center;padding:16px;"><div style="margin-bottom:8px;">${message}</div>${retryBtn}</div>`;
         }
 
+        let _memCurrent = 0, _memAnimFrame = null;
         function updateMemoryDisplay(memMb) {
-            document.getElementById('mem-text').textContent = `${Math.round(memMb)} MB`;
+            const target = Math.round(memMb);
+            const el = document.getElementById('mem-text');
             document.getElementById('mem-fill').style.width = `${Math.min(100, memMb / 500)}%`;
+            if (_memAnimFrame) cancelAnimationFrame(_memAnimFrame);
+            const start = _memCurrent, diff = target - start;
+            if (Math.abs(diff) < 2) { el.textContent = `${target} MB`; _memCurrent = target; return; }
+            const duration = Math.min(400, Math.abs(diff) * 2);
+            const t0 = performance.now();
+            function step(ts) {
+                const p = Math.min(1, (ts - t0) / duration);
+                const ease = 1 - Math.pow(1 - p, 3);
+                const v = Math.round(start + diff * ease);
+                el.textContent = `${v} MB`;
+                if (p < 1) _memAnimFrame = requestAnimationFrame(step);
+                else { _memCurrent = target; _memAnimFrame = null; }
+            }
+            _memAnimFrame = requestAnimationFrame(step);
         }
 
         // =========================================================================
@@ -7955,9 +7985,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         const _xsImgObserver = new MutationObserver(() => {
             const img = document.getElementById('xsect-img');
             if (img && xsZoom > 1) xsResetZoom();
-            document.getElementById('xsect-actions').style.display = img ? 'flex' : 'none';
+            const actions = document.getElementById('xsect-actions');
+            if (actions) actions.style.display = img ? 'flex' : 'none';
         });
-        _xsImgObserver.observe(document.getElementById('xsect-container'), { childList: true });
+        const _xsContainer = document.getElementById('xsect-container');
+        if (_xsContainer) _xsImgObserver.observe(_xsContainer, { childList: true });
 
         // =========================================================================
         // Cycle Comparison Mode
