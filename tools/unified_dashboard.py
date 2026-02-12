@@ -2496,6 +2496,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
     <meta name="twitter:image" content="https://wxsection.com/og-preview.png">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230f172a'/><path d='M6 24 L16 6 L26 24' stroke='%2306d6a0' stroke-width='2.5' fill='none' stroke-linecap='round'/><line x1='8' y1='20' x2='24' y2='20' stroke='%234da6ff' stroke-width='1.5' stroke-dasharray='3,2'/></svg>">
     <link href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css" rel="stylesheet" />
+    <link href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.2/mapbox-gl-geocoder.css" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -3668,6 +3669,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .mapboxgl-popup-close-button:hover { color: #fff; background: transparent; }
         .mapboxgl-ctrl-attrib { font-size: 10px !important; background: rgba(0,0,0,0.5) !important; }
         .mapboxgl-ctrl-attrib a { color: #94a3b8 !important; }
+        .mapboxgl-ctrl-geocoder { background: rgba(15, 23, 42, 0.9) !important; color: var(--text) !important; border: 1px solid var(--border) !important; border-radius: 8px !important; backdrop-filter: blur(8px); }
+        .mapboxgl-ctrl-geocoder input { color: var(--text) !important; }
+        .mapboxgl-ctrl-geocoder .suggestions { background: rgba(15, 23, 42, 0.95) !important; border: 1px solid var(--border) !important; }
+        .mapboxgl-ctrl-geocoder .suggestions li a { color: var(--text) !important; }
+        .mapboxgl-ctrl-geocoder .suggestions li a:hover, .mapboxgl-ctrl-geocoder .suggestions .active a { background: rgba(14, 165, 233, 0.15) !important; }
+        .mapboxgl-ctrl-geocoder .mapboxgl-ctrl-geocoder--icon-search { fill: var(--muted) !important; }
 
         /* ===== Draw-mode feedback ===== */
         .draw-mode .mapboxgl-canvas-container { cursor: crosshair !important; }
@@ -4488,6 +4495,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         </div>
     </div>
     <script src="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.js"></script>
+    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.2/mapbox-gl-geocoder.min.js"></script>
     <script>
         const styles = ''' + json.dumps(XSECT_STYLES) + ''';
         const styleGroups = ''' + json.dumps([(g, [(k, l, d) for k, l, d in items]) for g, items in XSECT_STYLE_GROUPS]) + ''';
@@ -5016,6 +5024,18 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             projection: 'mercator',
         });
         map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        // Geocoder search
+        if (typeof MapboxGeocoder !== 'undefined') {
+            const geocoder = new MapboxGeocoder({
+                accessToken: mapboxgl.accessToken,
+                mapboxgl: mapboxgl,
+                placeholder: 'Search location...',
+                collapsed: true,
+                marker: false,
+                bbox: [-170, 15, -50, 75], // CONUS + AK/HI
+            });
+            map.addControl(geocoder, 'top-left');
+        }
 
         // Map cursor coordinate readout
         const coordsEl = document.getElementById('map-coords');
@@ -8081,6 +8101,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 { label: 'Add POI marker', icon: '+', action: () => addPoi(lat, lng) },
                 null, // divider
                 { label: 'Copy coords', icon: '\u00b7', action: () => { navigator.clipboard.writeText(lat.toFixed(5) + ', ' + lng.toFixed(5)).then(() => showToast('Coordinates copied', 'success')); } },
+                { label: 'Center map here', icon: '\u2316', action: () => map.flyTo({ center: [lng, lat], duration: 800 }) },
+                { label: 'Zoom in here', icon: '\u2295', action: () => map.flyTo({ center: [lng, lat], zoom: Math.min(map.getZoom() + 3, 12), duration: 800 }) },
             ];
             items.forEach(item => {
                 if (!item) {
