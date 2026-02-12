@@ -2882,6 +2882,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
         .btn-sm { padding: 3px 8px; font-size: 12px; }
         .btn-xs { padding: 2px 6px; font-size: 11px; }
+        .input-xs {
+            width: 50px; padding: 2px 4px; font-size: 11px;
+            background: var(--bg); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); color: var(--text);
+        }
 
         /* ===== Layout: Icon Sidebar + Expanded Panel + Map + Bottom Panel ===== */
         #app-layout {
@@ -4416,8 +4421,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                             <option value="0.5" selected>0.5x</option>
                             <option value="0.25">0.25x</option>
                         </select>
-                        <input id="gif-fhr-min" type="number" placeholder="F start" title="GIF start FHR" aria-label="GIF start forecast hour" style="width:50px;padding:2px 4px;font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);">
-                        <input id="gif-fhr-max" type="number" placeholder="F end" title="GIF end FHR" aria-label="GIF end forecast hour" style="width:50px;padding:2px 4px;font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);">
+                        <input id="gif-fhr-min" type="number" placeholder="F start" title="GIF start FHR" aria-label="GIF start forecast hour" class="input-xs">
+                        <input id="gif-fhr-max" type="number" placeholder="F end" title="GIF end FHR" aria-label="GIF end forecast hour" class="input-xs">
                     </div>
                     <div class="ctrl-row">
                         <select id="multi-panel-mode" title="Multi-panel comparison" style="font-size:11px;padding:2px 4px;flex:1;">
@@ -4646,7 +4651,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         </div>
                         <div id="mp-temporal-controls" class="mp-mode-section" style="display:none;">
                             <label style="font-size:11px;color:var(--muted);">FHRs:</label>
-                            <input id="mp-fhrs-input" type="text" placeholder="e.g. 0,6,12" style="width:100px;padding:2px 6px;font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);">
+                            <input id="mp-fhrs-input" type="text" placeholder="e.g. 0,6,12" class="input-xs" style="width:100px;padding:2px 6px;">
                             <button id="mp-temporal-go" style="padding:2px 8px;font-size:11px;">Go</button>
                         </div>
                         <div id="mp-product-controls" class="mp-mode-section" style="display:none;">
