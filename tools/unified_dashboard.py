@@ -3781,7 +3781,6 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .product-picker-btn .pp-label { flex: 1; text-align: left; }
         .product-picker-btn .pp-arrow { font-size: 8px; color: var(--muted); }
         .product-picker-dropdown {
-            display: none;
             position: absolute;
             top: calc(100% + 4px);
             left: 0;
@@ -3796,12 +3795,15 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             padding: 6px;
             scrollbar-width: thin;
             scrollbar-color: rgba(255,255,255,0.1) transparent;
+            opacity: 0; visibility: hidden; pointer-events: none;
+            transform: translateY(-4px);
+            transition: opacity 0.15s ease, visibility 0.15s ease, transform 0.15s ease;
         }
         .product-picker-dropdown::-webkit-scrollbar { width: 4px; }
         .product-picker-dropdown::-webkit-scrollbar-track { background: transparent; }
         .product-picker-dropdown::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
         .product-picker-dropdown::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
-        .product-picker-dropdown.open { display: block; }
+        .product-picker-dropdown.open { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); }
         .pp-group-label {
             font-size: 10px;
             font-weight: 600;
