@@ -14,6 +14,7 @@ import argparse
 import json
 import logging
 import os
+import subprocess
 import sys
 import time
 import io
@@ -36,6 +37,18 @@ from core.map_overlay import MapOverlayEngine, OVERLAY_FIELDS, get_colormap_lut,
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s | %(levelname)s | %(message)s')
 logger = logging.getLogger(__name__)
+
+# Git version info (captured once at startup)
+def _get_git_version():
+    try:
+        _dir = str(Path(__file__).resolve().parent.parent)
+        commit = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'],
+                                          cwd=_dir, stderr=subprocess.DEVNULL).decode().strip()
+        return commit
+    except Exception:
+        return 'unknown'
+
+GIT_COMMIT = _get_git_version()
 
 app = Flask(__name__)
 
@@ -3891,6 +3904,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     </div>
                     <div style="font-size:11px;color:var(--muted);margin-top:4px;">
                         Use "Top" if your browser has a bottom URL bar (e.g. Safari on iPhone).
+                    </div>
+                </div>
+                <div class="ctrl-section" style="margin-top:auto;">
+                    <div style="font-size:10px;color:var(--muted);text-align:center;line-height:1.6;padding-top:8px;border-top:1px solid var(--border);">
+                        <b style="color:var(--accent);">wxsection.com</b><br>
+                        6 models &middot; 20 products &middot; sub-second renders<br>
+                        <span id="version-info"></span>
                     </div>
                 </div>
             </div>
@@ -8862,6 +8882,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         loadCityMarkers();
         loadEventMarkers().then(() => populateEventCategories());
 
+        // Fetch version info
+        fetch('/api/v1/status').then(r => r.json()).then(d => {
+            const el = document.getElementById('version-info');
+            if (el && d.version) el.textContent = 'Build ' + d.version;
+        }).catch(() => {});
+
         // Mobile: start with sidebar collapsed so map is visible
         if (isMobile) {
             expandedPanel.classList.add('collapsed');
@@ -10324,6 +10350,7 @@ def api_v1_status():
         'loaded_count': len(mgr.loaded_items),
         'memory_mb': round(mem_mb, 0),
         'latest_cycle': latest,
+        'version': GIT_COMMIT,
     })
 
 
