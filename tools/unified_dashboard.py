@@ -2760,6 +2760,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .api-links a { color: var(--accent); text-decoration: none; }
         .api-links a:hover { text-decoration: underline; }
         .cycle-age { font-size: 10px; color: var(--muted); white-space: nowrap; min-width: 40px; text-align: right; transition: color var(--transition-default); }
+        .slider-label { font-size: 11px; color: var(--muted); min-width: 110px; text-align: center; white-space: nowrap; }
+        .frame-counter { font-size: 10px; color: var(--muted); min-width: 50px; text-align: center; display: none; }
+        .context-hint { padding: 0 16px 3px; font-size: 9px; color: var(--muted); opacity: 0.6; text-align: center; display: none; }
+        .playback-btn { padding: 3px 6px; font-size: 12px; min-width: 28px; }
+        .play-btn { padding: 3px 8px; font-size: 14px; min-width: 32px; }
         /* Map HUD */
         .map-hud {
             position: absolute; top: 10px; left: 10px; z-index: var(--z-map-hud);
@@ -4842,25 +4847,25 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     <!-- Slider row -->
                     <div id="slider-row">
                         <div role="group" aria-label="Playback controls" style="display:contents;">
-                        <button id="prev-btn" title="Previous frame (Left / J)" aria-label="Previous frame" style="padding:3px 6px;font-size:12px;min-width:28px;">&#9664;<span class="kbd-hint">&#8592;</span></button>
-                        <button id="play-btn" title="Auto-play (Space)" aria-label="Play" style="padding:3px 8px;font-size:14px;min-width:32px;">&#9654;<span class="kbd-hint">Spc</span></button>
-                        <button id="next-btn" title="Next frame (Right / K)" aria-label="Next frame" style="padding:3px 6px;font-size:12px;min-width:28px;">&#9654;<span class="kbd-hint">&#8594;</span></button>
+                        <button id="prev-btn" class="playback-btn" title="Previous frame (Left / J)" aria-label="Previous frame">&#9664;<span class="kbd-hint">&#8592;</span></button>
+                        <button id="play-btn" class="play-btn" title="Auto-play (Space)" aria-label="Play">&#9654;<span class="kbd-hint">Spc</span></button>
+                        <button id="next-btn" class="playback-btn" title="Next frame (Right / K)" aria-label="Next frame">&#9654;<span class="kbd-hint">&#8594;</span></button>
                         </div>
                         <div id="fhr-slider-wrap">
                             <input type="range" id="fhr-slider" min="0" max="18" value="0" aria-label="Forecast hour slider">
                             <div id="fhr-ticks"></div>
                         </div>
-                        <span id="slider-label" style="font-size:11px;color:var(--muted);min-width:110px;text-align:center;white-space:nowrap;">F00</span>
-                        <span id="frame-counter" style="font-size:10px;color:var(--muted);min-width:50px;text-align:center;display:none;"></span>
+                        <span id="slider-label" class="slider-label">F00</span>
+                        <span id="frame-counter" class="frame-counter"></span>
                         <select id="play-speed" title="Playback speed" aria-label="Playback speed" style="min-width:50px;font-size:11px;">
                             <option value="2000">0.5x</option>
                             <option value="1000" selected>1x</option>
                             <option value="500">2x</option>
                             <option value="250">4x</option>
                         </select>
-                        <button id="prerender-btn" title="Pre-render all FHR frames for instant playback" aria-label="Pre-render frames" style="padding:3px 6px;font-size:11px;">Pre-render</button>
+                        <button id="prerender-btn" class="playback-btn" title="Pre-render all FHR frames for instant playback" aria-label="Pre-render frames" style="font-size:11px;">Pre-render</button>
                     </div>
-                    <div id="context-hint" style="padding:0 16px 3px;font-size:9px;color:var(--muted);opacity:0.6;text-align:center;display:none;"></div>
+                    <div id="context-hint" class="context-hint"></div>
                     <!-- Compare controls -->
                     <div id="compare-controls">
                         <label style="font-size:12px;color:var(--muted);">vs</label>
