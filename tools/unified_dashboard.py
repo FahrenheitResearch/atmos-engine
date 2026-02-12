@@ -2486,6 +2486,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
     <meta property="og:description" content="Draw a line on the map, get an instant vertical cross-section from HRRR, GFS, RRFS, NAM, RAP, or NAM-Nest. 21 products, 6 models, sub-second rendering.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://wxsection.com">
+    <meta property="og:image" content="https://wxsection.com/og-preview.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="wxsection.com — Real-Time Atmospheric Cross-Sections">
+    <meta name="twitter:description" content="Draw a line on the map, get an instant vertical cross-section from HRRR, GFS, RRFS, NAM, RAP, or NAM-Nest. 21 products, 6 models, sub-second rendering.">
+    <meta name="twitter:image" content="https://wxsection.com/og-preview.png">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230f172a'/><path d='M6 24 L16 6 L26 24' stroke='%2306d6a0' stroke-width='2.5' fill='none' stroke-linecap='round'/><line x1='8' y1='20' x2='24' y2='20' stroke='%234da6ff' stroke-width='1.5' stroke-dasharray='3,2'/></svg>">
     <link href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -6326,6 +6333,46 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             updateSliderVisibility();
         }
 
+        // FHR thumbnail hover preview
+        const fhrThumbCache = {};
+        let fhrThumbTimer = null;
+        let fhrThumbEl = null;
+
+        function showFhrThumb(chip, fhr) {
+            if (!startMarker || !endMarker) return;
+            const s = startMarker.getLngLat();
+            const e_m = endMarker.getLngLat();
+            const style = document.getElementById('style-select')?.value || 'temp';
+            const yAxis = currentYAxis || 'pressure';
+            const cacheKey = `${currentModel}:${currentCycle}:${fhr}:${style}:${yAxis}`;
+            const showImg = (url) => {
+                if (!fhrThumbEl) {
+                    fhrThumbEl = document.createElement('div');
+                    fhrThumbEl.id = 'fhr-thumb';
+                    fhrThumbEl.style.cssText = 'position:fixed;z-index:9999;pointer-events:none;border-radius:8px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.7);border:1px solid var(--border);background:var(--panel);transition:opacity 0.15s;';
+                    document.body.appendChild(fhrThumbEl);
+                }
+                const rect = chip.getBoundingClientRect();
+                fhrThumbEl.innerHTML = `<img src="${url}" style="display:block;width:320px;height:auto;">` +
+                    `<div style="position:absolute;bottom:0;left:0;right:0;padding:3px 8px;background:rgba(15,23,42,0.85);font-size:10px;color:var(--muted);">F${String(fhr).padStart(2,'0')} ${formatValidTime(fhr)||''}</div>`;
+                fhrThumbEl.style.left = Math.min(rect.left, window.innerWidth - 340) + 'px';
+                fhrThumbEl.style.bottom = (window.innerHeight - rect.top + 6) + 'px';
+                fhrThumbEl.style.opacity = '1';
+            };
+            if (fhrThumbCache[cacheKey]) { showImg(fhrThumbCache[cacheKey]); return; }
+            const url = `/api/xsect?start=${s.lat},${s.lng}&end=${e_m.lat},${e_m.lng}&style=${style}&fhr=${fhr}&cycle=${currentCycle}&y_axis=${yAxis}${modelParam()}`;
+            fetch(url).then(r => r.blob()).then(blob => {
+                const objUrl = URL.createObjectURL(blob);
+                fhrThumbCache[cacheKey] = objUrl;
+                showImg(objUrl);
+            }).catch(() => {});
+        }
+
+        function hideFhrThumb() {
+            if (fhrThumbTimer) { clearTimeout(fhrThumbTimer); fhrThumbTimer = null; }
+            if (fhrThumbEl) { fhrThumbEl.style.opacity = '0'; setTimeout(() => { if (fhrThumbEl) fhrThumbEl.innerHTML = ''; }, 200); }
+        }
+
         function createFhrChip(fhr, availableFhrs) {
             const chip = document.createElement('div');
             chip.className = 'chip';
@@ -6341,14 +6388,19 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 // Set visual state based on loaded/active
                 if (fhr === activeFhr) {
                     chip.classList.add('active');
-                    chip.title = `${fhrLabel(fhr)}${vtSuffix} — Currently viewing (Shift+click to unload)`;
                 } else if (selectedFhrs.includes(fhr)) {
                     chip.classList.add('loaded');
-                    chip.title = `${fhrLabel(fhr)}${vtSuffix} — Loaded in RAM, click for instant view (Shift+click to unload)`;
                 } else {
-                    chip.title = `${fhrLabel(fhr)}${vtSuffix} — Click to load (~15s)`;
+                    // not loaded — no thumbnail on hover
                 }
                 chip.onclick = (e) => handleChipClick(fhr, chip, e);
+                // FHR thumbnail hover for loaded chips
+                if (selectedFhrs.includes(fhr)) {
+                    chip.addEventListener('mouseenter', () => {
+                        fhrThumbTimer = setTimeout(() => showFhrThumb(chip, fhr), 300);
+                    });
+                    chip.addEventListener('mouseleave', hideFhrThumb);
+                }
             }
             return chip;
         }
@@ -9264,6 +9316,47 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                       const idx = parseInt(e.key) - 1;
                       if (idx < pills.length) pills[idx].click(); }
                     break;
+                case '[':
+                case ']':
+                    { // Cycle through products
+                      const sel = document.getElementById('style-select');
+                      if (sel) {
+                          const opts = [...sel.options].filter(o => !o.disabled);
+                          const curIdx = opts.findIndex(o => o.value === sel.value);
+                          const dir = e.key === ']' ? 1 : -1;
+                          const nextIdx = (curIdx + dir + opts.length) % opts.length;
+                          sel.value = opts[nextIdx].value;
+                          sel.dispatchEvent(new Event('change'));
+                      } }
+                    break;
+                case 'a':
+                    { // Toggle anomaly mode
+                      const anomSel = document.getElementById('anomaly-select');
+                      if (anomSel) {
+                          anomSel.value = anomSel.value === 'none' ? 'climo' : 'none';
+                          anomSel.dispatchEvent(new Event('change'));
+                      } }
+                    break;
+                case 'y':
+                    { // Cycle y-axis: pressure → height → isentropic
+                      const axes = ['pressure', 'height', 'isentropic'];
+                      const cur = axes.indexOf(currentYAxis || 'pressure');
+                      const next = (cur + 1) % axes.length;
+                      setYAxis(axes[next]);
+                    }
+                    break;
+                case 'f':
+                    { // Toggle fullscreen cross-section view
+                      const xsImg = document.getElementById('xsect-img');
+                      if (xsImg && xsImg.src) {
+                          if (document.fullscreenElement) {
+                              document.exitFullscreen();
+                          } else {
+                              const container = xsImg.closest('.relative') || xsImg.parentElement;
+                              if (container) container.requestFullscreen?.();
+                          }
+                      } }
+                    break;
             }
         });
 
@@ -9283,11 +9376,15 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 '<kbd style="' + kbd + '">End</kbd><span style="color:var(--muted);">Last FHR</span>' +
                 '<kbd style="' + kbd + '">Space</kbd><span style="color:var(--muted);">Play / Pause</span>' +
                 '<div style="grid-column:1/-1;font-size:10px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-top:6px;">Actions</div>' +
+                '<kbd style="' + kbd + '">[ / ]</kbd><span style="color:var(--muted);">Previous / Next product</span>' +
                 '<kbd style="' + kbd + '">1-6</kbd><span style="color:var(--muted);">Switch model (HRRR..NAM-Nest)</span>' +
+                '<kbd style="' + kbd + '">y</kbd><span style="color:var(--muted);">Cycle y-axis (pressure/height/\\u03b8)</span>' +
+                '<kbd style="' + kbd + '">a</kbd><span style="color:var(--muted);">Toggle anomaly mode</span>' +
                 '<kbd style="' + kbd + '">o</kbd><span style="color:var(--muted);">Toggle map overlay</span>' +
                 '<kbd style="' + kbd + '">c</kbd><span style="color:var(--muted);">Compare mode</span>' +
                 '<kbd style="' + kbd + '">s</kbd><span style="color:var(--muted);">Swap endpoints</span>' +
-                '<kbd style="' + kbd + '">Esc</kbd><span style="color:var(--muted);">Clear line</span>' +
+                '<kbd style="' + kbd + '">f</kbd><span style="color:var(--muted);">Fullscreen cross-section</span>' +
+                '<kbd style="' + kbd + '">Esc</kbd><span style="color:var(--muted);">Clear line / exit fullscreen</span>' +
                 '<kbd style="' + kbd + '">?</kbd><span style="color:var(--muted);">Toggle this help</span>' +
                 '</div>' +
                 '<div style="margin-top:12px;font-size:10px;color:var(--muted);text-align:center;">Click anywhere to close</div>';
@@ -9392,6 +9489,65 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 @app.route('/')
 def index():
     return HTML_TEMPLATE.replace('%%MAPBOX_TOKEN%%', MAPBOX_TOKEN)
+
+_og_preview_cache = None
+
+@app.route('/og-preview.png')
+def og_preview():
+    """Generate a branded OG preview image (1200x630) for social sharing."""
+    global _og_preview_cache
+    if _og_preview_cache is not None:
+        return send_file(io.BytesIO(_og_preview_cache), mimetype='image/png',
+                         max_age=86400)
+    try:
+        from matplotlib.figure import Figure
+        import matplotlib.colors as mcolors
+        fig = Figure(figsize=(12, 6.3), dpi=100, facecolor='#0f172a')
+        ax = fig.add_axes([0, 0, 1, 1])
+        ax.set_facecolor('#0f172a')
+        ax.set_xlim(0, 12)
+        ax.set_ylim(0, 6.3)
+        ax.axis('off')
+        # Simulated cross-section background gradient
+        import numpy as np
+        x_bg = np.linspace(0, 12, 200)
+        y_bg = np.linspace(0, 6.3, 100)
+        X_bg, Y_bg = np.meshgrid(x_bg, y_bg)
+        Z_bg = np.sin(X_bg * 0.5) * np.cos(Y_bg * 0.8) * 0.5 + Y_bg * 0.3
+        cs_cmap = mcolors.LinearSegmentedColormap.from_list('og',
+            ['#1e3a5f', '#2563eb', '#06d6a0', '#f59e0b', '#ef4444'], N=256)
+        ax.contourf(X_bg, Y_bg, Z_bg, levels=20, cmap=cs_cmap, alpha=0.3)
+        # Cross-section line
+        xs_x = [2, 10]
+        xs_y = [4.5, 4.5]
+        ax.plot(xs_x, xs_y, color='#ef4444', linewidth=2, linestyle='--', alpha=0.8)
+        ax.plot([2], [4.5], 'o', color='#ef4444', markersize=8)
+        ax.plot([10], [4.5], 'o', color='#ef4444', markersize=8)
+        # Title text
+        ax.text(6, 3.8, 'wxsection.com', fontsize=42, fontweight='bold',
+                color='#f1f5f9', ha='center', va='center',
+                fontfamily='sans-serif')
+        ax.text(6, 2.8, 'Real-Time Atmospheric Cross-Sections',
+                fontsize=18, color='#94a3b8', ha='center', va='center',
+                fontfamily='sans-serif')
+        ax.text(6, 1.8, '6 NWP Models  \u00b7  21 Products  \u00b7  0.5s Render',
+                fontsize=14, color='#06d6a0', ha='center', va='center',
+                fontfamily='sans-serif', fontweight='500')
+        ax.text(6, 1.0, 'HRRR  \u00b7  GFS  \u00b7  RRFS  \u00b7  NAM  \u00b7  RAP  \u00b7  NAM-Nest',
+                fontsize=11, color='#64748b', ha='center', va='center',
+                fontfamily='sans-serif')
+        buf = io.BytesIO()
+        fig.savefig(buf, format='png', dpi=100, bbox_inches='tight',
+                    pad_inches=0, facecolor='#0f172a')
+        fig.clear()
+        del fig
+        buf.seek(0)
+        _og_preview_cache = buf.getvalue()
+        return send_file(io.BytesIO(_og_preview_cache), mimetype='image/png',
+                         max_age=86400)
+    except Exception as e:
+        logger.error(f"OG preview generation failed: {e}")
+        abort(500)
 
 @app.route('/api/models')
 def api_models():

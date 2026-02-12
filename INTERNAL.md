@@ -19,25 +19,25 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 | `core/map_overlay.py` | ~1,133 | Map overlay rendering. Reprojection (KDTree for curvilinear, bilinear for GFS), composite assembly (fill + contours + barbs), PNG/binary output |
 | `model_config.py` | ~320 | Model registry. 6 models (HRRR/GFS/RRFS/NAM/RAP/NAM-Nest) metadata, grid specs, download URLs, forecast hour lists |
 
-### Server + UI (1 file, ~12,670 lines)
+### Server + UI (1 file, ~12,870 lines)
 
 | File | Lines | What It Does |
 |------|-------|-------------|
-| `tools/unified_dashboard.py` | ~12,670 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 57 API endpoints (34 v1 + 23 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects |
+| `tools/unified_dashboard.py` | ~12,870 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 57 API endpoints (34 v1 + 23 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects, og:image preview, FHR hover thumbnails |
 
 **Key sections in unified_dashboard.py:**
 - Lines 1-1031: Imports, constants, overlay cache, helper functions, model config dicts
 - Lines 1032-1253: `CrossSectionManager` class — init, config, model management
 - Lines 1254-1720: `scan_available_cycles()`, `preload_latest_cycles()`, loading logic
 - Lines 1721-2477: `auto_load_latest()`, orchestration, prerender hooks
-- Lines 2478-9345: HTML template (inline, ~6,868 lines) — the entire frontend
+- Lines 2478-9483: HTML template (inline, ~7,006 lines) — the entire frontend
   - CSS (~1,200 lines): Inter font, model pills, workflow grid, product picker, map HUD, dark theme with cyan accents, loading spinners
   - HTML body (~950 lines): icon sidebar (48px) + expanded panel (400px) + map + bottom slide-up
   - Mapbox GL JS map init + overlay controller (~2,100 lines): starts ~line 4500, double-buffered swap with 8s timeout
-  - Frontend JS (~2,500 lines): model pills, FHR slider, visual product picker, keyboard shortcuts, URL state, GIF, events, cities, transect presets, quick-start, guide modal, recent transects
-- Lines 9351: Flask route `/` — serves HTML with token injection
-- Lines 9351-12534: All API route handlers (57 endpoints)
-- Lines 12535-12669: Startup — argument parsing, preload, rescan thread, server launch
+  - Frontend JS (~2,700 lines): model pills, FHR slider, FHR hover thumbnails, visual product picker, keyboard shortcuts (18 bindings), URL state, user preference persistence, GIF, events, cities, transect presets, quick-start, guide modal, recent transects
+- Lines 9485: Flask routes start — `/` serves HTML with token injection
+- Lines 9485-12730: All API route handlers (57 endpoints + og-preview)
+- Lines 12732-12866: Startup — argument parsing, preload, rescan thread, server launch
 
 ### Download System (2 files, ~1,240 lines)
 
@@ -268,17 +268,24 @@ Shows model name, active product badge (with colormap chip), and FHR with valid 
 ### Playback Frame Counter
 During animation playback, shows frame position (e.g., "3/48") next to the slider. Play button toggles between play and pause icons with matching tooltip text.
 
-### Keyboard Shortcuts
+### Keyboard Shortcuts (18 bindings)
 - Left/Right arrow (J/K): step FHR
 - Space: play/pause
+- Home/End: first/last FHR
+- [ / ]: previous/next product
 - 1-6: switch models (HRRR, GFS, RRFS, NAM, RAP, NAM-Nest)
+- Y: cycle y-axis (pressure/height/isentropic)
+- A: toggle anomaly mode
 - O: toggle map overlay
 - C: compare mode
 - S: swap A/B endpoints
-- Home/End: first/last FHR
-- Esc: clear cross-section line
-- ?: show shortcuts help
+- F: fullscreen cross-section
+- Esc: clear cross-section line / exit fullscreen
+- ?: show shortcuts help modal
 All action buttons include keyboard shortcut hints in their tooltips.
+
+### FHR Hover Thumbnails
+When hovering over a loaded (green) FHR chip for 300ms, a thumbnail preview of the cross-section at that forecast hour appears above the chip. Uses the existing frame cache for instant response. Thumbnails are cached as blob URLs client-side to avoid redundant fetches. Only triggers for loaded FHRs with an active cross-section line.
 
 ### Onboarding Landing Panel
 Visual 1-2-3 step guide ("Click A → Click B → Explore") with numbered circles. Includes 6 quick-start transect buttons and live cycle info.
@@ -307,6 +314,12 @@ Last 5 cross-section transects saved to localStorage with dedup. Shows clickable
 ### Share & Save Buttons
 - Share: copies current URL (with all state) to clipboard
 - Save: downloads current cross-section PNG with descriptive filename
+
+### Social Sharing / OG Preview
+Full Open Graph + Twitter Card meta tags. Server-generated 1200x630 OG preview image at `/og-preview.png` (matplotlib-rendered, cached in memory after first request). Shows branded atmospheric contour background with cross-section line motif, site name, tagline, and model list.
+
+### User Preference Persistence
+Saves user choices to `localStorage` under `wxs-prefs` key: style, model, basemap, y_axis, y_top, units. Restored on next visit, but URL state always takes priority. Implemented via function patching on `switchModel()` and `setYAxis()` plus change listeners on select elements.
 
 ### Accessibility
 All interactive controls have `aria-label` attributes: playback buttons, FHR slider, overlay toggles/selects, search inputs, GIF controls, event filter, toolbar buttons. Product picker has `role="listbox"` with `role="option"` items and full keyboard navigation.
