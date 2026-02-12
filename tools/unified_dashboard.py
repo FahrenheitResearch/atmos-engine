@@ -11045,6 +11045,23 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 case 'm':
                     toggleMeasure();
                     break;
+                case 'O':
+                    // Shift+O: toggle overlay loop
+                    document.getElementById('overlay-loop')?.click();
+                    break;
+                case '{':
+                case '}':
+                    { // Cycle overlay product (Shift+[ / Shift+])
+                      const oSel = document.getElementById('overlay-composite');
+                      if (oSel) {
+                          const opts = [...oSel.options];
+                          const curIdx = opts.findIndex(o => o.value === oSel.value);
+                          const dir = e.key === '}' ? 1 : -1;
+                          const nextIdx = (curIdx + dir + opts.length) % opts.length;
+                          oSel.value = opts[nextIdx].value;
+                          oSel.dispatchEvent(new Event('change'));
+                      } }
+                    break;
             }
         });
 
@@ -11069,6 +11086,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 '<kbd style="' + kbd + '">1-6</kbd><span style="color:var(--muted);">Switch model (HRRR..NAM-Nest)</span>' +
                 '<kbd style="' + kbd + '">y</kbd><span style="color:var(--muted);">Cycle y-axis (pressure/height/\\u03b8)</span>' +
                 '<kbd style="' + kbd + '">o</kbd><span style="color:var(--muted);">Toggle map overlay</span>' +
+                '<kbd style="' + kbd + '">O</kbd><span style="color:var(--muted);">Toggle overlay loop</span>' +
+                '<kbd style="' + kbd + '">{ / }</kbd><span style="color:var(--muted);">Cycle overlay product</span>' +
                 '<kbd style="' + kbd + '">c</kbd><span style="color:var(--muted);">Compare mode</span>' +
                 '<kbd style="' + kbd + '">s</kbd><span style="color:var(--muted);">Swap endpoints</span>' +
                 '<kbd style="' + kbd + '">f</kbd><span style="color:var(--muted);">Fullscreen cross-section</span>' +
@@ -11120,6 +11139,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             if (params.has('cycle')) state.cycle = params.get('cycle');
             if (params.has('y_axis')) state.y_axis = params.get('y_axis');
             if (params.has('anomaly')) state.anomaly = params.get('anomaly');
+            if (params.has('vscale')) state.vscale = params.get('vscale');
+            if (params.has('ytop')) state.ytop = params.get('ytop');
+            if (params.has('units')) state.units = params.get('units');
             if (params.has('overlay')) state.overlay = params.get('overlay');
             if (params.has('overlay_product')) state.overlay_product = params.get('overlay_product');
             if (params.has('overlay_opacity')) state.overlay_opacity = parseInt(params.get('overlay_opacity'));
@@ -11141,6 +11163,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const cycle = document.getElementById('cycle-select')?.value;
             if (cycle) params.set('cycle', cycle);
             if (currentYAxis && currentYAxis !== 'pressure') params.set('y_axis', currentYAxis);
+            const vscale = document.getElementById('vscale-select')?.value;
+            if (vscale && vscale !== '1') params.set('vscale', vscale);
+            const ytop = document.getElementById('ytop-select')?.value;
+            if (ytop && ytop !== '100') params.set('ytop', ytop);
+            const units = document.getElementById('units-select')?.value;
+            if (units && units !== 'default') params.set('units', units);
             if (anomalyMode) params.set('anomaly', '1');
             const overlayOn = document.getElementById('overlay-on')?.classList.contains('active');
             if (overlayOn) {
@@ -11172,8 +11200,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             }
             const yAxis = state.y_axis || prefs.y_axis;
             if (yAxis && ['pressure','height','isentropic'].includes(yAxis)) setYAxis(yAxis);
-            if (prefs.y_top) { const el = document.getElementById('ytop-select'); if (el) el.value = prefs.y_top; }
-            if (prefs.units) { const el = document.getElementById('units-select'); if (el) el.value = prefs.units; }
+            const yt = state.ytop || prefs.y_top;
+            if (yt) { const el = document.getElementById('ytop-select'); if (el) el.value = yt; }
+            const un = state.units || prefs.units;
+            if (un) { const el = document.getElementById('units-select'); if (el) el.value = un; }
+            if (state.vscale) { const el = document.getElementById('vscale-select'); if (el) el.value = state.vscale; }
             if (state.anomaly === '1') {
                 anomalyMode = true;
                 const anomSel = document.getElementById('anomaly-select');
