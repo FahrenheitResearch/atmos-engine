@@ -2465,6 +2465,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>wxsection.com — Atmospheric Cross-Section Analysis</title>
+    <meta name="description" content="Instant atmospheric cross-sections from 6 NWP models. Draw a line on the map, get a vertical slice through the atmosphere in 0.5 seconds. Fire weather, wind, temperature, moisture, and 16 more products.">
+    <meta property="og:title" content="wxsection.com — Real-Time Atmospheric Cross-Sections">
+    <meta property="og:description" content="Draw a line on the map, get an instant vertical cross-section from HRRR, GFS, RRFS, NAM, RAP, or NAM-Nest. 20 products, 6 models, sub-second rendering.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://wxsection.com">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230f172a'/><path d='M6 24 L16 6 L26 24' stroke='%2306d6a0' stroke-width='2.5' fill='none' stroke-linecap='round'/><line x1='8' y1='20' x2='24' y2='20' stroke='%234da6ff' stroke-width='1.5' stroke-dasharray='3,2'/></svg>">
     <link href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -3987,10 +3993,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                                         Click two points on the map &mdash; or try a featured transect:
                                     </div>
                                     <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:16px;">
-                                        <button class="quick-start-btn" onclick="quickStart(39.7,-105.5,39.7,-104.0,'temperature')" title="See the dramatic terrain drop from the Rockies to Denver">Denver Front Range</button>
+                                        <button class="quick-start-btn" onclick="quickStart(39.7,-105.5,39.7,-104.0,'temperature')" title="Dramatic terrain drop from the Rockies to Denver">Denver Front Range</button>
                                         <button class="quick-start-btn" onclick="quickStart(45.70,-122.00,45.60,-121.50,'wind_speed')" title="Classic wind corridor through the Columbia Gorge">Columbia Gorge</button>
                                         <button class="quick-start-btn" onclick="quickStart(37.0,-121.0,37.0,-118.0,'fire_wx')" title="Cross the Sierra Nevada crest near Yosemite">Sierra Nevada</button>
                                         <button class="quick-start-btn" onclick="quickStart(35.0,-101.0,35.0,-97.0,'theta_e')" title="Southern Plains dryline boundary">Great Plains Dryline</button>
+                                        <button class="quick-start-btn" onclick="quickStart(44.0,-123.5,44.0,-121.0,'wind_speed')" title="McKenzie Pass corridor — critical Oregon fire weather terrain">Oregon Cascades</button>
+                                        <button class="quick-start-btn" onclick="quickStart(34.2,-118.8,34.2,-117.5,'rh')" title="Santa Ana wind corridor across LA metro">LA Basin</button>
                                     </div>
                                     <div style="font-size:11px;color:var(--muted);line-height:1.7;">
                                         <b style="color:var(--text);">6 models</b> &middot; HRRR 3km, GFS, RRFS, NAM, RAP, NAM-Nest<br>
