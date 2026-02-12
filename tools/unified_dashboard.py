@@ -2524,6 +2524,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             --success: #22c55e;
             --warning: #f59e0b;
             --danger: #f43f5e;
+            --danger-light: #f87171;
             --sidebar-icon-w: 48px;
             --sidebar-panel-w: 400px;
             --transition-fast: 0.12s;
@@ -2572,6 +2573,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             padding-bottom: 2px;
             scroll-behavior: smooth;
             -webkit-overflow-scrolling: touch;
+            scroll-snap-type: x proximity;
         }
         .chip-group::-webkit-scrollbar { height: 3px; }
         .chip-group::-webkit-scrollbar-track { background: transparent; }
@@ -2614,6 +2616,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             user-select: none;
             flex-shrink: 0;
             white-space: nowrap;
+            scroll-snap-align: start;
         }
         .chip:hover { border-color: var(--accent); color: var(--text); }
         .chip.loaded {
@@ -3851,6 +3854,14 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+        /* ===== Tablet (768-1024px) ===== */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            :root { --sidebar-panel-w: 340px; }
+            .chip { font-size: 10px; padding: 4px 7px; }
+            .toggle-btn { font-size: 12px; padding: 5px 10px; }
+            #xsect-panels img { max-height: 65vh; object-fit: contain; }
+        }
 
         /* ===== Mobile Responsive ===== */
         @media (max-width: 768px) {
@@ -9071,7 +9082,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             if (!startMarker || !endMarker || !currentCycle) return;
             const btn = document.getElementById('gif-btn');
             btn.disabled = true;
-            btn.textContent = 'GIF...';
+            // Estimate frame count for progress feedback
+            const sorted = [...selectedFhrs].sort((a, b) => a - b);
+            const fMin = parseInt(document.getElementById('gif-fhr-min').value) || sorted[0] || 0;
+            const fMax = parseInt(document.getElementById('gif-fhr-max').value) || sorted[sorted.length - 1] || 0;
+            const frameCount = sorted.filter(f => f >= fMin && f <= fMax).length || sorted.length;
+            btn.textContent = 'GIF ' + frameCount + 'f...';
             btn.style.animation = 'qs-pulse 1.5s ease-in-out infinite';
             const start = startMarker.getLatLng();
             const end = endMarker.getLatLng();
@@ -9108,7 +9124,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 a.click();
                 URL.revokeObjectURL(a.href);
                 const sizeMB = (blob.size / 1048576).toFixed(1);
-                showToast('GIF saved (' + sizeMB + ' MB, ' + elapsed + 's)', 'success');
+                showToast('GIF saved (' + frameCount + ' frames, ' + sizeMB + ' MB, ' + elapsed + 's)', 'success');
             } catch (err) {
                 showToast('GIF generation failed: ' + err.message, 'error');
             } finally {
