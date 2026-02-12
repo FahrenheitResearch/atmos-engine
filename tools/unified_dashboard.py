@@ -2548,6 +2548,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             height: 100vh;
             overflow: hidden;
         }
+        /* Focus-visible for keyboard accessibility */
+        :focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+        :focus:not(:focus-visible) { outline: none; }
         label { color: var(--muted); font-size: 12px; font-weight: 500; }
         select {
             background: var(--card);
@@ -4004,6 +4010,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
     </style>
 </head>
 <body>
+    <!-- Screen reader live region -->
+    <div id="sr-live" role="status" aria-live="polite" aria-atomic="true" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;"></div>
     <!-- ===== APP LAYOUT ===== -->
     <div id="app-layout">
 
@@ -4047,7 +4055,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     <div class="ctrl-row" style="margin-top:6px;">
                         <label>Run:</label>
                         <select id="cycle-select" style="font-size:12px;flex:1;"></select>
-                        <span id="cycle-age" style="font-size:10px;color:var(--muted);white-space:nowrap;min-width:40px;text-align:right;"></span>
+                        <span id="cycle-age" style="font-size:10px;color:var(--muted);white-space:nowrap;min-width:40px;text-align:right;transition:color var(--transition-default);"></span>
                     </div>
                 </div>
                 <div class="ctrl-section">
@@ -4433,9 +4441,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <div id="bottom-body">
                     <!-- Slider row -->
                     <div id="slider-row">
+                        <div role="group" aria-label="Playback controls" style="display:contents;">
                         <button id="prev-btn" title="Previous frame (Left / J)" aria-label="Previous frame" style="padding:3px 6px;font-size:12px;min-width:28px;">&#9664;<span class="kbd-hint">&#8592;</span></button>
                         <button id="play-btn" title="Auto-play (Space)" aria-label="Play" style="padding:3px 8px;font-size:14px;min-width:32px;">&#9654;<span class="kbd-hint">Spc</span></button>
                         <button id="next-btn" title="Next frame (Right / K)" aria-label="Next frame" style="padding:3px 6px;font-size:12px;min-width:28px;">&#9654;<span class="kbd-hint">&#8594;</span></button>
+                        </div>
                         <div id="fhr-slider-wrap">
                             <input type="range" id="fhr-slider" min="0" max="18" value="0" aria-label="Forecast hour slider">
                             <div id="fhr-ticks"></div>
@@ -6135,6 +6145,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const icon = type === 'loading' ? '\u23f3' : type === 'success' ? '\u2713' : type === 'info' ? '\u2139' : '\u2717';
             toast.innerHTML = `<span>${icon} ${message}</span>`;
             toast.onclick = () => dismissToast(toast);
+            // Announce to screen readers
+            const sr = document.getElementById('sr-live');
+            if (sr) sr.textContent = message;
             container.appendChild(toast);
 
             const autoMs = duration || { success: 3000, info: 5000, error: 8000, loading: 0 }[type] || 0;
