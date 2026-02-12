@@ -904,7 +904,9 @@ def _trigger_lazy_wrfnat_download(model_name: str, cycle_key: str, fhr: int):
     except (IndexError, ValueError):
         return False
 
-    outputs_dir = Path('outputs') / 'hrrr' / date_str / f"{hour:02d}z" / f"F{fhr:02d}"
+    _project_dir = Path(__file__).resolve().parent.parent
+    outputs_base = Path(os.environ.get('XSECT_OUTPUTS_DIR', str(_project_dir / 'outputs')))
+    outputs_dir = outputs_base / 'hrrr' / date_str / f"{hour:02d}z" / f"F{fhr:02d}"
     if not outputs_dir.exists():
         return False
 
@@ -996,7 +998,8 @@ class CrossSectionManager:
     def __init__(self, model_name: str = 'hrrr', mem_limit_mb: int = 48000, mem_evict_mb: int = 46000):
         self.model_name = model_name
         self.xsect = None
-        self.base_dir = Path(os.environ.get('XSECT_OUTPUTS_DIR', 'outputs')) / model_name
+        _project_dir = Path(__file__).resolve().parent.parent
+        self.base_dir = Path(os.environ.get('XSECT_OUTPUTS_DIR', str(_project_dir / 'outputs'))) / model_name
         self.available_cycles = []  # List of available cycles (metadata only)
         self.loaded_cycles = set()  # Cycle keys that are fully loaded
         self.loaded_items = []  # List of (cycle_key, fhr) currently in memory (ordered by load time = LRU)

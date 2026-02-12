@@ -45,6 +45,7 @@ grib_files/
 
 # Agent context (local only, not committed)
 AGENT_CONTEXT.md
+INTERNAL.md
 
 # Research / large generated content
 research/

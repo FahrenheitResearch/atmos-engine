@@ -41,7 +41,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 running = True
-OUTPUTS_BASE = Path(os.environ.get('XSECT_OUTPUTS_DIR', 'outputs'))
+_PROJECT_DIR = Path(__file__).resolve().parent.parent
+OUTPUTS_BASE = Path(os.environ.get('XSECT_OUTPUTS_DIR', str(_PROJECT_DIR / 'outputs')))
 import tempfile
 STATUS_FILE = Path(tempfile.gettempdir()) / "auto_update_status.json"
 

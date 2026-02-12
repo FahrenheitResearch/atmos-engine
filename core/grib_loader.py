@@ -7,7 +7,7 @@ import subprocess
 import numpy as np
 import xarray as xr
 import cfgrib
-import signal
+import threading
 
 
 def load_field(grib_file, field_name, field_config, model_name):
@@ -15,67 +15,68 @@ def load_field(grib_file, field_name, field_config, model_name):
     # Check if this field requires robust loading
     if field_config.get('requires_multi_dataset'):
         return load_field_data_robust(grib_file, field_name, field_config, model_name)
-    
+
     # Use original method for regular fields (keeps smoke working!)
     return load_field_data_original(grib_file, field_name, field_config)
 
 
+def _run_with_timeout(func, timeout_seconds):
+    """Run func() with a timeout. Returns (result, error) tuple.
+
+    Cross-platform replacement for signal.alarm() which is Unix-only.
+    """
+    result = [None]
+    error = [None]
+
+    def target():
+        try:
+            result[0] = func()
+        except Exception as e:
+            error[0] = e
+
+    t = threading.Thread(target=target, daemon=True)
+    t.start()
+    t.join(timeout=timeout_seconds)
+    if t.is_alive():
+        # Thread still running — treat as timeout (daemon thread will be cleaned up)
+        return None, TimeoutError(f"Loading operation timed out after {timeout_seconds}s")
+    return result[0], error[0]
+
+
 def load_field_data_robust(grib_file, field_name, field_config, model_name):
     """Robust field loading with multiple strategies"""
-    
-    def timeout_handler(signum, frame):
-        raise TimeoutError("Loading operation timed out")
-    
+
     # Strategy 1: wgrib2 extraction FIRST for multi-dataset fields (most reliable)
     if field_config.get('requires_multi_dataset') and field_config.get('wgrib2_pattern'):
-        try:
-            signal.signal(signal.SIGALRM, timeout_handler)
-            signal.alarm(30)  # 30 second timeout for wgrib2
-            
-            result = load_field_with_wgrib2(grib_file, field_config)
-            signal.alarm(0)  # Cancel timeout
-            
-            if result is not None:
-                print(f"✅ Loaded {field_name} with wgrib2 approach")
-                return _apply_data_transformations(result, field_config)
-        except (Exception, TimeoutError) as e:
-            signal.alarm(0)  # Cancel timeout
-            print(f"⚠️ wgrib2 approach failed for {field_name}: {e}")
-    
+        result, err = _run_with_timeout(
+            lambda: load_field_with_wgrib2(grib_file, field_config), 30)
+        if err:
+            print(f"wgrib2 approach failed for {field_name}: {err}")
+        elif result is not None:
+            print(f"Loaded {field_name} with wgrib2 approach")
+            return _apply_data_transformations(result, field_config)
+
     # Strategy 2: Try original single-dataset approach for non-multi-dataset fields
     if not field_config.get('requires_multi_dataset'):
-        try:
-            # Set timeout for single-dataset approach
-            signal.signal(signal.SIGALRM, timeout_handler)
-            signal.alarm(30)  # 30 second timeout
-            
-            result = load_field_data_original(grib_file, field_name, field_config)
-            signal.alarm(0)  # Cancel timeout
-            
-            if result is not None:
-                print(f"✅ Loaded {field_name} with single-dataset approach")
-                return _apply_data_transformations(result, field_config)
-        except (Exception, TimeoutError) as e:
-            signal.alarm(0)  # Cancel timeout
-            print(f"⚠️ Single-dataset approach failed for {field_name}: {e}")
-    
+        result, err = _run_with_timeout(
+            lambda: load_field_data_original(grib_file, field_name, field_config), 30)
+        if err:
+            print(f"Single-dataset approach failed for {field_name}: {err}")
+        elif result is not None:
+            print(f"Loaded {field_name} with single-dataset approach")
+            return _apply_data_transformations(result, field_config)
+
     # Strategy 3: Multi-dataset search (fallback for problematic cases)
     if field_config.get('requires_multi_dataset'):
-        try:
-            signal.signal(signal.SIGALRM, timeout_handler)
-            signal.alarm(60)  # 60 second timeout for multi-dataset
-            
-            result = load_field_data_multids(grib_file, field_name, field_config, model_name)
-            signal.alarm(0)  # Cancel timeout
-            
-            if result is not None:
-                print(f"✅ Loaded {field_name} with multi-dataset approach")
-                return _apply_data_transformations(result, field_config)
-        except (Exception, TimeoutError) as e:
-            signal.alarm(0)  # Cancel timeout
-            print(f"⚠️ Multi-dataset approach failed for {field_name}: {e}")
-    
-    print(f"❌ All strategies failed for {field_name}")
+        result, err = _run_with_timeout(
+            lambda: load_field_data_multids(grib_file, field_name, field_config, model_name), 60)
+        if err:
+            print(f"Multi-dataset approach failed for {field_name}: {err}")
+        elif result is not None:
+            print(f"Loaded {field_name} with multi-dataset approach")
+            return _apply_data_transformations(result, field_config)
+
+    print(f"All strategies failed for {field_name}")
     return None
 
 
