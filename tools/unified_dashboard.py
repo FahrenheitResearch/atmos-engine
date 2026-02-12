@@ -137,7 +137,7 @@ def load_votes():
         try:
             with open(VOTES_FILE) as f:
                 return json.load(f)
-        except:
+        except Exception:
             return {}
     return {}
 
@@ -153,7 +153,7 @@ def load_requests():
         try:
             with open(REQUESTS_FILE) as f:
                 return json.load(f)
-        except:
+        except Exception:
             return []
     return []
 
@@ -184,10 +184,10 @@ def load_favorites():
                     age_hours = (now - created).total_seconds() / 3600
                     if age_hours < 12 or fav.get('permanent', False):
                         cleaned.append(fav)
-                except:
+                except (ValueError, TypeError):
                     cleaned.append(fav)  # Keep if can't parse date
             return cleaned
-        except:
+        except Exception:
             return []
     return []
 
@@ -222,7 +222,7 @@ def load_disk_meta():
         try:
             with open(DISK_META_FILE) as f:
                 return json.load(f)
-        except:
+        except Exception:
             return {}
     return {}
 
@@ -9408,7 +9408,7 @@ def api_v1_comparison():
                     init_dt = datetime.strptime(f"{meta['init_date']}{meta['init_hour']}", "%Y%m%d%H")
                     valid_dt = init_dt + timedelta(hours=f)
                     pd['label'] = f'F{f:02d} (Valid {valid_dt.strftime("%HZ %b %d")})'
-                except:
+                except (ValueError, KeyError, TypeError):
                     pd['label'] = f'F{f:02d}'
                 panels.append(pd)
 
@@ -9465,7 +9465,7 @@ def api_v1_comparison():
                         this_init = this_cycle['init_dt']
                         hour_diff = int((base_init - this_init).total_seconds() / 3600)
                         this_fhr = fhr + hour_diff
-                    except:
+                    except (StopIteration, KeyError, TypeError):
                         pass
 
                 if not mgr.ensure_loaded(ck, this_fhr):
@@ -9477,7 +9477,7 @@ def api_v1_comparison():
                 try:
                     cycle_info = next(c for c in mgr.available_cycles if c['cycle_key'] == ck)
                     pd['label'] = f'{cycle_info["init_dt"].strftime("%HZ %b %d")} Init'
-                except:
+                except (StopIteration, KeyError, AttributeError):
                     pd['label'] = ck
                 panels.append(pd)
 
@@ -9500,7 +9500,7 @@ def api_v1_comparison():
     first_model = panels[0]['metadata']['model'].lower()
     try:
         render_mgr = model_registry.get(first_model)
-    except:
+    except (KeyError, AttributeError):
         render_mgr = data_manager
     engine = render_mgr.xsect
 
