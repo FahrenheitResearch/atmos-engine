@@ -19,11 +19,11 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 | `core/map_overlay.py` | ~1,133 | Map overlay rendering. Reprojection (KDTree for curvilinear, bilinear for GFS), composite assembly (fill + contours + barbs), PNG/binary output |
 | `model_config.py` | ~320 | Model registry. 6 models (HRRR/GFS/RRFS/NAM/RAP/NAM-Nest) metadata, grid specs, download URLs, forecast hour lists |
 
-### Server + UI (1 file, ~15,435 lines)
+### Server + UI (1 file, ~15,948 lines)
 
 | File | Lines | What It Does |
 |------|-------|-------------|
-| `tools/unified_dashboard.py` | ~15,435 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 58 API endpoints (34 v1 + 24 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects, og:image preview, FHR hover thumbnails, hero cross-section, smart product suggestions, skeleton loading, draw-mode feedback, distance/bearing line label, mobile panel backdrop, event timeline (hover tooltips), comparison diff view (with badge labels + draggable divider), 3D terrain, measurement tool, wind barb legend, geocoder search, image zoom/pan, product search filter, slider tick marks, download export, model-colored HUD badges |
+| `tools/unified_dashboard.py` | ~15,948 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 58 API endpoints (34 v1 + 24 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects, og:image preview, FHR hover thumbnails, hero cross-section, smart product suggestions, skeleton loading, draw-mode feedback, distance/bearing line label, mobile panel backdrop, event timeline (hover tooltips), comparison diff view (with badge labels + draggable divider), 3D terrain, measurement tool, wind barb legend, geocoder search, image zoom/pan, product search filter, slider tick marks, download export, model-colored HUD badges |
 
 **Key sections in unified_dashboard.py:**
 - Lines 1-1031: Imports, constants, overlay cache, helper functions, model config dicts
@@ -266,10 +266,10 @@ A 4px gradient bar below the product picker shows the color scheme of the curren
 Floating pill on the cross-section image showing: model name, transect distance (km/mi), bearing, valid time, and render time (e.g., "1.4s").
 
 ### Bottom Status Bar
-Shows model name, active product badge (with colormap chip), and FHR with valid time. Updates on each cross-section generation. Loading spinner shows product name (e.g., "Rendering Fire Weather..."). For events, shows event name with star icon.
+Shows model name, active product badge (with colormap chip), comparison mode badge, and FHR with valid time. Updates on each cross-section generation. Loading spinner shows product name (e.g., "Rendering Fire Weather..."). For events, shows event name with star icon. Comparison badge shows active mode (Multi-Product, Multi-Model, Cycle Compare, Temporal) with accent-tinted pill styling.
 
 ### Playback Frame Counter
-During animation playback, shows frame position (e.g., "3/48") next to the slider. Play button toggles between play and pause icons with matching tooltip text.
+During animation playback, shows frame position (e.g., "3/48") next to the slider. Play button toggles between play and pause icons with matching tooltip text. Active play button has pulsing blue glow animation (`play-glow` keyframes).
 
 ### Keyboard Shortcuts (28 key bindings, 20 actions)
 - Left/Right arrow (J/K): step FHR
@@ -434,6 +434,23 @@ Inactive product pills in the quick-switch strip highlight on hover (background 
 
 ### Control Section Hover Accent
 Control sections (.ctrl-section) get a subtle left border accent in translucent cyan on hover, providing visual feedback for which section the user is interacting with.
+
+### CSS Utility Classes
+Extracted from inline `style=` attributes for consistency:
+- **Selects**: `.select--flex`, `.select--compact-flex`, `.select--min80`, `.select--min120`, `.select--min120-sm`, `.select--speed`, `.select--gif-speed`, `.select--mp-mode`
+- **Buttons**: `.btn--tight`, `.btn--diff`, `.btn-primary--sm`, `.zoom-btn--sm`
+- **Layout**: `.ctrl-row--mt`, `.ctrl-row--mb`, `.input-range--flex`, `.input--fhrs`
+- **Labels**: `.label--muted-sm`, `.label--vs`
+- **Badges**: `.badge--success`, `.comparison-badge`
+- **Elements**: `.canvas--colorbar`, `.xsect-actions`, `.xsect-action-download`, `.xsect-action-link`, `.diff-canvas`, `.diff-panel-label`
+- **Modals**: `.guide-tabs`, `.modal-content--sm`, `.modal-header--compact`, `.shortcut-title`, `.shortcut-footer`
+- **Legend**: `.legend-title--bold`
+
+### Sidebar Tab Active Indicator
+Active sidebar icon tab has a left accent bar (`::after` pseudo-element, 3px wide, 18px tall) plus inner box-shadow for depth. Creates a visual "selected" indicator extending outside the tab.
+
+### Prerender Indicator
+FHR chips with prerendered frames show a glowing blue dot (6px, accent color, 4px box-shadow) in the top-right corner instead of a lightning bolt emoji. Consistent with the design language.
 
 ### Dynamic Page Title
 Browser tab title updates to show current state: "HRRR 20260212_06z F03 | wxsection.com". Updated every 500ms via `updateHUD()`.
