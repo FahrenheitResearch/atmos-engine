@@ -5198,22 +5198,51 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             { name: 'Central Valley N\u2192S', config: { start_lat: 40.5, start_lon: -122.0, end_lat: 35.0, end_lon: -119.0 }},
             { name: 'SoCal Offshore Flow', config: { start_lat: 34.1, start_lon: -119.5, end_lat: 34.1, end_lon: -117.0 }},
         ];
+        const OR_PRESETS = [
+            { name: 'Columbia Gorge E-W', config: { start_lat: 45.70, start_lon: -122.20, end_lat: 45.63, end_lon: -120.80 }},
+            { name: 'Gorge to Grassland N-S', config: { start_lat: 45.80, start_lon: -121.18, end_lat: 45.05, end_lon: -121.10 }},
+            { name: 'Hood River Valley', config: { start_lat: 45.80, start_lon: -121.58, end_lat: 45.35, end_lon: -121.65 }},
+            { name: 'Bend \u2192 Sisters Gap Wind', config: { start_lat: 44.06, start_lon: -121.31, end_lat: 44.30, end_lon: -121.57 }},
+            { name: 'Cascade Crest (Three Sisters)', config: { start_lat: 44.10, start_lon: -122.10, end_lat: 44.10, end_lon: -121.10 }},
+            { name: 'Deschutes Basin N-S', config: { start_lat: 44.50, start_lon: -121.30, end_lat: 43.50, end_lon: -121.50 }},
+            { name: 'Medford \u2192 Cascades', config: { start_lat: 42.33, start_lon: -122.87, end_lat: 42.33, end_lon: -121.80 }},
+            { name: 'Rogue Valley N-S', config: { start_lat: 42.80, start_lon: -122.70, end_lat: 42.10, end_lon: -122.60 }},
+            { name: 'Klamath Basin', config: { start_lat: 42.70, start_lon: -122.10, end_lat: 42.10, end_lon: -121.50 }},
+            { name: 'Coast Range Crest', config: { start_lat: 44.60, start_lon: -124.10, end_lat: 44.60, end_lon: -123.10 }},
+            { name: 'Eugene \u2192 Coast (Lane Co)', config: { start_lat: 44.05, start_lon: -123.10, end_lat: 44.05, end_lon: -124.10 }},
+            { name: 'Portland \u2192 Mt Hood', config: { start_lat: 45.50, start_lon: -122.65, end_lat: 45.37, end_lon: -121.70 }},
+        ];
+        const CONUS_PRESETS = [
+            { name: 'Front Range (Denver)', config: { start_lat: 39.7, start_lon: -105.5, end_lat: 39.7, end_lon: -104.0 }},
+            { name: 'Great Plains Dryline', config: { start_lat: 35.0, start_lon: -101.0, end_lat: 35.0, end_lon: -97.0 }},
+            { name: 'Appalachian Crest', config: { start_lat: 37.5, start_lon: -81.5, end_lat: 37.5, end_lon: -78.5 }},
+            { name: 'Gulf Coast Sea Breeze', config: { start_lat: 29.5, start_lon: -95.5, end_lat: 30.5, end_lon: -95.5 }},
+            { name: 'Great Lakes Effect', config: { start_lat: 43.0, start_lon: -80.0, end_lat: 43.0, end_lon: -76.0 }},
+            { name: 'Wasatch Front', config: { start_lat: 40.75, start_lon: -112.2, end_lat: 40.75, end_lon: -111.0 }},
+        ];
 
         async function loadFavorites() {
             try {
                 const res = await fetch('/api/favorites');
                 const favorites = await res.json();
                 favoritesSelect.innerHTML = '<option value="">Presets & Favorites</option>';
-                // CA Presets group
-                const presetGroup = document.createElement('optgroup');
-                presetGroup.label = 'CA Presets';
-                CA_PRESETS.forEach(p => {
-                    const opt = document.createElement('option');
-                    opt.value = JSON.stringify(p);
-                    opt.textContent = p.name;
-                    presetGroup.appendChild(opt);
+                // Preset groups
+                const presetGroups = [
+                    { label: 'Oregon Presets', data: OR_PRESETS },
+                    { label: 'California Presets', data: CA_PRESETS },
+                    { label: 'CONUS Presets', data: CONUS_PRESETS },
+                ];
+                presetGroups.forEach(g => {
+                    const grp = document.createElement('optgroup');
+                    grp.label = g.label;
+                    g.data.forEach(p => {
+                        const opt = document.createElement('option');
+                        opt.value = JSON.stringify(p);
+                        opt.textContent = p.name;
+                        grp.appendChild(opt);
+                    });
+                    favoritesSelect.appendChild(grp);
                 });
-                favoritesSelect.appendChild(presetGroup);
                 // User favorites group
                 if (favorites.length > 0) {
                     const favGroup = document.createElement('optgroup');
@@ -8301,6 +8330,94 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             expandedPanel.classList.add('collapsed');
             iconTabs.forEach(t => t.classList.remove('active'));
         }
+
+        // =====================================================================
+        // Keyboard shortcuts
+        // =====================================================================
+        document.addEventListener('keydown', e => {
+            // Skip if typing in an input/textarea/select
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+            switch(e.key) {
+                case 'ArrowLeft':
+                case 'j':
+                    e.preventDefault();
+                    document.getElementById('prev-btn')?.click();
+                    break;
+                case 'ArrowRight':
+                case 'k':
+                    e.preventDefault();
+                    document.getElementById('next-btn')?.click();
+                    break;
+                case ' ':
+                    e.preventDefault();
+                    document.getElementById('play-btn')?.click();
+                    break;
+                case 'c':
+                    document.getElementById('compare-btn')?.click();
+                    break;
+                case 's':
+                    document.getElementById('swap-btn')?.click();
+                    break;
+                case 'Escape':
+                    document.getElementById('clear-btn')?.click();
+                    break;
+            }
+        });
+
+        // =====================================================================
+        // URL state sharing (read on load, update on changes)
+        // =====================================================================
+        function readURLState() {
+            const params = new URLSearchParams(window.location.search);
+            const state = {};
+            if (params.has('lat1')) state.lat1 = parseFloat(params.get('lat1'));
+            if (params.has('lon1')) state.lon1 = parseFloat(params.get('lon1'));
+            if (params.has('lat2')) state.lat2 = parseFloat(params.get('lat2'));
+            if (params.has('lon2')) state.lon2 = parseFloat(params.get('lon2'));
+            if (params.has('model')) state.model = params.get('model');
+            if (params.has('style')) state.style = params.get('style');
+            if (params.has('fhr')) state.fhr = parseInt(params.get('fhr'));
+            if (params.has('cycle')) state.cycle = params.get('cycle');
+            return state;
+        }
+
+        function updateURLState() {
+            if (!startMarker || !endMarker) return;
+            const s = startMarker.getLngLat();
+            const e = endMarker.getLngLat();
+            const params = new URLSearchParams();
+            params.set('lat1', s.lat.toFixed(4));
+            params.set('lon1', s.lng.toFixed(4));
+            params.set('lat2', e.lat.toFixed(4));
+            params.set('lon2', e.lng.toFixed(4));
+            params.set('model', currentModel);
+            params.set('style', document.getElementById('style-select')?.value || 'temperature');
+            if (activeFhr != null) params.set('fhr', activeFhr);
+            const cycle = document.getElementById('cycle-select')?.value;
+            if (cycle) params.set('cycle', cycle);
+            const newURL = window.location.pathname + '?' + params.toString();
+            window.history.replaceState(null, '', newURL);
+        }
+
+        // Apply URL state on load (after models/cycles are loaded)
+        setTimeout(() => {
+            const state = readURLState();
+            if (state.model) switchModel(state.model);
+            if (state.style) {
+                const sel = document.getElementById('style-select');
+                if (sel) { sel.value = state.style; sel.dispatchEvent(new Event('change')); }
+            }
+            if (state.lat1 != null && state.lon1 != null && state.lat2 != null && state.lon2 != null) {
+                startMarker = setupStartMarker(state.lat1, state.lon1);
+                endMarker = setupEndMarker(state.lat2, state.lon2);
+                updateLine();
+                if (state.fhr != null) activeFhr = state.fhr;
+                generateCrossSection();
+            }
+        }, 1500);
+
+        // Periodically sync URL state (avoids patching internal functions)
+        setInterval(() => { if (lineExists) updateURLState(); }, 3000);
     </script>
 </body>
 </html>'''
