@@ -3506,6 +3506,22 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .error-panel { color: var(--danger-light); text-align: center; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
         .error-icon { font-size: 24px; opacity: 0.7; }
         .error-msg { font-size: 12px; max-width: 300px; line-height: 1.5; }
+        /* ===== Custom Tooltips ===== */
+        .tt {
+            position: fixed; z-index: 10000; pointer-events: none;
+            background: #1a1a1a; color: #e0e0e0; border: 1px solid var(--border);
+            border-radius: 6px; padding: 5px 10px; font-size: 11px; line-height: 1.4;
+            max-width: 260px; box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            opacity: 0; transition: opacity 0.15s ease;
+            white-space: normal; word-wrap: break-word;
+        }
+        .tt.show { opacity: 1; }
+        .tt::after {
+            content: ''; position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%);
+            border-left: 5px solid transparent; border-right: 5px solid transparent;
+            border-top: 5px solid var(--border);
+        }
+        .tt.below::after { bottom: auto; top: -5px; border-top: none; border-bottom: 5px solid var(--border); }
         .loading-spinner {
             display: flex;
             flex-direction: column;
@@ -4186,15 +4202,19 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
         /* ===== Modals ===== */
         .modal-overlay {
-            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            display: flex; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.6); z-index: var(--z-toast); justify-content: center; align-items: center;
+            opacity: 0; visibility: hidden; pointer-events: none;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
         }
-        .modal-overlay.visible { display: flex; }
+        .modal-overlay.visible { opacity: 1; visibility: visible; pointer-events: auto; }
         .modal {
             background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-pill);
             padding: 20px; min-width: 360px; max-width: 500px; max-height: 80vh;
             overflow-y: auto; box-shadow: var(--shadow-xl);
+            transform: scale(0.95) translateY(8px); transition: transform 0.2s ease;
         }
+        .modal-overlay.visible .modal { transform: scale(1) translateY(0); }
         .modal h3 { margin: 0 0 12px 0; font-size: 15px; color: var(--text); }
         .modal .close-btn {
             float: right; background: none; border: none; color: var(--muted);
@@ -4208,16 +4228,22 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .modal .summary { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); }
 
         #explainer-modal {
-            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            display: flex; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
             z-index: var(--z-modal); align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; pointer-events: none;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
         }
-        #explainer-modal.visible { display: flex; }
+        #explainer-modal.visible { opacity: 1; visibility: visible; pointer-events: auto; }
         .modal-content {
             background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-pill);
             width: 90%; max-width: 700px; max-height: 80vh; overflow-y: auto;
             box-shadow: var(--shadow-xl);
+            transform: scale(0.95) translateY(8px); transition: transform 0.2s ease;
         }
+        #explainer-modal.visible .modal-content,
+        #request-modal.visible .modal-content,
+        #run-request-modal.visible .modal-content { transform: scale(1) translateY(0); }
         .modal-header {
             padding: 16px 20px; border-bottom: 1px solid var(--border);
             display: flex; justify-content: space-between; align-items: center;
@@ -4249,17 +4275,21 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .param-tech { color: var(--text); font-size: 12px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); font-family: monospace; }
 
         #request-modal {
-            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            display: flex; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
             z-index: var(--z-modal); align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; pointer-events: none;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
         }
-        #request-modal.visible { display: flex; }
+        #request-modal.visible { opacity: 1; visibility: visible; pointer-events: auto; }
         #run-request-modal {
-            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            display: flex; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
             z-index: var(--z-modal-top); align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; pointer-events: none;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
         }
-        #run-request-modal.visible { display: flex; }
+        #run-request-modal.visible { opacity: 1; visibility: visible; pointer-events: auto; }
         .request-form { display: flex; flex-direction: column; gap: 12px; }
         .request-form textarea {
             background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-md);
@@ -4557,21 +4587,21 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
         <!-- Icon Sidebar (48px) -->
         <div id="icon-sidebar">
-            <div class="icon-tab active" data-tab="controls" title="Controls — model, product, overlay settings">
+            <div class="icon-tab active" data-tab="controls" data-tip="Controls — model, product, overlay settings">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
             </div>
-            <div class="icon-tab" data-tab="cities" title="Fire Weather Cities — 232 profiled locations">
+            <div class="icon-tab" data-tab="cities" data-tip="Fire Weather Cities — 232 profiled locations">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
                 <span class="badge" id="cities-badge" style="display:none;animation:none;background:var(--success);">0</span>
             </div>
-            <div class="icon-tab" data-tab="events" title="Historical Events — 88 archived weather events">
+            <div class="icon-tab" data-tab="events" data-tip="Historical Events — 88 archived weather events">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             </div>
-            <div class="icon-tab" data-tab="activity" title="Activity — download & render progress">
+            <div class="icon-tab" data-tab="activity" data-tip="Activity — download & render progress">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
                 <span class="badge" id="activity-badge" style="display:none;">0</span>
             </div>
-            <div class="icon-tab" data-tab="settings" title="Settings — display preferences & API">
+            <div class="icon-tab" data-tab="settings" data-tip="Settings — display preferences & API">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
             </div>
         </div>
@@ -4583,7 +4613,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         <div id="expanded-panel">
             <div id="panel-header">
                 <span id="panel-title">Controls</span>
-                <button class="close-panel" id="close-panel-btn" title="Collapse panel">&times;</button>
+                <button class="close-panel" id="close-panel-btn" data-tip="Collapse panel">&times;</button>
             </div>
 
             <!-- TAB: Controls -->
@@ -4601,35 +4631,35 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <div class="ctrl-section">
                     <div class="ctrl-section-title">&#9889; Quick Analysis</div>
                     <div class="workflow-grid">
-                        <button class="workflow-btn" data-workflow="fire_weather" title="Fire weather analysis: wind speed XS + fire weather overlay">
+                        <button class="workflow-btn" data-workflow="fire_weather" data-tip="Fire weather analysis: wind speed XS + fire weather overlay">
                             <span class="wf-icon">&#128293;</span>
                             <span class="wf-label">Fire Wx</span>
                         </button>
-                        <button class="workflow-btn" data-workflow="severe" title="Severe weather: CAPE/shear XS + severe overlay">
+                        <button class="workflow-btn" data-workflow="severe" data-tip="Severe weather: CAPE/shear XS + severe overlay">
                             <span class="wf-icon">&#9889;</span>
                             <span class="wf-label">Severe</span>
                         </button>
-                        <button class="workflow-btn" data-workflow="upper_air" title="Upper air: temperature XS + 500mb overlay">
+                        <button class="workflow-btn" data-workflow="upper_air" data-tip="Upper air: temperature XS + 500mb overlay">
                             <span class="wf-icon">&#127744;</span>
                             <span class="wf-label">Upper Air</span>
                         </button>
-                        <button class="workflow-btn" data-workflow="moisture" title="Moisture analysis: relative humidity XS + moisture overlay">
+                        <button class="workflow-btn" data-workflow="moisture" data-tip="Moisture analysis: relative humidity XS + moisture overlay">
                             <span class="wf-icon">&#128167;</span>
                             <span class="wf-label">Moisture</span>
                         </button>
-                        <button class="workflow-btn" data-workflow="jet_stream" title="Jet stream: wind speed XS + 250mb jet overlay">
+                        <button class="workflow-btn" data-workflow="jet_stream" data-tip="Jet stream: wind speed XS + 250mb jet overlay">
                             <span class="wf-icon">&#9992;</span>
                             <span class="wf-label">Jet Stream</span>
                         </button>
-                        <button class="workflow-btn" data-workflow="surface" title="Surface analysis: temperature XS + surface overlay">
+                        <button class="workflow-btn" data-workflow="surface" data-tip="Surface analysis: temperature XS + surface overlay">
                             <span class="wf-icon">&#127777;</span>
                             <span class="wf-label">Surface</span>
                         </button>
-                        <button class="workflow-btn" data-workflow="model_compare" title="Compare 2+ models side-by-side for the same transect">
+                        <button class="workflow-btn" data-workflow="model_compare" data-tip="Compare 2+ models side-by-side for the same transect">
                             <span class="wf-icon">&#8644;</span>
                             <span class="wf-label">Model vs</span>
                         </button>
-                        <button class="workflow-btn" data-workflow="time_series" title="View temporal evolution across FHRs in 4-panel grid">
+                        <button class="workflow-btn" data-workflow="time_series" data-tip="View temporal evolution across FHRs in 4-panel grid">
                             <span class="wf-icon">&#9202;</span>
                             <span class="wf-label">Time Evo</span>
                         </button>
@@ -4720,10 +4750,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     <div class="ctrl-row">
                         <label>Overlay:</label>
                         <div class="toggle-group">
-                            <button class="toggle-btn active" id="overlay-off" title="Hide map overlay (O)" aria-label="Overlay off">Off</button>
-                            <button class="toggle-btn" id="overlay-on" title="Show map overlay (O)" aria-label="Overlay on">On</button>
+                            <button class="toggle-btn active" id="overlay-off" data-tip="Hide map overlay (O)" aria-label="Overlay off">Off</button>
+                            <button class="toggle-btn" id="overlay-on" data-tip="Show map overlay (O)" aria-label="Overlay on">On</button>
                         </div>
-                        <button class="toggle-btn" id="overlay-loop" style="margin-left:4px;font-size:10px;padding:2px 6px;" title="Animate through forecast hours" aria-label="Loop overlay">Loop</button>
+                        <button class="toggle-btn" id="overlay-loop" style="margin-left:4px;font-size:10px;padding:2px 6px;" data-tip="Animate through forecast hours" aria-label="Loop overlay">Loop</button>
                     </div>
                     <div id="overlay-controls" style="display:none;">
                         <div class="ctrl-row">
@@ -4772,30 +4802,30 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <div class="ctrl-section">
                     <div class="ctrl-section-title">&#9881; Actions</div>
                     <div class="ctrl-row" style="flex-wrap:wrap;">
-                        <button id="swap-btn" class="btn-sm" title="Swap A/B endpoints (S)" aria-label="Swap endpoints">Swap <span class="kbd-hint">S</span></button>
-                        <button id="clear-btn" class="btn-sm" title="Clear cross-section line (Esc)" aria-label="Clear line">Clear <span class="kbd-hint">Esc</span></button>
-                        <button id="poi-btn" class="btn-sm" title="Place POI marker (or right-click map)" aria-label="Add point of interest">+ POI</button>
-                        <button id="load-all-btn" class="btn-sm" aria-label="Load all forecast hours">Load All</button>
-                        <button id="gif-btn" class="btn-sm" title="Generate animated GIF of cross-section loop" aria-label="Generate GIF">GIF</button>
-                        <button id="compare-btn" class="btn-sm" title="Compare two cycles side-by-side (C)" aria-label="Compare cycles">Compare <span class="kbd-hint">C</span></button>
-                        <button id="all-models-btn" class="btn-sm" title="Compare this transect across all 6 models" aria-label="Compare all models">All Models</button>
-                        <button id="share-btn" class="btn-sm" title="Copy shareable link to clipboard" aria-label="Share link">Share</button>
-                        <button id="save-btn" class="btn-sm" title="Download cross-section as PNG" aria-label="Save image">Save</button>
-                        <button id="measure-btn" class="btn-sm" title="Measure distance on map (M)" aria-label="Measure distance">Measure <span class="kbd-hint">M</span></button>
-                        <button id="help-btn" class="btn-sm" title="Keyboard shortcuts and guide (?)" aria-label="Open guide">Guide <span class="kbd-hint">?</span></button>
+                        <button id="swap-btn" class="btn-sm" data-tip="Swap A/B endpoints (S)" aria-label="Swap endpoints">Swap <span class="kbd-hint">S</span></button>
+                        <button id="clear-btn" class="btn-sm" data-tip="Clear cross-section line (Esc)" aria-label="Clear line">Clear <span class="kbd-hint">Esc</span></button>
+                        <button id="poi-btn" class="btn-sm" data-tip="Place POI marker (or right-click map)" aria-label="Add point of interest">+ POI</button>
+                        <button id="load-all-btn" class="btn-sm" data-tip="Load all forecast hours" aria-label="Load all forecast hours">Load All</button>
+                        <button id="gif-btn" class="btn-sm" data-tip="Generate animated GIF of cross-section loop" aria-label="Generate GIF">GIF</button>
+                        <button id="compare-btn" class="btn-sm" data-tip="Compare two cycles side-by-side (C)" aria-label="Compare cycles">Compare <span class="kbd-hint">C</span></button>
+                        <button id="all-models-btn" class="btn-sm" data-tip="Compare this transect across all 6 models" aria-label="Compare all models">All Models</button>
+                        <button id="share-btn" class="btn-sm" data-tip="Copy shareable link to clipboard" aria-label="Share link">Share</button>
+                        <button id="save-btn" class="btn-sm" data-tip="Download cross-section as PNG" aria-label="Save image">Save</button>
+                        <button id="measure-btn" class="btn-sm" data-tip="Measure distance on map (M)" aria-label="Measure distance">Measure <span class="kbd-hint">M</span></button>
+                        <button id="help-btn" class="btn-sm" data-tip="Keyboard shortcuts and guide (?)" aria-label="Open guide">Guide <span class="kbd-hint">?</span></button>
                     </div>
                     <div class="ctrl-row">
-                        <select id="gif-speed" title="GIF speed" aria-label="GIF speed" style="min-width:55px;font-size:11px;">
+                        <select id="gif-speed" data-tip="GIF animation speed" aria-label="GIF speed" style="min-width:55px;font-size:11px;">
                             <option value="1">1x</option>
                             <option value="0.75">0.75x</option>
                             <option value="0.5" selected>0.5x</option>
                             <option value="0.25">0.25x</option>
                         </select>
-                        <input id="gif-fhr-min" type="number" placeholder="F start" title="GIF start FHR" aria-label="GIF start forecast hour" class="input-xs">
-                        <input id="gif-fhr-max" type="number" placeholder="F end" title="GIF end FHR" aria-label="GIF end forecast hour" class="input-xs">
+                        <input id="gif-fhr-min" type="number" placeholder="F start" data-tip="GIF start FHR" aria-label="GIF start forecast hour" class="input-xs">
+                        <input id="gif-fhr-max" type="number" placeholder="F end" data-tip="GIF end FHR" aria-label="GIF end forecast hour" class="input-xs">
                     </div>
                     <div class="ctrl-row">
-                        <select id="multi-panel-mode" title="Multi-panel comparison" aria-label="Multi-panel comparison mode" style="font-size:11px;padding:2px 4px;flex:1;">
+                        <select id="multi-panel-mode" data-tip="Multi-panel comparison" aria-label="Multi-panel comparison mode" style="font-size:11px;padding:2px 4px;flex:1;">
                             <option value="">Multi-Panel</option>
                             <option value="model">Model vs Model</option>
                             <option value="temporal">Temporal (FHRs)</option>
@@ -4939,7 +4969,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <span id="hud-model" class="hud-badge hud-model"></span>
                 <span id="hud-cycle" class="hud-badge hud-cycle"></span>
                 <span id="hud-fhr" class="hud-badge hud-fhr"></span>
-                <span id="hud-overlay" class="hud-badge hud-overlay" style="display:none;" title="Map overlay active (O to toggle)"></span>
+                <span id="hud-overlay" class="hud-badge hud-overlay" style="display:none;" data-tip="Map overlay active (O to toggle)"></span>
             </div>
             <div id="map-attribution" class="map-attribution">wxsection.com &middot; NOAA NWP Data</div>
             <div id="map-coords" class="map-coords"></div>
@@ -4975,17 +5005,17 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <span id="loaded-count" class="loaded-count"></span>
                     </div>
                     <div id="bottom-actions">
-                        <button class="bottom-action-btn" id="bottom-expand-btn" title="Expand" aria-label="Expand cross-section panel">&#9650;</button>
-                        <button class="bottom-action-btn" id="bottom-collapse-btn" title="Collapse" style="display:none;" aria-label="Collapse cross-section panel">&#9660;</button>
+                        <button class="bottom-action-btn" id="bottom-expand-btn" data-tip="Expand" aria-label="Expand cross-section panel">&#9650;</button>
+                        <button class="bottom-action-btn" id="bottom-collapse-btn" data-tip="Collapse" style="display:none;" aria-label="Collapse cross-section panel">&#9660;</button>
                     </div>
                 </div>
                 <div id="bottom-body">
                     <!-- Slider row -->
                     <div id="slider-row">
                         <div role="group" aria-label="Playback controls" style="display:contents;">
-                        <button id="prev-btn" class="playback-btn" title="Previous frame (Left / J)" aria-label="Previous frame">&#9664;<span class="kbd-hint">&#8592;</span></button>
-                        <button id="play-btn" class="play-btn" title="Auto-play (Space)" aria-label="Play">&#9654;<span class="kbd-hint">Spc</span></button>
-                        <button id="next-btn" class="playback-btn" title="Next frame (Right / K)" aria-label="Next frame">&#9654;<span class="kbd-hint">&#8594;</span></button>
+                        <button id="prev-btn" class="playback-btn" data-tip="Previous frame (Left / J)" aria-label="Previous frame">&#9664;<span class="kbd-hint">&#8592;</span></button>
+                        <button id="play-btn" class="play-btn" data-tip="Auto-play (Space)" aria-label="Play">&#9654;<span class="kbd-hint">Spc</span></button>
+                        <button id="next-btn" class="playback-btn" data-tip="Next frame (Right / K)" aria-label="Next frame">&#9654;<span class="kbd-hint">&#8594;</span></button>
                         </div>
                         <div id="fhr-slider-wrap">
                             <input type="range" id="fhr-slider" min="0" max="18" value="0" aria-label="Forecast hour slider">
@@ -4993,13 +5023,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         </div>
                         <span id="slider-label" class="slider-label">F00</span>
                         <span id="frame-counter" class="frame-counter"></span>
-                        <select id="play-speed" title="Playback speed" aria-label="Playback speed" style="min-width:50px;font-size:11px;">
+                        <select id="play-speed" data-tip="Playback speed" aria-label="Playback speed" style="min-width:50px;font-size:11px;">
                             <option value="2000">0.5x</option>
                             <option value="1000" selected>1x</option>
                             <option value="500">2x</option>
                             <option value="250">4x</option>
                         </select>
-                        <button id="prerender-btn" class="playback-btn btn-primary" title="Pre-render all FHR frames for instant playback" aria-label="Pre-render frames" style="font-size:11px;">Pre-render</button>
+                        <button id="prerender-btn" class="playback-btn btn-primary" data-tip="Pre-render all FHR frames for instant playback" aria-label="Pre-render frames" style="font-size:11px;">Pre-render</button>
                     </div>
                     <div id="context-hint" class="context-hint"></div>
                     <!-- Compare controls -->
@@ -5011,7 +5041,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                             <button class="toggle-btn" data-value="valid_time">Valid Time</button>
                         </div>
                         <span id="compare-fhr-label" class="mp-label"></span>
-                        <button id="compare-diff-btn" class="toggle-btn" title="Show pixel difference between panels" style="margin-left:auto;font-size:11px;padding:2px 8px;">Diff</button>
+                        <button id="compare-diff-btn" class="toggle-btn" data-tip="Show pixel difference between panels" style="margin-left:auto;font-size:11px;padding:2px 8px;">Diff</button>
                     </div>
                     <!-- Multi-panel controls -->
                     <div id="multi-panel-controls">
@@ -5043,7 +5073,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     <div id="showcase-notes" class="showcase-notes-bar" style="display:none;">
                         <div class="notes-title">Analysis</div>
                         <div id="showcase-notes-text"></div>
-                        <button class="dismiss-btn" onclick="hideShowcaseNotes()" title="Dismiss">&times;</button>
+                        <button class="dismiss-btn" onclick="hideShowcaseNotes()" data-tip="Dismiss">&times;</button>
                     </div>
                     <!-- Cross-section panels -->
                     <div id="xsect-panels">
@@ -5051,13 +5081,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                             <div class="xsect-panel-label" id="panel-primary-label"></div>
                             <div class="xsect-panel-body" id="xsect-container">
                                 <div class="zoom-controls" id="zoom-controls">
-                                    <button id="zoom-in-btn" title="Zoom in">+</button>
-                                    <button id="zoom-out-btn" title="Zoom out">&minus;</button>
-                                    <button id="zoom-reset-btn" title="Reset zoom" style="font-size:10px;">1:1</button>
+                                    <button id="zoom-in-btn" data-tip="Zoom in">+</button>
+                                    <button id="zoom-out-btn" data-tip="Zoom out">&minus;</button>
+                                    <button id="zoom-reset-btn" data-tip="Reset zoom" style="font-size:10px;">1:1</button>
                                 </div>
                                 <div class="zoom-controls" id="xsect-actions" style="top:8px;left:8px;right:auto;">
-                                    <button id="xsect-download-btn" title="Download cross-section PNG" style="font-size:12px;">&#8681;</button>
-                                    <button id="xsect-copylink-btn" title="Copy shareable link" style="font-size:11px;">&#128279;</button>
+                                    <button id="xsect-download-btn" data-tip="Download cross-section PNG" style="font-size:12px;">&#8681;</button>
+                                    <button id="xsect-copylink-btn" data-tip="Copy shareable link" style="font-size:11px;">&#128279;</button>
                                 </div>
                                 <div id="instructions" class="landing">
                                     <div class="landing-title">wxsection</div>
@@ -5080,18 +5110,18 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                                     </div>
                                     <div class="landing-prompt">Or try a featured transect:</div>
                                     <div class="landing-quickstarts">
-                                        <button class="quick-start-btn" onclick="quickStart(39.7,-105.5,39.7,-104.0,'temperature')" title="Dramatic terrain drop from the Rockies to Denver"><span class="qs-chip" data-style="temp"></span>Denver Front Range</button>
-                                        <button class="quick-start-btn" onclick="quickStart(45.70,-122.00,45.60,-121.50,'wind_speed')" title="Classic wind corridor through the Columbia Gorge"><span class="qs-chip" data-style="wind_speed"></span>Columbia Gorge</button>
-                                        <button class="quick-start-btn" onclick="quickStart(37.0,-121.0,37.0,-118.0,'fire_wx')" title="Cross the Sierra Nevada crest near Yosemite"><span class="qs-chip" data-style="fire_wx"></span>Sierra Nevada</button>
-                                        <button class="quick-start-btn" onclick="quickStart(35.0,-101.0,35.0,-97.0,'theta_e')" title="Southern Plains dryline boundary"><span class="qs-chip" data-style="theta_e"></span>Great Plains Dryline</button>
-                                        <button class="quick-start-btn" onclick="quickStart(44.0,-123.5,44.0,-121.0,'wind_speed')" title="McKenzie Pass corridor \u2014 critical Oregon fire weather terrain"><span class="qs-chip" data-style="wind_speed"></span>Oregon Cascades</button>
-                                        <button class="quick-start-btn" onclick="quickStart(34.2,-118.8,34.2,-117.5,'rh')" title="Santa Ana wind corridor across LA metro"><span class="qs-chip" data-style="rh"></span>LA Basin</button>
+                                        <button class="quick-start-btn" onclick="quickStart(39.7,-105.5,39.7,-104.0,'temperature')" data-tip="Dramatic terrain drop from the Rockies to Denver"><span class="qs-chip" data-style="temp"></span>Denver Front Range</button>
+                                        <button class="quick-start-btn" onclick="quickStart(45.70,-122.00,45.60,-121.50,'wind_speed')" data-tip="Classic wind corridor through the Columbia Gorge"><span class="qs-chip" data-style="wind_speed"></span>Columbia Gorge</button>
+                                        <button class="quick-start-btn" onclick="quickStart(37.0,-121.0,37.0,-118.0,'fire_wx')" data-tip="Cross the Sierra Nevada crest near Yosemite"><span class="qs-chip" data-style="fire_wx"></span>Sierra Nevada</button>
+                                        <button class="quick-start-btn" onclick="quickStart(35.0,-101.0,35.0,-97.0,'theta_e')" data-tip="Southern Plains dryline boundary"><span class="qs-chip" data-style="theta_e"></span>Great Plains Dryline</button>
+                                        <button class="quick-start-btn" onclick="quickStart(44.0,-123.5,44.0,-121.0,'wind_speed')" data-tip="McKenzie Pass corridor \u2014 critical Oregon fire weather terrain"><span class="qs-chip" data-style="wind_speed"></span>Oregon Cascades</button>
+                                        <button class="quick-start-btn" onclick="quickStart(34.2,-118.8,34.2,-117.5,'rh')" data-tip="Santa Ana wind corridor across LA metro"><span class="qs-chip" data-style="rh"></span>LA Basin</button>
                                     </div>
                                     <div id="recent-transects" class="landing-recent" style="display:none;">
                                         <div class="landing-prompt" style="margin-bottom:6px;">Recent transects:</div>
                                         <div id="recent-transects-list" class="landing-quickstarts"></div>
                                     </div>
-                                    <div id="hero-preview" class="hero-preview" title="Click to load this transect">
+                                    <div id="hero-preview" class="hero-preview" data-tip="Click to load this transect">
                                         <img id="hero-preview-img" class="hero-preview-img" alt="Sample cross-section">
                                         <div id="hero-preview-label" class="hero-preview-label">Sample &mdash; click to explore</div>
                                     </div>
@@ -6766,6 +6796,50 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             container.innerHTML = `<div class="error-panel"><div class="error-icon">&#9888;</div><div class="error-msg">${message}</div>${retryBtn}</div>`;
         }
 
+        // Custom tooltip system — replaces browser title tooltips
+        const _tt = (() => {
+            const el = document.createElement('div');
+            el.className = 'tt';
+            document.body.appendChild(el);
+            let _timer = null, _current = null;
+            function show(target, text) {
+                if (_timer) clearTimeout(_timer);
+                _current = target;
+                el.textContent = text;
+                el.classList.add('show');
+                position(target);
+            }
+            function position(target) {
+                const r = target.getBoundingClientRect();
+                el.style.left = '0'; el.style.top = '0';
+                const tw = el.offsetWidth, th = el.offsetHeight;
+                let x = r.left + r.width / 2 - tw / 2;
+                let y = r.top - th - 8;
+                if (y < 4) { y = r.bottom + 8; el.classList.add('below'); } else { el.classList.remove('below'); }
+                if (x < 4) x = 4;
+                if (x + tw > window.innerWidth - 4) x = window.innerWidth - tw - 4;
+                el.style.left = x + 'px';
+                el.style.top = y + 'px';
+            }
+            function hide() { el.classList.remove('show'); _current = null; if (_timer) clearTimeout(_timer); }
+            function init() {
+                document.addEventListener('mouseover', e => {
+                    const t = e.target.closest('[data-tip]');
+                    if (t) {
+                        if (_timer) clearTimeout(_timer);
+                        _timer = setTimeout(() => show(t, t.dataset.tip), 200);
+                    } else if (_current) { hide(); }
+                });
+                document.addEventListener('mouseout', e => {
+                    const t = e.target.closest('[data-tip]');
+                    if (t) hide();
+                });
+                document.addEventListener('click', hide);
+            }
+            init();
+            return { show, hide, position };
+        })();
+
         let _memCurrent = 0, _memAnimFrame = null;
         function updateMemoryDisplay(memMb) {
             const target = Math.round(memMb);
@@ -6992,7 +7066,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     const grad = cmapGradients[val] || cmapGradients.temp;
                     item.innerHTML = `<span class="pp-chip" style="background:${grad}"></span>`
                         + `<div class="pp-item-text"><div class="pp-item-name">${ppHighlight(name)}</div>`
-                        + (desc ? `<div class="pp-item-desc" title="${desc}">${ppHighlight(desc)}</div>` : '')
+                        + (desc ? `<div class="pp-item-desc" data-tip="${desc}">${ppHighlight(desc)}</div>` : '')
                         + `</div>`;
                     item.onclick = () => {
                         styleSelect.value = val;
@@ -7632,7 +7706,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     // Cancel button for admins on active pre-render and download jobs
                     let cancelBtn = '';
                     if (!info.done && info.detail !== 'Cancelling...' && (info.op === 'prerender' || info.op === 'download')) {
-                        cancelBtn = `<button class="cancel-op-btn" data-op="${opId}" title="Cancel">\u2715</button>`;
+                        cancelBtn = `<button class="cancel-op-btn" data-op="${opId}" data-tip="Cancel">\u2715</button>`;
                     }
 
                     item.innerHTML = `
@@ -10726,16 +10800,16 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             filtered.forEach(evt => {
                 const hasCoords = evt.coordinates && evt.coordinates.center;
                 const catColor = categoryColors[evt.category] || '#64748b';
-                const heroTag = evt.hero_product ? `<span class="event-hero-badge" title="Best view: F${String(evt.hero_fhr).padStart(2,'0')} ${evt.hero_product}">${evt.hero_product} F${String(evt.hero_fhr).padStart(2,'0')}</span>` : '';
+                const heroTag = evt.hero_product ? `<span class="event-hero-badge" data-tip="Best view: F${String(evt.hero_fhr).padStart(2,'0')} ${evt.hero_product}">${evt.hero_product} F${String(evt.hero_fhr).padStart(2,'0')}</span>` : '';
                 const desc = evt.description ? `<div class="event-desc">${evt.description.substring(0, 120)}${evt.description.length > 120 ? '...' : ''}</div>` : '';
-                const dataTag = evt.has_data ? '<span class="event-data-badge" title="HRRR data available">LIVE</span>' : '';
+                const dataTag = evt.has_data ? '<span class="event-data-badge" data-tip="HRRR data available">LIVE</span>' : '';
                 html += `<div class="event-item ${hasCoords ? 'has-coords' : ''}" onclick="showEventDetail('${evt.cycle_key}')" style="border-left-color:${catColor};">
                     <div class="event-name">${evt.name || evt.cycle_key}</div>
                     ${desc}
                     <div class="event-meta">
                         ${evt.date_local || ''} &middot;
                         <span class="event-category-chip" style="border:1px solid ${catColor};color:${catColor};">${catIcons[evt.category] || ''} ${evt.category}</span>
-                        ${hasCoords ? ' <span style="color:var(--accent);" title="Has map coordinates">&#128205;</span>' : ''}
+                        ${hasCoords ? ' <span style="color:var(--accent);" data-tip="Has map coordinates">&#128205;</span>' : ''}
                         ${dataTag}
                         ${heroTag}
                     </div>
@@ -11676,8 +11750,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                       } }
                     break;
                 case 'Escape':
-                    if (measureMode) { measureMode = false; clearMeasure(); document.getElementById('measure-btn').style.background = ''; document.getElementById('measure-btn').style.color = ''; }
-                    else document.getElementById('clear-btn')?.click();
+                    { const openModal = document.querySelector('#explainer-modal.visible, #request-modal.visible, #run-request-modal.visible, .modal-overlay.visible');
+                      if (openModal) { openModal.classList.remove('visible'); }
+                      else if (measureMode) { measureMode = false; clearMeasure(); document.getElementById('measure-btn').style.background = ''; document.getElementById('measure-btn').style.color = ''; }
+                      else document.getElementById('clear-btn')?.click(); }
                     break;
                 case '?':
                     showShortcutHelp();
