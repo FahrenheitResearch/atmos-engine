@@ -19,25 +19,25 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 | `core/map_overlay.py` | ~1,133 | Map overlay rendering. Reprojection (KDTree for curvilinear, bilinear for GFS), composite assembly (fill + contours + barbs), PNG/binary output |
 | `model_config.py` | ~320 | Model registry. 6 models (HRRR/GFS/RRFS/NAM/RAP/NAM-Nest) metadata, grid specs, download URLs, forecast hour lists |
 
-### Server + UI (1 file, ~14,326 lines)
+### Server + UI (1 file, ~14,508 lines)
 
 | File | Lines | What It Does |
 |------|-------|-------------|
-| `tools/unified_dashboard.py` | ~14,326 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 58 API endpoints (34 v1 + 24 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects, og:image preview, FHR hover thumbnails, hero cross-section, smart product suggestions, skeleton loading, draw-mode feedback, distance/bearing line label, mobile panel backdrop, event timeline, comparison diff view (with badge labels), 3D terrain, measurement tool, wind barb legend, geocoder search, image zoom/pan, product search filter, slider tick marks, download export |
+| `tools/unified_dashboard.py` | ~14,508 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 58 API endpoints (34 v1 + 24 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects, og:image preview, FHR hover thumbnails, hero cross-section, smart product suggestions, skeleton loading, draw-mode feedback, distance/bearing line label, mobile panel backdrop, event timeline (hover tooltips), comparison diff view (with badge labels + draggable divider), 3D terrain, measurement tool, wind barb legend, geocoder search, image zoom/pan, product search filter, slider tick marks, download export, model-colored HUD badges |
 
 **Key sections in unified_dashboard.py:**
 - Lines 1-1031: Imports, constants, overlay cache, helper functions, model config dicts
 - Lines 1032-1253: `CrossSectionManager` class — init, config, model management
 - Lines 1254-1720: `scan_available_cycles()`, `preload_latest_cycles()`, loading logic
 - Lines 1721-2477: `auto_load_latest()`, orchestration, prerender hooks
-- Lines 2479-10948: HTML template (inline, ~8,470 lines) — the entire frontend
-  - CSS (~1,450 lines): Inter font, model pills, workflow grid, product picker, map HUD, dark theme with cyan accents, skeleton loading, event category pills, draw-mode cursor, toast with auto-dismiss progress bars, mobile backdrop, FHR chip horizontal scroll with fade indicators, keyboard hint badges, zoom controls, slider tick marks
-  - HTML body (~1,080 lines): icon sidebar (48px) + expanded panel (400px) + map toast + mobile backdrop + preset library + map + barb legend + bottom slide-up + hero preview + 3D terrain controls + zoom/download actions
-  - Mapbox GL JS map init + overlay controller (~2,400 lines): starts ~line 4530, double-buffered swap with fade transitions, 3D terrain (Mapbox DEM), measurement tool, distance/bearing label layer
-  - Frontend JS (~3,800 lines): model pills, FHR slider with tick marks + progress fill, FHR hover thumbnails, hero cross-section loader, smart product suggestions, visual product picker with category filter chips + text search, keyboard shortcuts (23 bindings), URL state (y_axis + anomaly deep-link), user prefs, local timezone, GIF, events with category pills + timeline canvas, cities, transect preset library (18 in 4 categories + 36 in presets dropdown), quick-start loading, guide modal (complete shortcuts reference), recent transects, all-models compare, draw-mode feedback, distance/bearing label, XS hover readout + zoom/pan, playback prefetch, comparison diff view with badge labels, context hints, measurement tool, map coords readout, CONUS mini-map, geocoder search, image download export
-- Lines 10949: Flask routes start — `/` serves HTML, `/og-preview.png` serves branded preview
-- Lines 10949-14191: All API route handlers (58 endpoints + og-preview)
-- Lines 14192-14326: Startup — argument parsing, preload, rescan thread, server launch
+- Lines 2479-11130: HTML template (inline, ~8,650 lines) — the entire frontend
+  - CSS (~1,550 lines): Inter font, model pills, workflow grid, product picker, map HUD, dark theme with CSS custom properties (--transition-fast/default/slow, --surface/surface-alt), skeleton loading, event category pills with emoji icons, draw-mode cursor, toast with auto-dismiss progress bars, mobile backdrop, FHR chip horizontal scroll with fade indicators, keyboard hint badges, zoom controls, slider tick marks with hover thumb animation, ctrl-section hover accent, compare divider, tab content fade transitions
+  - HTML body (~1,120 lines): icon sidebar (48px, descriptive tooltips, cities count badge) + expanded panel (400px) + map toast + mobile backdrop + preset library + map + barb legend (backdrop blur) + bottom slide-up (drag handle hover effect) + hero preview + 3D terrain controls + zoom/download actions + compare divider + overlay HUD badge
+  - Mapbox GL JS map init + overlay controller (~2,400 lines): starts ~line 4560, double-buffered swap with fade transitions, 3D terrain (Mapbox DEM), measurement tool, distance/bearing label layer
+  - Frontend JS (~3,900 lines): model pills (partial/loaded indicators), FHR slider with tick marks + progress fill, FHR hover thumbnails, hero cross-section loader, smart product suggestions, visual product picker with category filter chips + text search, keyboard shortcuts (22 bindings), URL state (y_axis + overlay deep-link), user prefs, local timezone, GIF, events with emoji category pills + timeline canvas (hover tooltips), cities, transect preset library (18 in 4 categories + 36 in presets dropdown), quick-start loading (glow animation), guide modal (icons + fade transitions), recent transects, all-models compare (draggable divider), draw-mode feedback, distance/bearing label, XS hover readout + zoom/pan, playback prefetch (chip glow), comparison diff view with badge labels, context menu (fade-in animation), measurement tool, map coords readout, CONUS mini-map, geocoder search, image download export, overlay HUD badge, model-colored HUD, product strip hover states, settings API section
+- Lines 11130: Flask routes start — `/` serves HTML, `/og-preview.png` serves branded preview
+- Lines 11130-14370: All API route handlers (58 endpoints + og-preview)
+- Lines 14370-14508: Startup — argument parsing, preload, rescan thread, server launch
 
 ### Download System (2 files, ~1,240 lines)
 
@@ -386,7 +386,40 @@ Mapbox GL Geocoder plugin in top-left map corner (collapsed icon mode). Dark the
 HTML5 canvas timeline visualization showing all 88 events as color-coded dots by category. Year gridlines. Click a dot to show event details. DPR-aware rendering. Part of the Events tab.
 
 ### Context Menu Enhancements
-Right-click context menu includes: Set start A, Set end B, Add POI, Copy coords, Center map here, Zoom in here. Custom positioning avoids screen edge overflow.
+Right-click context menu includes: Set start A, Set end B, Add POI, Copy coords, Center map here, Zoom in here. Custom positioning avoids screen edge overflow. Fade-in scale animation, rounded hover rows.
+
+### Tab Content Animations
+Sidebar panel tab switching uses CSS fade + translateY transition. Content fades in with a 4px upward slide. Guide modal tab content also uses the same pattern.
+
+### Compare Mode Draggable Divider
+Draggable vertical divider between comparison panels. Drag left/right to resize panels (15-85% range). Resets to 50/50 when exiting compare mode. Blue accent color with ↕ icon indicator.
+
+### Event Category Emoji Icons
+Event category pills show emoji icons: fire (🔥), hurricane (🌀), tornado (🌪), derecho (⚡), hail/winter (❄), AR (🌊). Icons appear in both filter pills and event list chips.
+
+### Model-Colored Map HUD
+The map HUD model badge uses per-model colors: HRRR=cyan (#0ea5e9), GFS=purple (#8b5cf6), RRFS=green (#22c55e), NAM=orange (#f97316), RAP=yellow (#eab308), NAM-Nest=pink (#ec4899). Updates dynamically on model switch.
+
+### CSS Design System Variables
+Custom properties for consistent design:
+- `--transition-fast: 0.12s`, `--transition-default: 0.2s`, `--transition-slow: 0.35s`
+- `--surface: #253347`, `--surface-alt: #2d3f56` (mid-tone panel backgrounds)
+- Shared `MODEL_COLORS` JS constant for per-model coloring
+
+### Settings Panel API Section
+Settings tab includes an API quick-reference section with copyable endpoint URL and links to products/status endpoints. Section titles have emoji icons (🌎 Map Style, 📍 Map Markers, ⚡ API).
+
+### Bottom Panel Drag Handle
+Handle pill widens (40→56px) and turns accent-colored on hover. Double-click cycles through all three states: collapsed → half → full → collapsed.
+
+### Slider Thumb Hover Effects
+FHR slider thumb scales up 1.2x on hover with enhanced glow. Active (dragging) state: 1.1x scale with brighter glow.
+
+### Product Strip Hover States
+Inactive product pills in the quick-switch strip highlight on hover (background darkens, text brightens). Active product shown in bold with accent background.
+
+### Control Section Hover Accent
+Control sections (.ctrl-section) get a subtle left border accent in translucent cyan on hover, providing visual feedback for which section the user is interacting with.
 
 ## API Endpoint Count
 
