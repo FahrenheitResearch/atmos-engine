@@ -3741,6 +3741,21 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             letter-spacing: 0.5px;
             color: var(--muted);
             margin-bottom: 6px;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .ctrl-section-title:not(.preset-toggle)::after {
+            content: '\25BE'; font-size: 10px; opacity: 0.4;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+        .ctrl-section-title:not(.preset-toggle):hover::after { opacity: 0.8; }
+        .ctrl-section.collapsed .ctrl-section-title { margin-bottom: 0; }
+        .ctrl-section.collapsed .ctrl-section-title:not(.preset-toggle)::after { transform: rotate(-90deg); }
+        .ctrl-section.collapsed > *:not(.ctrl-section-title) {
+            display: none !important;
         }
         .ctrl-row {
             display: flex;
@@ -5762,6 +5777,14 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             updateBackdrop(false);
             setTimeout(() => map.resize(), 250);
         };
+
+        // Sidebar section collapse/expand
+        document.querySelectorAll('.ctrl-section-title').forEach(title => {
+            if (title.classList.contains('preset-toggle')) return; // Preset library has its own toggle
+            title.addEventListener('click', () => {
+                title.parentElement.classList.toggle('collapsed');
+            });
+        });
 
         // =====================================================================
         // Bottom Panel State Management
