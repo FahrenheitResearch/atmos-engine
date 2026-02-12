@@ -10,11 +10,11 @@ Multi-model atmospheric cross-section generator. Users draw a line on a map, get
 tools/unified_dashboard.py         — Flask server + Mapbox GL JS frontend + 57 API endpoints (~11,800 lines)
 core/cross_section_interactive.py  — Rendering engine (matplotlib, 0.5s warm renders) (~3,435 lines)
 core/map_overlay.py                — Map overlay composites (fill + contours + wind barbs) (~1,133 lines)
-tools/auto_update.py               — GRIB download daemon (slot-based concurrent) (~913 lines)
+tools/auto_update.py               — GRIB download daemon (slot-based concurrent) (~929 lines)
 model_config.py                    — Model registry (6 models: HRRR/GFS/RRFS/NAM/RAP/NAM-Nest) (~320 lines)
 smart_hrrr/orchestrator.py         — Parallel GRIB download with multi-layer validation (~311 lines)
 tools/agent_tools/                 — Agent research platform (12 modules + 8 data files, ~57,500 lines)
-tools/agent_tools/wfo_swarm/       — Oregon WFO agent swarm pilot (7 zones, 154 agents, ~3,900 lines)
+tools/agent_tools/wfo_swarm/       — Oregon WFO agent swarm pilot (7 zones, 154 agents, ~3,120 lines)
 tools/mcp_server.py                — MCP server — private (52 tools, stdio)
 tools/mcp_public.py                — MCP server — public (53 tools, SSE, API key auth)
 restart_dashboard.py               — Production startup (handles env vars, port conflicts, archive dirs)
@@ -24,7 +24,7 @@ restart_dashboard.py               — Production startup (handles env vars, por
 
 - **Mmap cache on NVMe**: GRIB files are converted to raw numpy arrays (~2.8GB/FHR HRRR, ~50MB/FHR GFS on disk, ~100MB resident RAM). This is what makes instant cross-sections possible.
 - **GFS CONUS subset**: GFS global 0.25deg grid (721x1440) is subset to CONUS+5deg padding (~166x333) at extraction time. Cuts GFS cache from ~500MB to ~50MB/FHR on disk.
-- **eccodes `auto` backend**: Default GRIB backend tries eccodes direct (one-pass scan, ~35% faster), falls back to cfgrib. Configurable via `XSECT_GRIB_BACKEND` env var.
+- **eccodes `auto` backend**: Default GRIB backend tries eccodes direct (one-pass scan, ~35% faster), falls back to cfgrib. Configurable via `XSECT_GRIB_BACKEND` env var. Critical for NAM/RAP: eccodes misses v-wind in awphys/awp130pgrb, but cfgrib fallback extracts it — enabling wind_speed, shear, fire_wx for those models.
 - **Lazy smoke loading**: wrfnat files (652MB, 50 hybrid levels) loaded on-demand on first `smoke` style request, not during preload.
 - **Multiprocess + threaded**: Native Windows. CPU-bound work (rendering, GRIB conversion) uses ProcessPoolExecutor. I/O-bound work (downloads, mmap loads) uses ThreadPoolExecutor.
 - **Slot-based concurrent auto-update**: 4 HRRR + 2 GFS + 8 RRFS download slots via per-model ThreadPoolExecutor. Each model has its own lane. HRRR fail-fast prunes unavailable FHRs. Priority boost steals slots from RRFS/GFS for early HRRR FHRs.

@@ -67,7 +67,7 @@ MODEL_FILE_TYPES = {
     'hrrr': ['pressure', 'surface'],  # wrfprs (~383MB) + wrfsfc (~136MB) = ~519MB vs 1.18GB
     'gfs':  ['pressure'],             # pgrb2.0p25 (has surface data in it)
     'rrfs': ['pressure'],             # prslev (has surface data in it)
-    'nam':  ['pressure'],             # awphys (combined pressure + surface, missing v-wind)
+    'nam':  ['pressure'],             # awphys (combined pressure + surface; cfgrib extracts v-wind)
     'rap':  ['pressure'],             # awp130pgrb (combined pressure + surface)
     'nam_nest': ['pressure'],         # conusnest.hiresf (combined file)
 }

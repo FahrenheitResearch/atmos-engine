@@ -889,9 +889,11 @@ MODEL_EXCLUDED_STYLES = {
     'gfs': {'smoke'},       # GFS has no PM2.5/smoke
     'rrfs': {'smoke'},      # RRFS has no smoke either
     'hrrr': set(),          # HRRR supports all styles
-    'nam': {'smoke', 'wind_speed', 'shear', 'moisture_transport', 'fire_wx'},  # NAM awphys missing v-wind
-    'rap': {'smoke', 'wind_speed', 'shear', 'moisture_transport', 'fire_wx'},  # RAP awp130 missing v-wind
-    'nam_nest': {'smoke'},  # NAM Nest has no smoke
+    'nam': {'smoke', 'q', 'moisture_transport', 'cloud_total', 'icing',
+            'dewpoint_dep', 'vorticity', 'pv'},  # cfgrib extracts v-wind; missing q/cloud/dew_point; vorticity only 5 levels (misaligned)
+    'rap': {'smoke', 'q', 'moisture_transport', 'cloud_total', 'icing',
+            'dewpoint_dep', 'vorticity', 'pv'},  # cfgrib extracts v-wind; missing q/cloud/dew_point; vorticity 2D only
+    'nam_nest': {'smoke', 'dewpoint_dep', 'vorticity', 'pv'},  # dew_point/vorticity only 7/42 levels (misaligned)
 }
 
 # ── Lazy wrfnat download for smoke style ──
@@ -5253,17 +5255,32 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             { name: 'SoCal Offshore Flow', config: { start_lat: 34.1, start_lon: -119.5, end_lat: 34.1, end_lon: -117.0 }},
         ];
         const OR_PRESETS = [
+            // Gorge Zone
             { name: 'Columbia Gorge E-W', config: { start_lat: 45.70, start_lon: -122.20, end_lat: 45.63, end_lon: -120.80 }},
             { name: 'Gorge to Grassland N-S', config: { start_lat: 45.80, start_lon: -121.18, end_lat: 45.05, end_lon: -121.10 }},
             { name: 'Hood River Valley', config: { start_lat: 45.80, start_lon: -121.58, end_lat: 45.35, end_lon: -121.65 }},
-            { name: 'Bend \u2192 Sisters Gap Wind', config: { start_lat: 44.06, start_lon: -121.31, end_lat: 44.30, end_lon: -121.57 }},
-            { name: 'Cascade Crest (Three Sisters)', config: { start_lat: 44.10, start_lon: -122.10, end_lat: 44.10, end_lon: -121.10 }},
-            { name: 'Deschutes Basin N-S', config: { start_lat: 44.50, start_lon: -121.30, end_lat: 43.50, end_lon: -121.50 }},
-            { name: 'Medford \u2192 Cascades', config: { start_lat: 42.33, start_lon: -122.87, end_lat: 42.33, end_lon: -121.80 }},
-            { name: 'Rogue Valley N-S', config: { start_lat: 42.80, start_lon: -122.70, end_lat: 42.10, end_lon: -122.60 }},
-            { name: 'Klamath Basin', config: { start_lat: 42.70, start_lon: -122.10, end_lat: 42.10, end_lon: -121.50 }},
-            { name: 'Coast Range Crest', config: { start_lat: 44.60, start_lon: -124.10, end_lat: 44.60, end_lon: -123.10 }},
-            { name: 'Eugene \u2192 Coast (Lane Co)', config: { start_lat: 44.05, start_lon: -123.10, end_lat: 44.05, end_lon: -124.10 }},
+            { name: 'Dufur-Maupin Grass Fire', config: { start_lat: 45.46, start_lon: -121.13, end_lat: 45.08, end_lon: -121.03 }},
+            // Central Cascades
+            { name: 'Bend WUI Western Approach', config: { start_lat: 44.12, start_lon: -121.55, end_lat: 44.00, end_lon: -121.20 }},
+            { name: 'Cascade Rain Shadow (Sisters)', config: { start_lat: 44.30, start_lon: -122.10, end_lat: 44.25, end_lon: -120.80 }},
+            { name: 'US-97 Fire Corridor', config: { start_lat: 44.35, start_lon: -121.19, end_lat: 43.55, end_lon: -121.50 }},
+            // Cascade Crest (Historic Fire Paths)
+            { name: 'N. Santiam (Beachie Creek 2020)', config: { start_lat: 44.75, start_lon: -122.70, end_lat: 44.72, end_lon: -121.90 }},
+            { name: 'McKenzie Canyon (Holiday Farm 2020)', config: { start_lat: 44.16, start_lon: -122.70, end_lat: 44.20, end_lon: -121.90 }},
+            { name: 'Labor Day East Wind Full', config: { start_lat: 44.50, start_lon: -123.00, end_lat: 44.50, end_lon: -121.50 }},
+            // Rogue Valley
+            { name: 'Rogue Valley N-S (Almeda Path)', config: { start_lat: 42.55, start_lon: -122.87, end_lat: 42.10, end_lon: -122.72 }},
+            { name: 'Rogue Valley E-W Cross', config: { start_lat: 42.33, start_lon: -123.50, end_lat: 42.33, end_lon: -122.45 }},
+            { name: 'Siskiyou Pass / I-5', config: { start_lat: 42.25, start_lon: -122.60, end_lat: 41.95, end_lon: -122.55 }},
+            // Klamath Basin
+            { name: 'Klamath Basin E-W', config: { start_lat: 42.22, start_lon: -122.30, end_lat: 42.20, end_lon: -120.80 }},
+            { name: 'Bootleg Fire Zone N-S', config: { start_lat: 42.80, start_lon: -121.20, end_lat: 42.10, end_lon: -121.10 }},
+            // Blue Mountains
+            { name: 'Blue Mountains E-W', config: { start_lat: 44.80, start_lon: -119.20, end_lat: 44.80, end_lon: -117.20 }},
+            { name: 'Wallowa Mountains', config: { start_lat: 45.55, start_lon: -117.50, end_lat: 45.20, end_lon: -117.05 }},
+            // Coast Range / Willamette
+            { name: 'Coast Range E-W (Florence\u2192Eugene)', config: { start_lat: 43.98, start_lon: -124.00, end_lat: 44.00, end_lon: -122.60 }},
+            { name: 'Umpqua Valley (Roseburg)', config: { start_lat: 43.22, start_lon: -123.80, end_lat: 43.22, end_lon: -122.60 }},
             { name: 'Portland \u2192 Mt Hood', config: { start_lat: 45.50, start_lon: -122.65, end_lat: 45.37, end_lon: -121.70 }},
         ];
         const CONUS_PRESETS = [

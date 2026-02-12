@@ -19,34 +19,31 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 | `core/map_overlay.py` | ~1,133 | Map overlay rendering. Reprojection (KDTree for curvilinear, bilinear for GFS), composite assembly (fill + contours + barbs), PNG/binary output |
 | `model_config.py` | ~320 | Model registry. 6 models (HRRR/GFS/RRFS/NAM/RAP/NAM-Nest) metadata, grid specs, download URLs, forecast hour lists |
 
-### Server + UI (1 file, ~11,400 lines)
+### Server + UI (1 file, ~11,800 lines)
 
 | File | Lines | What It Does |
 |------|-------|-------------|
-| `tools/unified_dashboard.py` | ~11,400 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 57 API endpoints (34 v1 + 23 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation |
+| `tools/unified_dashboard.py` | ~11,800 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 57 API endpoints (34 v1 + 23 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation |
 
 **Key sections in unified_dashboard.py:**
-- Lines 1-700: Imports, constants, overlay cache, helper functions
-- Lines 700-1200: `ModelManager` class — cycle scanning, loading, target cycle selection, eviction
-- Lines 1200-1400: `scan_available_cycles()`, `preload_latest_cycles()`
-- Lines 1400-2000: `auto_load_latest()` — the background autoload logic
-- Lines 2000-3900: HTML template (inline) — the entire frontend
-  - CSS: Inter font, model pills, workflow grid, map HUD, dark theme with cyan accents
-  - Layout: icon sidebar (48px) + expanded panel (400px) + map + bottom slide-up
-  - Model pills with resolution badges and loaded status dots
-  - Quick Analysis workflow grid (Fire Wx, Severe, Upper Air, Moisture, Jet Stream, Surface)
-  - Map HUD showing current model/cycle/FHR as floating badges
-- Lines 3900-4800: Mapbox GL JS map init, overlay controller, cross-section line/markers
-- Lines 4800-8200: Frontend JS — model pills, FHR slider, product selector, GIF controls, events, cities
-- Lines 8200-8400: Flask route `/` — serves HTML with token injection
-- Lines 8400-11200: All API route handlers
-- Lines 11200-11600: Startup — argument parsing, preload, rescan thread, server launch
+- Lines 1-1000: Imports, constants, overlay cache, helper functions, model config dicts
+- Lines 1000-1220: `CrossSectionManager` class — init, config, model management
+- Lines 1220-1700: `scan_available_cycles()`, `preload_latest_cycles()`, loading logic
+- Lines 1700-2450: `auto_load_latest()`, orchestration, prerender hooks
+- Lines 2450-8500: HTML template (inline, ~6,050 lines) — the entire frontend
+  - CSS (~1,060 lines): Inter font, model pills, workflow grid, map HUD, dark theme with cyan accents
+  - HTML body (~900 lines): icon sidebar (48px) + expanded panel (400px) + map + bottom slide-up
+  - Mapbox GL JS map init + overlay controller (~2,000 lines): starts ~line 4415
+  - Frontend JS (~2,000 lines): model pills, FHR slider, product selector, keyboard shortcuts, URL state, GIF, events, cities, transect presets
+- Lines 8510-8515: Flask route `/` — serves HTML with token injection
+- Lines 8515-11670: All API route handlers
+- Lines 11670-11820: Startup — argument parsing, preload, rescan thread, server launch
 
-### Download System (2 files, ~1,200 lines)
+### Download System (2 files, ~1,240 lines)
 
 | File | Lines | What It Does |
 |------|-------|-------------|
-| `tools/auto_update.py` | ~913 | Download daemon. Slot-based concurrency (per-model ThreadPoolExecutor), priority boost for early HRRR FHRs, fail-fast pruning, status file IPC, disk eviction |
+| `tools/auto_update.py` | ~929 | Download daemon. Slot-based concurrency (per-model ThreadPoolExecutor), priority boost for early HRRR FHRs, fail-fast pruning, status file IPC, disk eviction |
 | `smart_hrrr/orchestrator.py` | ~312 | Single-FHR download. Multi-source fallback (NOMADS → AWS → Pando), 4-layer validation (HTTP status, content-type, size >500KB, GRIB magic bytes), atomic `.partial` → final rename |
 
 ### Agent Research Platform (12 modules + 8 data files + WFO swarm, ~57,500 lines total)
@@ -60,7 +57,7 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 | `tools/agent_tools/report_builder.py` | 1,142 | ReportBuilder, LaTeX templates, PDF compilation |
 | `tools/agent_tools/forecast.py` | 1,832 | ForecastGenerator, agent swarm orchestrator, national_fire_scan |
 | `tools/agent_tools/investigation.py` | 900 | investigate_location, investigate_town, batch_investigate (44 OR towns) |
-| `tools/agent_tools/terrain.py` | ~1,500 | analyze_terrain_complexity, city_terrain_assessment (232 city profiles) |
+| `tools/agent_tools/terrain.py` | ~1,318 | analyze_terrain_complexity, city_terrain_assessment (232 city profiles) |
 | `tools/agent_tools/fuel_conditions.py` | ~1,800 | assess_fuel_conditions (73 city ignition profiles), seasonal context |
 | `tools/agent_tools/frontal_analysis.py` | 1,078 | detect_wind_shifts, classify_overnight_conditions |
 | `tools/agent_tools/report_quality.py` | 803 | fire_report_checklist, validate_report_claims |
@@ -78,19 +75,19 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 | `tools/agent_tools/data/oregon_zones.py` | 310 | 7 zones, 44 towns |
 | `tools/agent_tools/data/oregon_transects.py` | 704 | 31 cross-section presets |
 
-### Oregon WFO Swarm (8 files, ~3,900 lines)
+### Oregon WFO Swarm (11 files, ~3,120 lines)
 
 | File | Lines | What It Does |
 |------|-------|-------------|
-| `tools/agent_tools/wfo_swarm/config.py` | | Zone config, agent tier definitions |
-| `tools/agent_tools/wfo_swarm/scheduler.py` | | Tier-based scheduling, dependency tracking |
-| `tools/agent_tools/wfo_swarm/swarm.py` | | Main swarm orchestrator, zone runner |
-| `tools/agent_tools/wfo_swarm/zone_state.py` | | Per-zone state accumulator |
-| `tools/agent_tools/wfo_swarm/agents/data_acquisition.py` | | Tier 1: METAR/RAWS/NWS data fetch |
-| `tools/agent_tools/wfo_swarm/agents/cross_section.py` | | Tier 2: Batch cross-section generation |
-| `tools/agent_tools/wfo_swarm/agents/assessment.py` | | Tier 3: Fire risk, terrain, fuel assessment |
-| `tools/agent_tools/wfo_swarm/agents/synthesis.py` | | Tier 4: Zone-level risk synthesis |
-| `tools/agent_tools/wfo_swarm/agents/output.py` | | Tier 5: Bulletin/PDF/GIF output |
+| `tools/agent_tools/wfo_swarm/config.py` | 161 | Zone config, agent tier definitions |
+| `tools/agent_tools/wfo_swarm/scheduler.py` | 384 | Tier-based scheduling, dependency tracking |
+| `tools/agent_tools/wfo_swarm/swarm.py` | 199 | Main swarm orchestrator, zone runner |
+| `tools/agent_tools/wfo_swarm/zone_state.py` | 143 | Per-zone state accumulator |
+| `tools/agent_tools/wfo_swarm/agents/data_acquisition.py` | 414 | Tier 1: METAR/RAWS/NWS data fetch |
+| `tools/agent_tools/wfo_swarm/agents/cross_section.py` | 300 | Tier 2: Batch cross-section generation |
+| `tools/agent_tools/wfo_swarm/agents/assessment.py` | 390 | Tier 3: Fire risk, terrain, fuel assessment |
+| `tools/agent_tools/wfo_swarm/agents/synthesis.py` | 801 | Tier 4: Zone-level risk synthesis |
+| `tools/agent_tools/wfo_swarm/agents/output.py` | 299 | Tier 5: Bulletin/PDF/GIF output |
 
 ### MCP Servers (3 files)
 
@@ -104,14 +101,16 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 
 | Model | Resolution | Domain | Cycles | Max FHR | Notes |
 |-------|-----------|--------|--------|---------|-------|
-| **HRRR** | 3km | CONUS | Every hour | 18h (48h synoptic) | Primary model. Full field set. |
-| **GFS** | 0.25deg | Global (CONUS subset) | 00/06/12/18z | 384h | Subset to CONUS+5deg at extraction. |
-| **RRFS** | 3km | North America | Every hour | 18h (60h synoptic) | Experimental HRRR successor. Rotated lat/lon grid. |
-| **NAM** | 12km | CONUS | 00/06/12/18z | 84h | awphys product. Missing v-wind on isobaric — wind_speed/shear/fire_wx disabled. |
-| **RAP** | 13km | CONUS | Every hour | 21h (51h ext) | awp130pgrb product. Same v-wind limitation as NAM. |
-| **NAM-Nest** | 3km | CONUS | 00/06/12/18z | 60h | High-res NAM nest. Full field set. 926MB per FHR. |
+| **HRRR** | 3km | CONUS | Every hour | 18h (48h synoptic) | Primary model. Full field set (20 products). |
+| **GFS** | 0.25deg | Global (CONUS subset) | 00/06/12/18z | 384h | Subset to CONUS+5deg at extraction. All products except smoke. |
+| **RRFS** | 3km | North America | Every hour | 18h (60h synoptic) | Experimental HRRR successor. Rotated lat/lon grid. All products except smoke. |
+| **NAM** | 12km | CONUS | 00/06/12/18z | 84h | awphys product. 39 levels. cfgrib extracts v-wind (eccodes misses it). Missing q/cloud/dew_point. |
+| **RAP** | 13km | CONUS | Every hour | 21h (51h ext) | awp130pgrb product. 37 levels. Same cfgrib v-wind trick. Missing q/cloud/dew_point. |
+| **NAM-Nest** | 3km | CONUS | 00/06/12/18z | 60h | High-res NAM nest. 42 levels, 926MB/FHR. Has most fields; dew_point/vorticity partial (7/42 levels). |
 
-**NAM/RAP v-wind issue**: Standard GRIB products (awphys, awp130pgrb) lack v-component of wind on isobaric levels. Full products (bgrd3d 441MB, wrfprs 228MB) have all fields but use non-standard grids that eccodes can't decode. Wind-dependent styles (wind_speed, shear, moisture_transport, fire_wx) are excluded for NAM and RAP via `MODEL_EXCLUDED_STYLES`.
+**NAM/RAP cfgrib v-wind discovery**: eccodes one-pass scan misses v-component of wind in awphys/awp130pgrb GRIB products, but cfgrib (the `auto` backend fallback) successfully extracts it. Verified: NAM v_wind (39, 428, 614), RAP v_wind (37, 337, 451) — both with real wind values. Wind-dependent styles (wind_speed, shear, fire_wx) are now **enabled**. Still excluded: q, moisture_transport, cloud_total, icing, dewpoint_dep, vorticity, pv (missing fields or level count mismatch).
+
+**NAM-Nest level mismatch**: dew_point and vorticity arrays have only 7 of 42 pressure levels. The `interp_3d()` function maps array indices to pressure level indices, so mismatched arrays get placed at WRONG pressure positions. These styles (dewpoint_dep, vorticity, pv) are excluded via `MODEL_EXCLUDED_STYLES`.
 
 **Sub-hourly data**: No publicly available NWP model provides sub-hourly 3D pressure level data. HRRR wrfsubhf (15-min) is surface-only (2D) — useless for cross-sections. All 3D data (wrfprs, prslev, etc.) is hourly at best. Future possibility: 3D-RTMA (15-min 3D analysis) is in experimental/prototype stage at NCEP, not yet available.
 

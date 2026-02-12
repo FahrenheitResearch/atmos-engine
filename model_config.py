@@ -188,14 +188,15 @@ class ModelRegistry:
         )
         
         # NAM 12km CONUS Configuration
-        # NOTE: awphys has t/u/r/w/gh/surface fields but missing v-wind and q on isobaric levels.
-        # bgrd3d (441MB) has all fields but is very large. Using awphys for now.
+        # NOTE: awphys has t/u/r/w/gh/surface fields. eccodes misses v-wind on isobaric
+        # levels, but cfgrib (auto fallback) extracts it successfully. Missing: q, cloud,
+        # dew_point. bgrd3d (441MB) has everything but is 2x the size.
         models['nam'] = ModelConfig(
             name='nam',
             full_name='North American Mesoscale',
             resolution='12km',
             file_types={
-                'pressure': 'awphys',  # Has most fields (t, u, r, w, gh) but no v-wind or q
+                'pressure': 'awphys',  # Has t, u, v (via cfgrib), r, w, gh — missing q, cloud, dew_point
                 'surface': 'awphys',   # Same file has surface diagnostics
             },
             filename_pattern='nam.t{hour:02d}z.{file_type}{forecast_hour:02d}.tm00.grib2',
@@ -213,13 +214,14 @@ class ModelRegistry:
 
         # RAP 13km CONUS Configuration
         # NOTE: wrfprs has all fields but uses non-standard grid (ncep_32769) that eccodes can't decode.
-        # awp130pgrb uses standard Lambert grid. Missing v-wind and q, but most products work.
+        # awp130pgrb uses standard Lambert grid. eccodes misses v-wind, but cfgrib (auto fallback)
+        # extracts it. Missing: q, cloud, dew_point. Wind styles now work.
         models['rap'] = ModelConfig(
             name='rap',
             full_name='Rapid Refresh',
             resolution='13km',
             file_types={
-                'pressure': 'awp130pgrb',  # Standard Lambert grid, has t/u/r/w/gh (no v-wind or q)
+                'pressure': 'awp130pgrb',  # Standard Lambert grid, has t, u, v (via cfgrib), r, w, gh — missing q, cloud
                 'surface': 'awp130pgrb',   # Surface data in same file
             },
             filename_pattern='rap.t{hour:02d}z.{file_type}f{forecast_hour:02d}.grib2',
