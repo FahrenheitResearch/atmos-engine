@@ -5809,9 +5809,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             if (!m) { el.textContent = ''; return; }
             const initDate = new Date(Date.UTC(+m[1], +m[2]-1, +m[3], +m[4]));
             const hoursAgo = Math.round((Date.now() - initDate.getTime()) / 3600000);
-            if (hoursAgo < 1) el.textContent = '<1h ago';
-            else if (hoursAgo < 48) el.textContent = `${hoursAgo}h ago`;
-            else el.textContent = `${Math.round(hoursAgo/24)}d ago`;
+            if (hoursAgo < 1) { el.textContent = '<1h ago'; el.style.color = 'var(--success)'; }
+            else if (hoursAgo < 4) { el.textContent = hoursAgo + 'h ago'; el.style.color = 'var(--muted)'; }
+            else if (hoursAgo < 48) { el.textContent = hoursAgo + 'h ago'; el.style.color = 'var(--warning)'; }
+            else { el.textContent = Math.round(hoursAgo / 24) + 'd ago'; el.style.color = '#f87171'; }
         }
         setInterval(updateHUD, 500);
         setInterval(updateCycleAge, 10000);
