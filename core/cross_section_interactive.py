@@ -2730,7 +2730,7 @@ class InteractiveCrossSection:
 
             cbar_label, shading_label = _ANOMALY_LABELS.get(
                 style, (f'{style} Anomaly', f'{style} Anomaly'))
-            cbar.set_label(cbar_label)
+            cbar.set_label(cbar_label, fontsize=10)
 
         elif style == "wind_speed" and wind_speed is not None:
             # Wind speed colormap: PG&E/SJSU-WIRC style (smooth gradient)
@@ -2755,7 +2755,7 @@ class InteractiveCrossSection:
             cf = ax.contourf(X, Y, wind_speed, levels=np.arange(0, 102, 2), cmap=wspd_cmap, extend='max')
             cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
             cbar = fig.colorbar(cf, cax=cbar_ax)
-            cbar.set_label('Wind Speed (kts)')
+            cbar.set_label('Wind Speed (kts)', fontsize=10)
             shading_label = "Wind Speed"
         elif style == "temp":
             temp_c = data.get('temp_c')
@@ -2765,7 +2765,7 @@ class InteractiveCrossSection:
                 cf = ax.contourf(X, Y, temp_c, levels=np.arange(-66, 56, 2), cmap=cmap_obj, extend='both')
                 cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
                 cbar = fig.colorbar(cf, cax=cbar_ax)
-                cbar.set_label('Temperature (°C)')
+                cbar.set_label('Temperature (°C)', fontsize=10)
                 shading_label = "T(°C)"
         elif style == "rh":
             rh = data.get('rh')
@@ -2777,7 +2777,7 @@ class InteractiveCrossSection:
                 cf = ax.contourf(X, Y, rh, levels=np.arange(0, 105, 5), cmap=rh_cmap, extend='both')
                 cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
                 cbar = fig.colorbar(cf, cax=cbar_ax)
-                cbar.set_label('Relative Humidity (%)')
+                cbar.set_label('Relative Humidity (%)', fontsize=10)
                 shading_label = "RH(%)"
         elif style == "omega":
             omega = data.get('omega')
@@ -2788,7 +2788,7 @@ class InteractiveCrossSection:
                                 cmap='RdBu_r', extend='both')
                 cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
                 cbar = fig.colorbar(cf, cax=cbar_ax)
-                cbar.set_label('ω (hPa/hr)')
+                cbar.set_label('ω (hPa/hr)', fontsize=10)
                 shading_label = "ω"
         elif style == "theta_e":
             theta_e = data.get('theta_e')
@@ -2796,7 +2796,7 @@ class InteractiveCrossSection:
                 cf = ax.contourf(X, Y, theta_e, levels=np.arange(280, 365, 4), cmap='Spectral_r', extend='both')
                 cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
                 cbar = fig.colorbar(cf, cax=cbar_ax)
-                cbar.set_label('θₑ (K)')
+                cbar.set_label('θₑ (K)', fontsize=10)
                 shading_label = "θₑ"
         elif style == "shear":
             shear = data.get('shear')
@@ -2804,7 +2804,7 @@ class InteractiveCrossSection:
                 cf = ax.contourf(X, Y, shear, levels=np.linspace(0, 10, 11), cmap='OrRd', extend='max')
                 cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
                 cbar = fig.colorbar(cf, cax=cbar_ax)
-                cbar.set_label('Shear (10⁻³/s)')
+                cbar.set_label('Shear (10⁻³/s)', fontsize=10)
                 shading_label = "Shear"
         elif style == "q":
             q = data.get('specific_humidity')
@@ -2813,7 +2813,7 @@ class InteractiveCrossSection:
                 cf = ax.contourf(X, Y, q_gkg, levels=np.arange(0, 21, 1), cmap='YlGnBu', extend='max')
                 cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
                 cbar = fig.colorbar(cf, cax=cbar_ax)
-                cbar.set_label('Specific Humidity (g/kg)')
+                cbar.set_label('Specific Humidity (g/kg)', fontsize=10)
                 shading_label = "q"
         elif style == "cloud_total":
             cloud = data.get('cloud')
@@ -2840,7 +2840,7 @@ class InteractiveCrossSection:
                 cf = ax.contourf(X, Y, total_gkg, levels=np.linspace(0, 1.0, 11), cmap=cloud_cmap, extend='max')
                 cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
                 cbar = fig.colorbar(cf, cax=cbar_ax)
-                cbar.set_label('Total Condensate (g/kg)')
+                cbar.set_label('Total Condensate (g/kg)', fontsize=10)
                 shading_label = "Cloud"
         elif style == "cloud":
             cloud = data.get('cloud')
@@ -2849,7 +2849,7 @@ class InteractiveCrossSection:
                 cf = ax.contourf(X, Y, cloud_gkg, levels=np.linspace(0, 0.5, 11), cmap='Blues', extend='max')
                 cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
                 cbar = fig.colorbar(cf, cax=cbar_ax)
-                cbar.set_label('Cloud LWC (g/kg)')
+                cbar.set_label('Cloud LWC (g/kg)', fontsize=10)
                 shading_label = "Cloud"
         elif style == "lapse_rate":
             lapse = data.get('lapse_rate')
@@ -2858,7 +2858,7 @@ class InteractiveCrossSection:
                 cf = ax.contourf(X, Y, lapse, levels=np.linspace(0, 12, 13), cmap='RdYlBu_r', extend='both')
                 cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
                 cbar = fig.colorbar(cf, cax=cbar_ax)
-                cbar.set_label('Lapse Rate (°C/km)')
+                cbar.set_label('Lapse Rate (°C/km)', fontsize=10)
                 # Add dry adiabatic line
                 ax.contour(X, Y, lapse, levels=[9.8], colors='black', linewidths=2, linestyles='--')
                 shading_label = "Γ"
@@ -2868,7 +2868,7 @@ class InteractiveCrossSection:
                 cf = ax.contourf(X, Y, wetbulb, levels=np.arange(-40, 35, 5), cmap='coolwarm', extend='both')
                 cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
                 cbar = fig.colorbar(cf, cax=cbar_ax)
-                cbar.set_label('Wet-Bulb Temp (°C)')
+                cbar.set_label('Wet-Bulb Temp (°C)', fontsize=10)
                 # Wet-bulb 0°C line (critical for precip type)
                 try:
                     cs_wb0 = ax.contour(X, Y, wetbulb, levels=[0], colors='lime', linewidths=3)
@@ -2894,7 +2894,7 @@ class InteractiveCrossSection:
                 cf = ax.contourf(X, Y, icing, levels=np.linspace(0, 0.3, 7), cmap=icing_cmap, extend='max')
                 cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
                 cbar = fig.colorbar(cf, cax=cbar_ax)
-                cbar.set_label('Icing (SLW g/kg)')
+                cbar.set_label('Icing (SLW g/kg)', fontsize=10)
                 shading_label = "Icing"
         elif style == "vorticity":
             vort = data.get('vorticity')
@@ -2905,7 +2905,7 @@ class InteractiveCrossSection:
                                 cmap='RdBu_r', extend='both')
                 cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
                 cbar = fig.colorbar(cf, cax=cbar_ax)
-                cbar.set_label('Vorticity (10⁻⁵/s)')
+                cbar.set_label('Vorticity (10⁻⁵/s)', fontsize=10)
                 shading_label = "ζ"
         elif style == "smoke":
             smoke_hyb = data.get('smoke_hyb')  # (n_hyb, n_points)
@@ -2959,7 +2959,7 @@ class InteractiveCrossSection:
                 else:
                     ticks = None
                 cbar = fig.colorbar(cf, cax=cbar_ax, ticks=ticks)
-                cbar.set_label('PM2.5 (μg/m³)')
+                cbar.set_label('PM2.5 (μg/m³)', fontsize=10)
 
 
                 shading_label = "PM2.5 Smoke"
@@ -2980,7 +2980,7 @@ class InteractiveCrossSection:
                 cf = ax.contourf(X, Y, fronto, levels=levels, cmap=fronto_cmap, extend='both')
                 cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
                 cbar = fig.colorbar(cf, cax=cbar_ax)
-                cbar.set_label('Frontogenesis (K/100km/3hr)')
+                cbar.set_label('Frontogenesis (K/100km/3hr)', fontsize=10)
 
                 # Highlight strong frontogenesis bands
                 try:
@@ -3000,7 +3000,7 @@ class InteractiveCrossSection:
                 cf = ax.contourf(X, Y, vpd, levels=np.linspace(0, 10, 21), cmap=vpd_cmap, extend='max')
                 cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
                 cbar = fig.colorbar(cf, cax=cbar_ax)
-                cbar.set_label('VPD (hPa)')
+                cbar.set_label('VPD (hPa)', fontsize=10)
                 shading_label = "VPD"
         elif style == "dewpoint_dep":
             dd = data.get('dewpoint_dep')
@@ -3012,7 +3012,7 @@ class InteractiveCrossSection:
                 cf = ax.contourf(X, Y, dd, levels=np.arange(0, 42, 2), cmap=dd_cmap, extend='max')
                 cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
                 cbar = fig.colorbar(cf, cax=cbar_ax)
-                cbar.set_label('Dewpoint Depression (°C)')
+                cbar.set_label('Dewpoint Depression (°C)', fontsize=10)
                 # Saturation line (dd=0)
                 try:
                     cs_sat = ax.contour(X, Y, dd, levels=[0], colors='cyan', linewidths=2.5)
@@ -3026,7 +3026,7 @@ class InteractiveCrossSection:
                 cf = ax.contourf(X, Y, mt, levels=np.linspace(0, 200, 21), cmap='YlGnBu', extend='max')
                 cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
                 cbar = fig.colorbar(cf, cax=cbar_ax)
-                cbar.set_label('Moisture Transport (g·m/kg/s)')
+                cbar.set_label('Moisture Transport (g·m/kg/s)', fontsize=10)
                 shading_label = "q·V"
         elif style == "pv":
             pv = data.get('pv')
@@ -3039,7 +3039,7 @@ class InteractiveCrossSection:
                 cf = ax.contourf(X, Y, pv, levels=np.arange(-2, 10.5, 0.5), cmap=pv_cmap, extend='both')
                 cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
                 cbar = fig.colorbar(cf, cax=cbar_ax)
-                cbar.set_label('Potential Vorticity (PVU)')
+                cbar.set_label('Potential Vorticity (PVU)', fontsize=10)
                 # 2 PVU dynamical tropopause
                 try:
                     cs_trop = ax.contour(X, Y, pv, levels=[2], colors='magenta', linewidths=2.5)
@@ -3056,7 +3056,7 @@ class InteractiveCrossSection:
                 cf = ax.contourf(X, Y, rh, levels=np.arange(0, 105, 5), cmap=fire_cmap, extend='both')
                 cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
                 cbar = fig.colorbar(cf, cax=cbar_ax)
-                cbar.set_label('Relative Humidity (%)')
+                cbar.set_label('Relative Humidity (%)', fontsize=10)
                 # Red Flag thresholds
                 try:
                     ax.contour(X, Y, rh, levels=[15], colors='red', linewidths=2.5, linestyles='--')
@@ -3084,7 +3084,7 @@ class InteractiveCrossSection:
                 cf = ax.contourf(X, Y, theta, levels=np.arange(270, 360, 4), cmap='viridis', extend='both')
                 cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
                 cbar = fig.colorbar(cf, cax=cbar_ax)
-                cbar.set_label('θ (K)')
+                cbar.set_label('θ (K)', fontsize=10)
                 shading_label = "θ"
 
         # Theta contours (masked below terrain)
@@ -3259,7 +3259,7 @@ class InteractiveCrossSection:
             title_main = f'{model}{res_str} Cross-Section: {shading_label}'
         ax.set_title(title_main, fontsize=14, fontweight='bold', loc='left')
         ax.set_title(f'Init: {init_str}  |  F{forecast_hour:02d}  |  Valid: {valid_str}',
-                    fontsize=10, loc='right', color='#555')
+                    fontsize=10, loc='right', color='#333')
 
         # Anomaly subtitle
         if anomaly and climo_info:
@@ -3371,7 +3371,8 @@ class InteractiveCrossSection:
 
         # Save to bytes (don't use tight_layout or bbox_inches - conflicts with inset positioning)
         buf = io.BytesIO()
-        fig.savefig(buf, format='png', dpi=dpi, facecolor='white')
+        fig.savefig(buf, format='png', dpi=dpi, facecolor='white',
+                    pil_kwargs={'compress_level': 6})
         buf.seek(0)
         result = buf.read()
         fig.clear()
