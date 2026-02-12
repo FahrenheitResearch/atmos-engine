@@ -2,7 +2,7 @@
 """
 Public SSE MCP Server for wxsection.com — API-key authenticated, rate-limited.
 
-Exposes 40 tools (37 from private server + 3 new city browsing) over SSE transport.
+Exposes 53 tools (52 from private server + 1 extra city browsing) over SSE transport.
 Cloudflare tunnel routes mcp.wxsection.com -> localhost:5566.
 
 Usage:

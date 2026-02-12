@@ -2,7 +2,7 @@
 """
 MCP Server for wxsection.com — AI-agent-native atmospheric research platform.
 
-Exposes 36 tools via stdin/stdout JSON-RPC (Model Context Protocol):
+Exposes 52 tools via stdin/stdout JSON-RPC (Model Context Protocol):
 
 Cross-Section Tools:
   - get_capabilities: Discover models, products, parameter constraints
