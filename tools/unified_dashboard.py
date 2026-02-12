@@ -3034,6 +3034,80 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .ctrl-row label { white-space: nowrap; }
         .ctrl-row select { min-width: 0; flex: 1; }
 
+        /* ===== Product Picker ===== */
+        .product-picker {
+            position: relative;
+            flex: 1;
+        }
+        .product-picker-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            width: 100%;
+            padding: 4px 8px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            font-size: 12px;
+            cursor: pointer;
+            transition: border-color 0.15s;
+        }
+        .product-picker-btn:hover { border-color: var(--accent); }
+        .product-picker-btn .pp-chip {
+            width: 14px;
+            height: 10px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+        .product-picker-btn .pp-label { flex: 1; text-align: left; }
+        .product-picker-btn .pp-arrow { font-size: 8px; color: var(--muted); }
+        .product-picker-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            width: 280px;
+            max-height: 420px;
+            overflow-y: auto;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            z-index: 5000;
+            padding: 6px;
+        }
+        .product-picker-dropdown.open { display: block; }
+        .pp-group-label {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--muted);
+            padding: 6px 6px 2px;
+        }
+        .pp-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 8px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+        .pp-item:hover { background: var(--card); }
+        .pp-item.active { background: var(--accent); color: #000; }
+        .pp-item.active .pp-item-desc { color: rgba(0,0,0,0.6); }
+        .pp-item .pp-chip {
+            width: 16px;
+            height: 10px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+        .pp-item-text { flex: 1; min-width: 0; }
+        .pp-item-name { font-size: 12px; font-weight: 500; }
+        .pp-item-desc { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
         /* ===== Cities Tab ===== */
         #city-search {
             width: 100%;
@@ -3665,7 +3739,15 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     <div class="ctrl-section-title">Visualization</div>
                     <div class="ctrl-row">
                         <label>Style:</label>
-                        <select id="style-select"></select>
+                        <select id="style-select" style="display:none;"></select>
+                        <div class="product-picker" id="product-picker">
+                            <button class="product-picker-btn" id="product-picker-btn" type="button" aria-label="Select visualization product" aria-haspopup="listbox">
+                                <span class="pp-chip" id="pp-chip-current"></span>
+                                <span class="pp-label" id="pp-label-current">Temperature</span>
+                                <span class="pp-arrow">&#9660;</span>
+                            </button>
+                            <div class="product-picker-dropdown" id="product-picker-dropdown" role="listbox"></div>
+                        </div>
                     </div>
                     <div id="cmap-preview" style="height:4px;border-radius:2px;margin:-2px 0 4px;background:linear-gradient(to right,#2b0a56,#0ea5e9,#22c55e,#f59e0b,#ef4444,#7c0a20);"></div>
                     <div class="ctrl-row" id="temp-cmap-row" style="display:none;">
@@ -5374,9 +5456,76 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             if (el) el.style.background = cmapGradients[styleSelect.value] || cmapGradients.temp;
         }
         updateCmapPreview();
+
+        // =========================================================================
+        // Visual Product Picker
+        // =========================================================================
+        const ppBtn = document.getElementById('product-picker-btn');
+        const ppDropdown = document.getElementById('product-picker-dropdown');
+        const ppChipCurrent = document.getElementById('pp-chip-current');
+        const ppLabelCurrent = document.getElementById('pp-label-current');
+
+        // Build dropdown items from styleGroups
+        function buildProductPicker() {
+            ppDropdown.innerHTML = '';
+            styleGroups.forEach(([groupName, items]) => {
+                const label = document.createElement('div');
+                label.className = 'pp-group-label';
+                label.textContent = groupName;
+                ppDropdown.appendChild(label);
+                items.forEach(([val, name, desc]) => {
+                    const item = document.createElement('div');
+                    item.className = 'pp-item' + (styleSelect.value === val ? ' active' : '');
+                    item.setAttribute('role', 'option');
+                    item.dataset.value = val;
+                    const grad = cmapGradients[val] || cmapGradients.temp;
+                    item.innerHTML = `<span class="pp-chip" style="background:${grad}"></span>`
+                        + `<div class="pp-item-text"><div class="pp-item-name">${name}</div>`
+                        + (desc ? `<div class="pp-item-desc" title="${desc}">${desc}</div>` : '')
+                        + `</div>`;
+                    item.onclick = () => {
+                        styleSelect.value = val;
+                        styleSelect.dispatchEvent(new Event('change'));
+                        ppDropdown.classList.remove('open');
+                    };
+                    ppDropdown.appendChild(item);
+                });
+            });
+        }
+        buildProductPicker();
+
+        // Sync picker button display with current selection
+        function syncProductPickerBtn() {
+            const val = styleSelect.value;
+            const grad = cmapGradients[val] || cmapGradients.temp;
+            ppChipCurrent.style.background = grad;
+            const opt = styleSelect.selectedOptions[0];
+            ppLabelCurrent.textContent = opt ? opt.textContent : val;
+            // Update active state in dropdown
+            ppDropdown.querySelectorAll('.pp-item').forEach(el => {
+                el.classList.toggle('active', el.dataset.value === val);
+            });
+        }
+        syncProductPickerBtn();
+
+        // Toggle dropdown
+        ppBtn.onclick = (e) => {
+            e.stopPropagation();
+            ppDropdown.classList.toggle('open');
+            if (ppDropdown.classList.contains('open')) {
+                // Scroll active item into view
+                const active = ppDropdown.querySelector('.pp-item.active');
+                if (active) active.scrollIntoView({ block: 'nearest' });
+            }
+        };
+        // Close on outside click
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#product-picker')) ppDropdown.classList.remove('open');
+        });
+
         let styleToastTimer = null;
         styleSelect.onchange = () => {
-            updateTempCmapVisibility(); updateAnomalyVisibility(); updateCmapPreview(); generateCrossSection();
+            updateTempCmapVisibility(); updateAnomalyVisibility(); updateCmapPreview(); syncProductPickerBtn(); generateCrossSection();
             // Show product description toast
             const desc = styleDescriptions[styleSelect.value];
             if (desc) {
@@ -7149,6 +7298,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         // =========================================================================
         async function generateCrossSection() {
             hideShowcaseNotes();
+            syncProductPickerBtn();
             if (!startMarker || !endMarker) return;
             if (activeFhr === null) {
                 document.getElementById('xsect-container').innerHTML =
@@ -7452,7 +7602,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     <div style="margin-bottom:16px;">
                         <h3 style="color:var(--accent);font-size:14px;margin:12px 0 8px;text-transform:uppercase;letter-spacing:1px;">${group.category}</h3>
                         ${group.styles.map(s => `
-                            <div class="param-card" style="cursor:pointer" onclick="document.getElementById('style-select').value='${s.key}';document.getElementById('explainer-modal').classList.remove('visible');generateCrossSection();">
+                            <div class="param-card" style="cursor:pointer" onclick="document.getElementById('style-select').value='${s.key}';document.getElementById('explainer-modal').classList.remove('visible');updateCmapPreview();generateCrossSection();">
                                 <div class="param-header"><span class="param-name">${s.name}</span></div>
                                 <div class="param-desc">${s.desc}</div>
                                 ${s.overlays ? '<div class="param-tech">Overlays: ' + s.overlays + '</div>' : ''}
@@ -8413,6 +8563,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                             styleSelect.value = evt.hero_product;
                             updateTempCmapVisibility();
                             updateAnomalyVisibility();
+                            updateCmapPreview();
+                            syncProductPickerBtn();
                         }
                     }
                 } else {
@@ -8512,6 +8664,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         styleSelect.value = evt.hero_product;
                         updateTempCmapVisibility();
                         updateAnomalyVisibility();
+                        updateCmapPreview();
+                        syncProductPickerBtn();
                     }
                 }
 
