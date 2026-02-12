@@ -3298,7 +3298,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             position: relative;
         }
         .icon-tab:hover { background: var(--card); color: var(--text); }
-        .icon-tab.active { background: var(--accent); color: #000; }
+        .icon-tab.active { background: var(--accent); color: #000; box-shadow: inset 3px 0 0 #fff4; }
+        .icon-tab.active::after {
+            content: ''; position: absolute; left: -6px; top: 50%; transform: translateY(-50%);
+            width: 3px; height: 18px; background: var(--accent); border-radius: 0 2px 2px 0;
+        }
         .icon-tab .badge {
             position: absolute;
             top: 2px; right: 2px;
@@ -3316,6 +3320,15 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             animation: badge-pulse 2s ease-in-out infinite;
         }
         @keyframes badge-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        .badge--success { background: var(--success); animation: none; }
+        .btn--tight { margin-left: 4px; font-size: 10px; padding: 2px 6px; }
+        .canvas--colorbar { border-radius: 2px; display: block; }
+        .btn-primary--sm { font-size: 11px; }
+        .select--compact-flex { font-size: 12px; flex: 1; }
+        .select--flex { flex: 1; font-size: 11px; }
+        .input-range--flex { flex: 1; }
+        .select--min80 { min-width: 80px; }
+        .ctrl-row--mt { margin-top: 6px; }
 
         /* Expanded panel (320px, collapsible) */
         #expanded-panel {
@@ -4682,7 +4695,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             </div>
             <div class="icon-tab" data-tab="cities" data-tip="Fire Weather Cities — 232 profiled locations">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
-                <span class="badge" id="cities-badge" style="display:none;animation:none;background:var(--success);">0</span>
+                <span class="badge badge--success" id="cities-badge" style="display:none;">0</span>
             </div>
             <div class="icon-tab" data-tab="events" data-tip="Historical Events — 88 archived weather events">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -4712,9 +4725,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     <div class="ctrl-section-title">&#9729; Model</div>
                     <div class="model-pills" id="model-pills"></div>
                     <select id="model-select" aria-label="Weather model" style="display:none;"></select>
-                    <div class="ctrl-row" style="margin-top:6px;">
+                    <div class="ctrl-row ctrl-row--mt">
                         <label>Run:</label>
-                        <select id="cycle-select" aria-label="Model run cycle" style="font-size:12px;flex:1;"></select>
+                        <select id="cycle-select" class="select--compact-flex" aria-label="Model run cycle"></select>
                         <span id="cycle-age" class="cycle-age"></span>
                     </div>
                 </div>
@@ -4843,12 +4856,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                             <button class="toggle-btn active" id="overlay-off" data-tip="Hide map overlay (O)" aria-label="Overlay off">Off</button>
                             <button class="toggle-btn" id="overlay-on" data-tip="Show map overlay (O)" aria-label="Overlay on">On</button>
                         </div>
-                        <button class="toggle-btn" id="overlay-loop" style="margin-left:4px;font-size:10px;padding:2px 6px;" data-tip="Animate through forecast hours" aria-label="Loop overlay">Loop</button>
+                        <button class="toggle-btn btn--tight" id="overlay-loop" data-tip="Animate through forecast hours" aria-label="Loop overlay">Loop</button>
                     </div>
                     <div id="overlay-controls" style="display:none;">
                         <div class="ctrl-row">
                             <label>Product:</label>
-                            <select id="overlay-product-select" style="flex:1;font-size:11px;" aria-label="Overlay product">
+                            <select id="overlay-product-select" class="select--flex" aria-label="Overlay product">
                                 <option value="surface_analysis">Surface Analysis</option>
                                 <option value="radar_composite">Reflectivity</option>
                                 <option value="severe_weather">Severe Weather</option>
@@ -4863,11 +4876,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <div id="overlay-custom-controls">
                             <div class="ctrl-row">
                                 <label>Field:</label>
-                                <select id="overlay-field-select" style="flex:1;font-size:11px;" aria-label="Overlay field"></select>
+                                <select id="overlay-field-select" class="select--flex" aria-label="Overlay field"></select>
                             </div>
                             <div class="ctrl-row" id="overlay-level-row" style="display:none;">
                                 <label>Level:</label>
-                                <select id="overlay-level-select" style="min-width:80px;" aria-label="Overlay pressure level">
+                                <select id="overlay-level-select" class="select--min80" aria-label="Overlay pressure level">
                                     <option value="850">850 hPa</option>
                                     <option value="700">700 hPa</option>
                                     <option value="500" selected>500 hPa</option>
@@ -4878,7 +4891,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         </div>
                         <div class="ctrl-row">
                             <label>Opacity:</label>
-                            <input type="range" id="overlay-opacity" min="0" max="100" value="70" style="flex:1;" aria-label="Overlay opacity">
+                            <input type="range" id="overlay-opacity" class="input-range--flex" min="0" max="100" value="70" aria-label="Overlay opacity">
                             <span id="overlay-opacity-val" class="opacity-val">70%</span>
                         </div>
                     </div>
@@ -5065,7 +5078,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             <div id="map-coords" class="map-coords"></div>
             <div id="overlay-colorbar" class="map-legend map-legend-right" style="display:none;">
                 <div class="map-legend-title" id="colorbar-title"></div>
-                <canvas id="colorbar-canvas" width="200" height="14" style="border-radius:2px;display:block;"></canvas>
+                <canvas id="colorbar-canvas" class="canvas--colorbar" width="200" height="14"></canvas>
                 <div class="map-legend-labels">
                     <span id="colorbar-min"></span>
                     <span id="colorbar-units" style="opacity:0.7;"></span>
@@ -5121,7 +5134,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                             <option value="500">2x</option>
                             <option value="250">4x</option>
                         </select>
-                        <button id="prerender-btn" class="playback-btn btn-primary" data-tip="Pre-render all FHR frames for instant playback" aria-label="Pre-render frames" style="font-size:11px;">Pre-render</button>
+                        <button id="prerender-btn" class="playback-btn btn-primary btn-primary--sm" data-tip="Pre-render all FHR frames for instant playback" aria-label="Pre-render frames">Pre-render</button>
                     </div>
                     <div id="context-hint" class="context-hint"></div>
                     <!-- Compare controls -->
