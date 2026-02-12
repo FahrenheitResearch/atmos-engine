@@ -3250,7 +3250,11 @@ class InteractiveCrossSection:
                      edgecolor='#999', fancybox=False, borderpad=0.4, handlelength=1.5)
 
         # Title with full metadata
-        title_main = f'{model} Cross-Section: {shading_label}'
+        panel_label = metadata.get('panel_label', '')
+        if panel_label:
+            title_main = panel_label
+        else:
+            title_main = f'{model} Cross-Section: {shading_label}'
         ax.set_title(title_main, fontsize=14, fontweight='bold', loc='left')
         ax.set_title(f'Init: {init_str}  |  F{forecast_hour:02d}  |  Valid: {valid_str}',
                     fontsize=10, loc='right', color='#555')
@@ -3371,6 +3375,78 @@ class InteractiveCrossSection:
         fig.clear()
         del fig
         return result
+
+    def render_multi_panel(self, panels, layout='1x2', shared_colorbar=True,
+                           dpi=100, y_axis='pressure', y_top=100, units='km',
+                           temp_cmap='standard', marker=None, marker_label=None,
+                           markers=None, vscale=1.0):
+        """Render a multi-panel comparison grid by compositing individual panels.
+
+        Args:
+            panels: List of dicts, each with 'data', 'metadata', 'style', 'label'
+            layout: '1x2', '2x1', '1x3', '1x4', '2x2', '3x1'
+            shared_colorbar: If True, uses same colorbar across panels of same style
+            dpi: Resolution
+            y_axis, y_top, units, temp_cmap, vscale: Render parameters
+            marker, marker_label, markers: POI markers
+
+        Returns: PNG bytes or None
+        """
+        try:
+            from PIL import Image
+            import io as _io
+
+            # Parse layout
+            parts = layout.split('x')
+            rows, cols = int(parts[0]), int(parts[1])
+            n = len(panels)
+
+            # Render each panel individually
+            panel_images = []
+            for p in panels[:rows * cols]:
+                data = p['data']
+                style = p['style']
+                metadata = p.get('metadata', {})
+                label = p.get('label', '')
+                # Add label to metadata for title
+                meta_with_label = dict(metadata)
+                meta_with_label['panel_label'] = label
+
+                try:
+                    png = self._render_cross_section(
+                        data, style, dpi=dpi, metadata=meta_with_label,
+                        y_axis=y_axis, vscale=vscale, y_top=y_top,
+                        units=units, temp_cmap=temp_cmap)
+                    if png:
+                        panel_images.append(Image.open(_io.BytesIO(png)))
+                except Exception as e:
+                    print(f"Panel render error: {e}")
+                    continue
+
+            if not panel_images:
+                return None
+
+            # Get individual panel dimensions
+            pw, ph = panel_images[0].size
+
+            # Create composite image
+            total_w = cols * pw
+            total_h = rows * ph
+            composite = Image.new('RGB', (total_w, total_h), (255, 255, 255))
+
+            for i, img in enumerate(panel_images):
+                r, c = divmod(i, cols)
+                composite.paste(img, (c * pw, r * ph))
+
+            buf = _io.BytesIO()
+            composite.save(buf, format='PNG')
+            buf.seek(0)
+            return buf.read()
+
+        except Exception as e:
+            import traceback
+            print(f"Multi-panel error: {e}\n{traceback.format_exc()}")
+            return None
 
     def get_loaded_hours(self) -> List[int]:
         """Get list of loaded forecast hours."""
