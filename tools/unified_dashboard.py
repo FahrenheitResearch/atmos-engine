@@ -3374,6 +3374,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .event-list { flex: 1; overflow-y: auto; }
         .memory-status { cursor: pointer; }
         .playback-group { display: contents; }
+        .btn--feature { border-color: rgba(77,166,255,0.4); color: var(--accent); }
+        .btn--feature:hover { background: rgba(77,166,255,0.15); border-color: var(--accent); }
 
         /* Expanded panel (320px, collapsible) */
         #expanded-panel {
@@ -4962,9 +4964,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <button id="clear-btn" class="btn-sm" data-tip="Clear cross-section line (Esc)" aria-label="Clear line">Clear <span class="kbd-hint">Esc</span></button>
                         <button id="poi-btn" class="btn-sm" data-tip="Place POI marker (or right-click map)" aria-label="Add point of interest">+ POI</button>
                         <button id="load-all-btn" class="btn-sm" data-tip="Load all forecast hours" aria-label="Load all forecast hours">Load All</button>
-                        <button id="gif-btn" class="btn-sm" data-tip="Generate animated GIF of cross-section loop" aria-label="Generate GIF">GIF</button>
-                        <button id="compare-btn" class="btn-sm" data-tip="Compare two cycles side-by-side (C)" aria-label="Compare cycles">Compare <span class="kbd-hint">C</span></button>
-                        <button id="all-models-btn" class="btn-sm" data-tip="Compare this transect across all 6 models" aria-label="Compare all models">All Models</button>
+                        <button id="gif-btn" class="btn-sm btn--feature" data-tip="Generate animated GIF of cross-section loop" aria-label="Generate GIF">GIF</button>
+                        <button id="compare-btn" class="btn-sm btn--feature" data-tip="Compare two cycles side-by-side (C)" aria-label="Compare cycles">Compare <span class="kbd-hint">C</span></button>
+                        <button id="all-models-btn" class="btn-sm btn--feature" data-tip="Compare this transect across all 6 models" aria-label="Compare all models">All Models</button>
                         <button id="share-btn" class="btn-sm" data-tip="Copy shareable link to clipboard" aria-label="Share link">Share</button>
                         <button id="save-btn" class="btn-sm" data-tip="Download cross-section as PNG" aria-label="Save image">Save</button>
                         <button id="measure-btn" class="btn-sm" data-tip="Measure distance on map (M)" aria-label="Measure distance">Measure <span class="kbd-hint">M</span></button>
