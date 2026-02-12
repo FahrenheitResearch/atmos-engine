@@ -2953,8 +2953,22 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             opacity: 0;
             transition: opacity 0.35s ease-in-out;
             box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+            transform-origin: 0 0;
         }
         #xsect-img.loaded { opacity: 1; }
+        #xsect-img.zoomed { cursor: grab; }
+        #xsect-img.zoomed.panning { cursor: grabbing; }
+        .zoom-controls {
+            position: absolute; top: 8px; right: 8px; z-index: 2;
+            display: none; flex-direction: column; gap: 2px;
+        }
+        .zoom-controls button {
+            width: 28px; height: 28px; border-radius: 4px; border: 1px solid var(--border);
+            background: rgba(30,30,30,0.85); color: var(--text); font-size: 14px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        .zoom-controls button:hover { background: var(--card); }
         #xsect-meta {
             position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
             background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
@@ -3134,6 +3148,23 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         #fhr-slider::-webkit-slider-thumb {
             -webkit-appearance: none; width: 16px; height: 16px;
             background: var(--accent); border-radius: 50%; cursor: pointer;
+            box-shadow: 0 0 4px rgba(77,166,255,0.4);
+        }
+        #fhr-slider-wrap {
+            flex: 1; position: relative; display: flex; flex-direction: column; gap: 0;
+        }
+        #fhr-slider-wrap #fhr-slider { width: 100%; }
+        #fhr-ticks {
+            display: flex; position: relative; height: 10px; margin: 0 8px;
+            font-size: 7px; color: var(--muted); user-select: none;
+        }
+        #fhr-ticks .tick {
+            position: absolute; display: flex; flex-direction: column; align-items: center;
+            transform: translateX(-50%);
+        }
+        #fhr-ticks .tick::before {
+            content: ''; display: block; width: 1px; height: 4px;
+            background: var(--muted); opacity: 0.4; margin-bottom: 1px;
         }
 
         /* ===== Sidebar Controls Tab Styles ===== */
@@ -3452,11 +3483,22 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             align-items: center;
             gap: 10px;
             animation: slideUp 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: opacity 0.3s ease, transform 0.3s ease;
         }
+        .toast.dismissing { opacity: 0; transform: translateY(10px) scale(0.95); }
         .toast.loading { border-left: 3px solid var(--warning); }
         .toast.success { border-left: 3px solid var(--success); }
         .toast.error { border-left: 3px solid #ef4444; }
         .toast.info { border-left: 3px solid var(--accent); }
+        .toast-progress {
+            position: absolute; bottom: 0; left: 0; height: 2px;
+            background: rgba(255,255,255,0.3); border-radius: 0 0 0 8px;
+            animation: toast-countdown linear forwards;
+        }
+        @keyframes toast-countdown { from { width: 100%; } to { width: 0; } }
         @keyframes slideUp {
             from { transform: translateY(20px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
@@ -4281,7 +4323,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <button id="prev-btn" title="Previous frame (Left / J)" aria-label="Previous frame" style="padding:3px 6px;font-size:12px;min-width:28px;">&#9664;<span class="kbd-hint">&#8592;</span></button>
                         <button id="play-btn" title="Auto-play (Space)" aria-label="Play" style="padding:3px 8px;font-size:14px;min-width:32px;">&#9654;<span class="kbd-hint">Spc</span></button>
                         <button id="next-btn" title="Next frame (Right / K)" aria-label="Next frame" style="padding:3px 6px;font-size:12px;min-width:28px;">&#9654;<span class="kbd-hint">&#8594;</span></button>
-                        <input type="range" id="fhr-slider" min="0" max="18" value="0" style="flex:1;" aria-label="Forecast hour slider">
+                        <div id="fhr-slider-wrap">
+                            <input type="range" id="fhr-slider" min="0" max="18" value="0" aria-label="Forecast hour slider">
+                            <div id="fhr-ticks"></div>
+                        </div>
                         <span id="slider-label" style="font-size:11px;color:var(--muted);min-width:110px;text-align:center;white-space:nowrap;">F00</span>
                         <span id="frame-counter" style="font-size:10px;color:var(--muted);min-width:50px;text-align:center;display:none;"></span>
                         <select id="play-speed" title="Playback speed" aria-label="Playback speed" style="min-width:50px;font-size:11px;">
@@ -4340,6 +4385,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <div class="xsect-panel" id="panel-primary">
                             <div class="xsect-panel-label" id="panel-primary-label"></div>
                             <div class="xsect-panel-body" id="xsect-container">
+                                <div class="zoom-controls" id="zoom-controls">
+                                    <button id="zoom-in-btn" title="Zoom in">+</button>
+                                    <button id="zoom-out-btn" title="Zoom out">&minus;</button>
+                                    <button id="zoom-reset-btn" title="Reset zoom" style="font-size:10px;">1:1</button>
+                                </div>
                                 <div id="instructions" style="text-align:center;padding:24px;max-width:460px;">
                                     <div style="font-size:22px;font-weight:700;color:var(--accent);margin-bottom:4px;letter-spacing:-0.5px;">wxsection</div>
                                     <div style="font-size:11px;color:var(--muted);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">Real-Time Atmospheric Cross-Sections</div>
@@ -5908,14 +5958,27 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            const icon = type === 'loading' ? '⏳' : type === 'success' ? '✓' : type === 'info' ? 'ℹ' : '✗';
+            const icon = type === 'loading' ? '\u23f3' : type === 'success' ? '\u2713' : type === 'info' ? '\u2139' : '\u2717';
             toast.innerHTML = `<span>${icon} ${message}</span>`;
+            toast.onclick = () => dismissToast(toast);
             container.appendChild(toast);
 
-            if (duration || type !== 'loading') {
-                setTimeout(() => toast.remove(), duration || 3000);
+            const autoMs = duration || { success: 3000, info: 5000, error: 8000, loading: 0 }[type] || 0;
+            if (autoMs > 0) {
+                const bar = document.createElement('div');
+                bar.className = 'toast-progress';
+                bar.style.animationDuration = autoMs + 'ms';
+                toast.appendChild(bar);
+                toast._timer = setTimeout(() => dismissToast(toast), autoMs);
             }
             return toast;
+        }
+        function dismissToast(toast) {
+            if (toast._dismissed) return;
+            toast._dismissed = true;
+            if (toast._timer) clearTimeout(toast._timer);
+            toast.classList.add('dismissing');
+            setTimeout(() => toast.remove(), 300);
         }
 
         function updateMemoryDisplay(memMb) {
@@ -6020,11 +6083,26 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
         // Build dropdown items from styleGroups
         let ppFilterCat = '';
+        let ppSearchText = '';
         function buildProductPicker() {
             ppDropdown.innerHTML = '';
+            // Search input
+            const searchWrap = document.createElement('div');
+            searchWrap.style.cssText = 'position:sticky;top:0;z-index:2;background:var(--panel);padding:4px 8px 0;';
+            const searchInput = document.createElement('input');
+            searchInput.type = 'text';
+            searchInput.placeholder = 'Search products...';
+            searchInput.value = ppSearchText;
+            searchInput.style.cssText = 'width:100%;padding:4px 8px;font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);outline:none;box-sizing:border-box;';
+            searchInput.id = 'pp-search';
+            searchInput.oninput = (e) => { e.stopPropagation(); ppSearchText = searchInput.value; buildProductPicker(); };
+            searchInput.onkeydown = (e) => { e.stopPropagation(); if (e.key === 'Escape') { ppSearchText = ''; ppDropdown.classList.remove('open'); } };
+            searchInput.onclick = (e) => e.stopPropagation();
+            searchWrap.appendChild(searchInput);
+            ppDropdown.appendChild(searchWrap);
             // Category filter chips
             const chipRow = document.createElement('div');
-            chipRow.style.cssText = 'display:flex;gap:3px;padding:4px 8px;flex-wrap:wrap;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--panel);z-index:1;';
+            chipRow.style.cssText = 'display:flex;gap:3px;padding:4px 8px;flex-wrap:wrap;border-bottom:1px solid var(--border);position:sticky;top:28px;background:var(--panel);z-index:1;';
             const allChip = document.createElement('span');
             allChip.textContent = 'All';
             allChip.className = 'pp-cat-chip' + (ppFilterCat === '' ? ' active' : '');
@@ -6042,13 +6120,18 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 chipRow.appendChild(chip);
             });
             ppDropdown.appendChild(chipRow);
+            const srch = ppSearchText.toLowerCase().trim();
             styleGroups.filter(([gn]) => !ppFilterCat || gn === ppFilterCat).forEach(([groupName, items]) => {
+                const filteredItems = srch ? items.filter(([val, name, desc]) =>
+                    name.toLowerCase().includes(srch) || (desc && desc.toLowerCase().includes(srch)) || val.toLowerCase().includes(srch)
+                ) : items;
+                if (filteredItems.length === 0) return;
                 const label = document.createElement('div');
                 label.className = 'pp-group-label';
                 const dot = ppGroupColors[groupName] ? `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${ppGroupColors[groupName]};margin-right:4px;vertical-align:middle;"></span>` : '';
                 label.innerHTML = dot + groupName;
                 ppDropdown.appendChild(label);
-                items.forEach(([val, name, desc]) => {
+                filteredItems.forEach(([val, name, desc]) => {
                     const item = document.createElement('div');
                     item.className = 'pp-item' + (styleSelect.value === val ? ' active' : '');
                     item.setAttribute('role', 'option');
@@ -6095,7 +6178,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             e.stopPropagation();
             ppDropdown.classList.toggle('open');
             if (ppDropdown.classList.contains('open')) {
-                // Scroll active item into view
+                ppSearchText = '';
+                buildProductPicker();
+                const si = document.getElementById('pp-search');
+                if (si) setTimeout(() => si.focus(), 50);
                 const active = ppDropdown.querySelector('.pp-item.active');
                 if (active) active.scrollIntoView({ block: 'nearest' });
             }
@@ -7129,9 +7215,38 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             slider.value = idx >= 0 ? idx : 0;
             slider.dataset.fhrMap = JSON.stringify(sorted);
             document.getElementById('slider-label').textContent = activeFhr != null ? fhrWithLocalTime(activeFhr) : '';
+            updateFhrTicks(sorted);
+            updateSliderFill();
+        }
+
+        function updateFhrTicks(fhrs) {
+            const ticks = document.getElementById('fhr-ticks');
+            if (!ticks || fhrs.length < 2) { if (ticks) ticks.innerHTML = ''; return; }
+            ticks.innerHTML = '';
+            const majorInterval = fhrs[fhrs.length - 1] > 24 ? 12 : 6;
+            const minFhr = fhrs[0], maxFhr = fhrs[fhrs.length - 1];
+            const range = maxFhr - minFhr;
+            if (range === 0) return;
+            for (let f = 0; f <= maxFhr; f += majorInterval) {
+                if (f < minFhr) continue;
+                const pct = ((f - minFhr) / range) * 100;
+                const tick = document.createElement('div');
+                tick.className = 'tick';
+                tick.style.left = pct + '%';
+                tick.textContent = 'F' + (f < 10 ? '0' : '') + f;
+                ticks.appendChild(tick);
+            }
+        }
+
+        function updateSliderFill() {
+            const slider = document.getElementById('fhr-slider');
+            if (!slider) return;
+            const pct = slider.max > 0 ? (slider.value / slider.max) * 100 : 0;
+            slider.style.background = `linear-gradient(to right, var(--accent) 0%, var(--accent) ${pct}%, var(--card) ${pct}%, var(--card) 100%)`;
         }
 
         document.getElementById('fhr-slider').addEventListener('input', function() {
+            updateSliderFill();
             const fhrMap = JSON.parse(this.dataset.fhrMap || '[]');
             const fhr = fhrMap[parseInt(this.value)];
             if (fhr === undefined) return;
@@ -7349,6 +7464,94 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const el = document.getElementById(id);
             if (el) el.addEventListener('change', invalidatePrerender);
         });
+
+        // =========================================================================
+        // Cross-Section Image Zoom & Pan
+        // =========================================================================
+        let xsZoom = 1, xsPanX = 0, xsPanY = 0, xsPanning = false, xsPanStart = null;
+
+        function xsResetZoom() {
+            xsZoom = 1; xsPanX = 0; xsPanY = 0;
+            xsApplyTransform();
+            const img = document.getElementById('xsect-img');
+            if (img) { img.classList.remove('zoomed', 'panning'); }
+            document.getElementById('zoom-controls').style.display = 'none';
+        }
+
+        function xsApplyTransform() {
+            const img = document.getElementById('xsect-img');
+            if (!img) return;
+            if (xsZoom <= 1) {
+                img.style.transform = '';
+                img.style.transformOrigin = '';
+                img.classList.remove('zoomed');
+                document.getElementById('zoom-controls').style.display = 'none';
+            } else {
+                img.style.transform = `scale(${xsZoom}) translate(${xsPanX}px, ${xsPanY}px)`;
+                img.style.transformOrigin = 'center center';
+                img.classList.add('zoomed');
+                document.getElementById('zoom-controls').style.display = 'flex';
+            }
+        }
+
+        function xsZoomBy(delta, cx, cy) {
+            const prev = xsZoom;
+            xsZoom = Math.max(1, Math.min(8, xsZoom + delta));
+            if (xsZoom <= 1) { xsResetZoom(); return; }
+            // Adjust pan to zoom toward cursor position
+            if (cx !== undefined && cy !== undefined) {
+                const scale = xsZoom / prev;
+                xsPanX = cx - scale * (cx - xsPanX);
+                xsPanY = cy - scale * (cy - xsPanY);
+            }
+            xsApplyTransform();
+        }
+
+        // Mouse wheel zoom on cross-section
+        document.getElementById('xsect-container').addEventListener('wheel', function(e) {
+            const img = document.getElementById('xsect-img');
+            if (!img || !img.src || !img.classList.contains('loaded')) return;
+            e.preventDefault();
+            const rect = img.getBoundingClientRect();
+            const cx = (e.clientX - rect.left) / rect.width - 0.5;
+            const cy = (e.clientY - rect.top) / rect.height - 0.5;
+            xsZoomBy(e.deltaY < 0 ? 0.3 : -0.3, cx * 10, cy * 10);
+        }, { passive: false });
+
+        // Drag to pan
+        document.getElementById('xsect-container').addEventListener('mousedown', function(e) {
+            const img = document.getElementById('xsect-img');
+            if (!img || xsZoom <= 1 || e.button !== 0) return;
+            xsPanning = true;
+            xsPanStart = { x: e.clientX, y: e.clientY, px: xsPanX, py: xsPanY };
+            img.classList.add('panning');
+            e.preventDefault();
+        });
+        document.addEventListener('mousemove', function(e) {
+            if (!xsPanning || !xsPanStart) return;
+            xsPanX = xsPanStart.px + (e.clientX - xsPanStart.x) / xsZoom;
+            xsPanY = xsPanStart.py + (e.clientY - xsPanStart.y) / xsZoom;
+            xsApplyTransform();
+        });
+        document.addEventListener('mouseup', function() {
+            if (xsPanning) {
+                xsPanning = false;
+                const img = document.getElementById('xsect-img');
+                if (img) img.classList.remove('panning');
+            }
+        });
+
+        // Zoom control buttons
+        document.getElementById('zoom-in-btn').onclick = () => xsZoomBy(0.5);
+        document.getElementById('zoom-out-btn').onclick = () => xsZoomBy(-0.5);
+        document.getElementById('zoom-reset-btn').onclick = xsResetZoom;
+
+        // Reset zoom when new image loads
+        const _xsImgObserver = new MutationObserver(() => {
+            const img = document.getElementById('xsect-img');
+            if (img && xsZoom > 1) xsResetZoom();
+        });
+        _xsImgObserver.observe(document.getElementById('xsect-container'), { childList: true });
 
         // =========================================================================
         // Cycle Comparison Mode
@@ -8868,11 +9071,19 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <kbd style="${kbd}">5</kbd><span style="color:var(--muted);">RAP (13km)</span>
                         <kbd style="${kbd}">6</kbd><span style="color:var(--muted);">NAM-Nest (3km)</span>
 
+                        <div style="grid-column:1/-1;font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-top:10px;">Products &amp; Display</div>
+                        <kbd style="${kbd}">[ / ]</kbd><span style="color:var(--muted);">Previous / next product</span>
+                        <kbd style="${kbd}">A</kbd><span style="color:var(--muted);">Toggle anomaly mode</span>
+                        <kbd style="${kbd}">Y</kbd><span style="color:var(--muted);">Cycle y-axis (pressure / height / \u03b8)</span>
+                        <kbd style="${kbd}">F</kbd><span style="color:var(--muted);">Fullscreen cross-section</span>
+
                         <div style="grid-column:1/-1;font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-top:10px;">Actions</div>
                         <kbd style="${kbd}">O</kbd><span style="color:var(--muted);">Toggle map overlay on/off</span>
                         <kbd style="${kbd}">C</kbd><span style="color:var(--muted);">Compare mode</span>
                         <kbd style="${kbd}">S</kbd><span style="color:var(--muted);">Swap A/B endpoints</span>
-                        <kbd style="${kbd}">Esc</kbd><span style="color:var(--muted);">Clear cross-section line</span>
+                        <kbd style="${kbd}">T</kbd><span style="color:var(--muted);">Toggle 3D terrain</span>
+                        <kbd style="${kbd}">M</kbd><span style="color:var(--muted);">Measure distance on map</span>
+                        <kbd style="${kbd}">Esc</kbd><span style="color:var(--muted);">Clear line / exit mode</span>
                         <kbd style="${kbd}">?</kbd><span style="color:var(--muted);">Quick shortcuts popup</span>
                     </div>`;
             }
