@@ -2736,8 +2736,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .icon-tab .badge {
             position: absolute;
             top: 2px; right: 2px;
-            background: var(--danger);
-            color: #fff;
+            background: var(--accent);
+            color: #000;
             font-size: 9px;
             font-weight: 700;
             min-width: 14px;
@@ -2747,7 +2747,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             align-items: center;
             justify-content: center;
             padding: 0 3px;
+            animation: badge-pulse 2s ease-in-out infinite;
         }
+        @keyframes badge-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
 
         /* Expanded panel (320px, collapsible) */
         #expanded-panel {
@@ -3858,7 +3860,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     </div>
                 </div>
                 <div class="ctrl-section">
-                    <div class="ctrl-section-title">Forecast Hours</div>
+                    <div class="ctrl-section-title">Forecast Hours <span id="fhr-loaded-count" style="font-weight:400;color:var(--accent);font-size:10px;"></span></div>
                     <div class="chip-group" id="fhr-chips"></div>
                 </div>
                 <div class="ctrl-section">
@@ -5491,13 +5493,17 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         const ppChipCurrent = document.getElementById('pp-chip-current');
         const ppLabelCurrent = document.getElementById('pp-label-current');
 
+        // Category accent colors for product picker
+        const ppGroupColors = { 'Core': '#60a5fa', 'Thermodynamics': '#f97316', 'Moisture': '#22c55e', 'Dynamics': '#a78bfa', 'Cloud & Precip': '#94a3b8', 'Fire & Smoke': '#ef4444' };
+
         // Build dropdown items from styleGroups
         function buildProductPicker() {
             ppDropdown.innerHTML = '';
             styleGroups.forEach(([groupName, items]) => {
                 const label = document.createElement('div');
                 label.className = 'pp-group-label';
-                label.textContent = groupName;
+                const dot = ppGroupColors[groupName] ? `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${ppGroupColors[groupName]};margin-right:4px;vertical-align:middle;"></span>` : '';
+                label.innerHTML = dot + groupName;
                 ppDropdown.appendChild(label);
                 items.forEach(([val, name, desc]) => {
                     const item = document.createElement('div');
@@ -6445,6 +6451,14 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 }
             });
             updateSliderVisibility();
+            // Update loaded count display
+            const countEl = document.getElementById('fhr-loaded-count');
+            if (countEl && selectedFhrs.length > 0) {
+                const total = document.querySelectorAll('#fhr-chips .chip:not(.unavailable)').length;
+                countEl.textContent = `(${selectedFhrs.length}/${total} loaded)`;
+            } else if (countEl) {
+                countEl.textContent = '';
+            }
         }
 
         async function refreshLoadedStatus() {
