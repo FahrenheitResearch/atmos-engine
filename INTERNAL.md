@@ -23,7 +23,7 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 
 | File | Lines | What It Does |
 |------|-------|-------------|
-| `tools/unified_dashboard.py` | ~11,990 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 57 API endpoints (34 v1 + 23 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects |
+| `tools/unified_dashboard.py` | ~12,040 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 57 API endpoints (34 v1 + 23 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects |
 
 **Key sections in unified_dashboard.py:**
 - Lines 1-1018: Imports, constants, overlay cache, helper functions, model config dicts
@@ -37,7 +37,7 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
   - Frontend JS (~2,100 lines): model pills, FHR slider, product selector, keyboard shortcuts (1-6 model switch, Home/End, o=overlay toggle), URL state, GIF, events, cities, transect presets, quick-start
 - Lines 8678: Flask route `/` — serves HTML with token injection
 - Lines 8682-11850: All API route handlers (57 endpoints)
-- Lines 11853-11987: Startup — argument parsing, preload, rescan thread, server launch
+- Lines 11900-12036: Startup — argument parsing, preload, rescan thread, server launch
 
 ### Download System (2 files, ~1,240 lines)
 
