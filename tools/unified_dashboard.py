@@ -3602,6 +3602,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .progress-item {
             padding: 10px 14px; border-bottom: 1px solid var(--border);
             transition: opacity 0.3s;
+            animation: progress-slide-in 0.25s ease-out;
+        }
+        @keyframes progress-slide-in {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         .progress-item:last-child { border-bottom: none; }
         .progress-item.done { opacity: 0.5; }
@@ -4896,10 +4901,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             document.getElementById('model-select').value = modelId;
             // Update bottom panel model label
             const modelLabel = document.getElementById('bottom-model-label');
-            const modelColors = { hrrr: '#0ea5e9', gfs: '#8b5cf6', rrfs: '#22c55e', nam: '#f97316', rap: '#eab308', nam_nest: '#ec4899' };
             if (modelLabel) {
                 modelLabel.textContent = modelId.toUpperCase().replace('_', '-');
-                const mc = modelColors[modelId] || 'var(--accent)';
+                const mc = MODEL_COLORS[modelId] || 'var(--accent)';
                 modelLabel.style.cssText = `background:${mc}22;color:${mc};border:1px solid ${mc}44;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;`;
             }
             // Update pill active states
@@ -7833,8 +7837,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const badge = (text, color) => `<span style="display:inline-block;padding:0 5px;border-radius:3px;font-size:9px;font-weight:600;background:${color}22;color:${color};border:1px solid ${color}44;margin:0 2px;">${text}</span>`;
             const styleName = document.getElementById('style-select').selectedOptions[0]?.textContent || '';
             const modelName = (currentModel || 'hrrr').toUpperCase();
-            const modelColors = { HRRR: '#0ea5e9', GFS: '#8b5cf6', RRFS: '#22c55e', NAM: '#f97316', RAP: '#eab308', 'NAM-NEST': '#ec4899' };
-            const mc = modelColors[modelName] || '#64748b';
+            const mc = MODEL_COLORS[currentModel] || '#64748b';
 
             const primaryInfo = cycles.find(c => c.key === currentCycle);
             const cycleLabel = primaryInfo ? primaryInfo.label || currentCycle : currentCycle || '';
@@ -8735,7 +8738,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const W = 120, H = 75;
             const c = document.createElement('canvas');
             c.width = W; c.height = H;
-            c.style.cssText = 'position:absolute;top:8px;left:8px;z-index:2;border-radius:4px;pointer-events:none;opacity:0.85;';
+            c.style.cssText = 'position:absolute;top:8px;left:8px;z-index:2;border-radius:4px;pointer-events:none;opacity:0;transition:opacity 0.4s ease;';
+            requestAnimationFrame(() => { c.style.opacity = '0.85'; });
             const ctx = c.getContext('2d');
             // Background
             ctx.fillStyle = 'rgba(15,23,42,0.8)';
