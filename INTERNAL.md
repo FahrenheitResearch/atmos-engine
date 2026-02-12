@@ -27,17 +27,17 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 
 **Key sections in unified_dashboard.py:**
 - Lines 1-1018: Imports, constants, overlay cache, helper functions, model config dicts
-- Lines 1019-1239: `CrossSectionManager` class — init, config, model management
-- Lines 1240-1710: `scan_available_cycles()`, `preload_latest_cycles()`, loading logic
-- Lines 1711-2461: `auto_load_latest()`, orchestration, prerender hooks
-- Lines 2462-8672: HTML template (inline, ~6,210 lines) — the entire frontend
-  - CSS (~1,060 lines): Inter font, model pills, workflow grid, map HUD, dark theme with cyan accents, loading spinners
-  - HTML body (~900 lines): icon sidebar (48px) + expanded panel (400px) + map + bottom slide-up
-  - Mapbox GL JS map init + overlay controller (~2,000 lines): starts ~line 4460, double-buffered swap with 8s timeout
-  - Frontend JS (~2,100 lines): model pills, FHR slider, product selector, keyboard shortcuts (1-6 model switch, Home/End, o=overlay toggle), URL state, GIF, events, cities, transect presets, quick-start
-- Lines 8678: Flask route `/` — serves HTML with token injection
-- Lines 8682-11850: All API route handlers (57 endpoints)
-- Lines 11900-12036: Startup — argument parsing, preload, rescan thread, server launch
+- Lines 1019-1240: `CrossSectionManager` class — init, config, model management
+- Lines 1241-1720: `scan_available_cycles()`, `preload_latest_cycles()`, loading logic
+- Lines 1721-2464: `auto_load_latest()`, orchestration, prerender hooks
+- Lines 2465-9015: HTML template (inline, ~6,550 lines) — the entire frontend
+  - CSS (~1,100 lines): Inter font, model pills, workflow grid, map HUD, dark theme with cyan accents, loading spinners
+  - HTML body (~950 lines): icon sidebar (48px) + expanded panel (400px) + map + bottom slide-up
+  - Mapbox GL JS map init + overlay controller (~2,100 lines): starts ~line 4500, double-buffered swap with 8s timeout
+  - Frontend JS (~2,300 lines): model pills, FHR slider, product selector, keyboard shortcuts (1-6 model switch, Home/End, o=overlay toggle), URL state, GIF, events, cities, transect presets, quick-start, guide modal
+- Lines 9021: Flask route `/` — serves HTML with token injection
+- Lines 9021-12189: All API route handlers (57 endpoints)
+- Lines 12190-12338: Startup — argument parsing, preload, rescan thread, server launch
 
 ### Download System (2 files, ~1,240 lines)
 
