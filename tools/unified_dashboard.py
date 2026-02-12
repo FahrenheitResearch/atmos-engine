@@ -2589,6 +2589,17 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             cursor: not-allowed;
         }
         .chip.loaded:active, .chip.active:active { opacity: 0.7; }
+        .chip.prerendered { position: relative; }
+        .chip.prerendered::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: #22c55e;
+        }
         .chip.extended {
             border-style: dashed;
             font-size: 10px;
@@ -4167,6 +4178,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <span id="hud-fhr" style="background:rgba(0,0,0,0.7);color:var(--warning);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;"></span>
             </div>
             <div id="map-attribution" style="position:absolute;bottom:4px;left:52px;z-index:500;font-size:9px;color:rgba(148,163,184,0.6);pointer-events:none;letter-spacing:0.3px;">wxsection.com &middot; NOAA NWP Data</div>
+            <div id="map-coords" style="position:absolute;bottom:4px;right:8px;z-index:500;font-size:10px;color:rgba(148,163,184,0.7);pointer-events:none;font-family:'SF Mono',Consolas,monospace;letter-spacing:0.3px;"></div>
             <div id="overlay-colorbar" style="display:none;position:absolute;bottom:30px;right:10px;z-index:1000;background:rgba(0,0,0,0.75);border-radius:6px;padding:6px 10px;pointer-events:none;">
                 <div style="font-size:10px;color:#ccc;margin-bottom:3px;" id="colorbar-title"></div>
                 <canvas id="colorbar-canvas" width="200" height="14" style="border-radius:2px;display:block;"></canvas>
@@ -4920,6 +4932,18 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             projection: 'mercator',
         });
         map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+        // Map cursor coordinate readout
+        const coordsEl = document.getElementById('map-coords');
+        map.on('mousemove', e => {
+            if (coordsEl) {
+                const lat = e.lngLat.lat;
+                const lon = e.lngLat.lng;
+                const latDir = lat >= 0 ? 'N' : 'S';
+                const lonDir = lon >= 0 ? 'E' : 'W';
+                coordsEl.textContent = `${Math.abs(lat).toFixed(3)}\u00b0${latDir}  ${Math.abs(lon).toFixed(3)}\u00b0${lonDir}`;
+            }
+        });
 
         // Track map load state for deferred source/layer additions
         let mapStyleLoaded = false;
@@ -6643,6 +6667,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 } else {
                     // not loaded — no thumbnail on hover
                 }
+                // Mark prerendered chips with subtle indicator
+                if (prerenderedFrames[fhr]) chip.classList.add('prerendered');
                 chip.onclick = (e) => handleChipClick(fhr, chip, e);
                 // FHR thumbnail hover for loaded chips
                 if (selectedFhrs.includes(fhr)) {
@@ -7929,6 +7955,68 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         })();
 
         // =========================================================================
+        // Mini-Map Inset (CONUS context for transect location)
+        // =========================================================================
+        // Simplified CONUS outline as lat/lon points
+        const CONUS_OUTLINE = [
+            [-124.7, 48.4], [-123.0, 48.4], [-123.0, 46.0], [-124.5, 43.0],
+            [-124.2, 40.0], [-120.0, 34.0], [-117.2, 32.5], [-114.7, 32.7],
+            [-111.0, 31.3], [-108.2, 31.8], [-106.5, 31.8], [-103.0, 29.0],
+            [-99.0, 26.5], [-97.1, 25.9], [-96.0, 28.5], [-94.0, 29.5],
+            [-90.0, 29.0], [-89.0, 29.0], [-88.0, 30.0], [-85.0, 29.7],
+            [-83.0, 29.0], [-81.0, 25.0], [-80.0, 25.5], [-80.5, 31.5],
+            [-75.5, 35.5], [-75.5, 39.5], [-74.0, 40.5], [-72.0, 41.0],
+            [-70.0, 41.5], [-67.0, 44.5], [-67.0, 47.0], [-69.0, 47.3],
+            [-75.0, 45.0], [-83.0, 46.0], [-84.5, 46.5], [-88.0, 48.0],
+            [-89.5, 48.0], [-95.0, 49.0], [-124.7, 49.0], [-124.7, 48.4]
+        ];
+
+        function addMiniMap(container, startPt, endPt) {
+            const W = 120, H = 75;
+            const c = document.createElement('canvas');
+            c.width = W; c.height = H;
+            c.style.cssText = 'position:absolute;top:8px;left:8px;z-index:2;border-radius:4px;pointer-events:none;opacity:0.85;';
+            const ctx = c.getContext('2d');
+            // Background
+            ctx.fillStyle = 'rgba(15,23,42,0.8)';
+            ctx.fillRect(0, 0, W, H);
+            // Map bounds (lon/lat → pixel)
+            const lonMin = -126, lonMax = -65, latMin = 24, latMax = 50;
+            const toX = lon => ((lon - lonMin) / (lonMax - lonMin)) * W;
+            const toY = lat => ((latMax - lat) / (latMax - latMin)) * H;
+            // Draw CONUS outline
+            ctx.strokeStyle = 'rgba(148,163,184,0.4)';
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            CONUS_OUTLINE.forEach(([lon, lat], i) => {
+                if (i === 0) ctx.moveTo(toX(lon), toY(lat));
+                else ctx.lineTo(toX(lon), toY(lat));
+            });
+            ctx.closePath();
+            ctx.stroke();
+            // Fill land area
+            ctx.fillStyle = 'rgba(148,163,184,0.06)';
+            ctx.fill();
+            // Draw transect line
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(toX(startPt.lng), toY(startPt.lat));
+            ctx.lineTo(toX(endPt.lng), toY(endPt.lat));
+            ctx.stroke();
+            // Endpoints
+            ctx.fillStyle = '#38bdf8';
+            ctx.beginPath();
+            ctx.arc(toX(startPt.lng), toY(startPt.lat), 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#f87171';
+            ctx.beginPath();
+            ctx.arc(toX(endPt.lng), toY(endPt.lat), 3, 0, Math.PI * 2);
+            ctx.fill();
+            container.appendChild(c);
+        }
+
+        // =========================================================================
         // Cross-Section Hover Readout
         // =========================================================================
         // matplotlib plot area bounds (fraction of image width/height)
@@ -8056,6 +8144,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const renderLabel = renderMs < 1000 ? renderMs + 'ms' : (renderMs / 1000).toFixed(1) + 's';
                 meta.textContent = formatTransectMeta(start.lat, start.lng, end.lat, end.lng) + ' \u00b7 ' + renderLabel;
                 container.appendChild(meta);
+                // Mini-map inset showing transect location on CONUS
+                addMiniMap(container, start, end);
                 // Product info badge (top-left of image)
                 const desc = styleDescriptions[style];
                 if (desc) {
