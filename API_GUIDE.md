@@ -176,6 +176,91 @@ Health check and basic server info.
 
 ---
 
+### Generate Cross-Section GIF
+
+```
+GET /api/v1/cross-section/gif
+```
+
+Returns an animated GIF cycling through forecast hours for a given transect and product.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `start_lat`, `start_lon`, `end_lat`, `end_lon` | float | — | Transect endpoints |
+| `product` | string | `wind_speed` | Atmospheric product |
+| `model` | string | `hrrr` | Weather model |
+| `cycle` | string | `latest` | Model cycle |
+| `fhr_min` | int | — | Optional: minimum FHR to include |
+| `fhr_max` | int | — | Optional: maximum FHR to include |
+| `speed` | string | `0.5` | Frame speed: `1`, `0.75`, `0.5`, `0.25` |
+
+**Response:** `200` — GIF image (`image/gif`)
+
+---
+
+### Multi-Panel Comparison
+
+```
+GET /api/v1/comparison
+```
+
+Returns a multi-panel PNG comparing models, forecast hours, products, or cycles.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `mode` | string | — | `model`, `temporal`, `product`, or `cycle` |
+| `start_lat`, `start_lon`, `end_lat`, `end_lon` | float | — | Transect endpoints |
+| `product` | string | `temperature` | Atmospheric product |
+| `fhr` | int | `0` | Forecast hour |
+| `model` | string | `hrrr` | Primary model |
+| `models` | string | — | Comma-separated models (for `model` mode, e.g. `hrrr,gfs,rrfs`) |
+| `fhrs` | string | — | Comma-separated FHRs (for `temporal` mode, e.g. `0,6,12`) |
+| `products` | string | — | Comma-separated products (for `product` mode) |
+| `cycles` | string | — | Comma-separated cycles (for `cycle` mode) |
+
+**Response:** `200` — PNG image (`image/png`)
+
+---
+
+### Browse Events
+
+```
+GET /api/v1/events
+GET /api/v1/events?category=fire
+GET /api/v1/events?limit=10
+```
+
+Browse the archive of 88 curated weather events.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `category` | string | — | Filter by category: `fire`, `hurricane`, `tornado`, `derecho`, `winter`, `ar` |
+| `limit` | int | — | Limit number of results |
+| `has_data` | bool | — | Only show events with archive data loaded |
+
+**Response:** JSON with event metadata, coordinates, suggested cross-sections.
+
+---
+
+### Map Overlay Frame
+
+```
+GET /api/v1/map-overlay/frame
+```
+
+Returns a server-rendered PNG map overlay (plan-view composite or individual field).
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `model` | string | `hrrr` | Weather model |
+| `product` | string | `surface_analysis` | Composite product preset |
+| `fhr` | int | `0` | Forecast hour |
+| `cycle` | string | `latest` | Model cycle |
+
+**Response:** `200` — PNG image (`image/png`)
+
+---
+
 ## Products
 
 | Product ID | Description |
