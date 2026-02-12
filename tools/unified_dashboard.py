@@ -2829,6 +2829,18 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .api-row { display: flex; gap: 4px; align-items: center; }
         .setting-hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
         .ctrl-row label input[type="checkbox"] { margin-right: 4px; }
+        input[type="checkbox"] {
+            -webkit-appearance: none; appearance: none;
+            width: 14px; height: 14px; border: 1.5px solid var(--border); border-radius: 3px;
+            background: var(--card); cursor: pointer; vertical-align: middle;
+            transition: background var(--transition-fast), border-color var(--transition-fast);
+        }
+        input[type="checkbox"]:checked {
+            background: var(--accent); border-color: var(--accent);
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 12 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 6l2 2 4-4' stroke='%23000' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-size: 10px; background-position: center; background-repeat: no-repeat;
+        }
+        input[type="checkbox"]:hover { border-color: var(--accent); }
         /* Guide modal content */
         .guide-header { text-align: center; margin-bottom: 16px; }
         .guide-header-title { font-size: 16px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
@@ -2930,7 +2942,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             font-size: 13px;
             min-width: 120px;
         }
-        select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+        select:focus { outline: 2px solid var(--accent); outline-offset: 1px; box-shadow: 0 0 8px rgba(77,166,255,0.15); }
         input[type="range"] {
             -webkit-appearance: none;
             appearance: none;
@@ -4102,6 +4114,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .toast.success { border-left: 3px solid var(--success); }
         .toast.error { border-left: 3px solid var(--danger); }
         .toast.info { border-left: 3px solid var(--accent); }
+        .toast-icon {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 20px; height: 20px; border-radius: 50%; font-size: 11px; flex-shrink: 0;
+        }
+        .toast.success .toast-icon { background: rgba(16,185,129,0.2); color: var(--success); }
+        .toast.error .toast-icon { background: rgba(239,68,68,0.2); color: var(--danger); }
+        .toast.info .toast-icon { background: rgba(77,166,255,0.2); color: var(--accent); }
         .toast-progress {
             position: absolute; bottom: 0; left: 0; height: 2px;
             background: rgba(255,255,255,0.3); border-radius: 0 0 0 8px;
@@ -4172,7 +4191,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             padding: 10px 14px; border-bottom: 1px solid var(--border);
             transition: opacity var(--transition-slow);
             animation: progress-slide-in var(--transition-default) ease-out;
+            border-left: 3px solid transparent;
         }
+        .progress-item[data-op="preload"] { border-left-color: var(--op-preload); }
+        .progress-item[data-op="autoload"] { border-left-color: var(--op-autoload); }
+        .progress-item[data-op="download"] { border-left-color: var(--op-download); }
+        .progress-item[data-op="prerender"] { border-left-color: var(--op-prerender); }
+        .progress-item[data-op="autoupdate"] { border-left-color: var(--op-autoupdate); }
         @keyframes progress-slide-in {
             from { opacity: 0; transform: translateY(-8px); }
             to { opacity: 1; transform: translateY(0); }
@@ -6799,7 +6824,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 toast.innerHTML = `<span class="toast-spinner"></span><span>${message}</span>`;
             } else {
                 const icon = type === 'success' ? '\u2713' : type === 'info' ? '\u2139' : '\u2717';
-                toast.innerHTML = `<span>${icon} ${message}</span>`;
+                toast.innerHTML = `<span class="toast-icon">${icon}</span><span>${message}</span>`;
             }
             toast.onclick = () => dismissToast(toast);
             // Announce to screen readers
