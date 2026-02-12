@@ -2598,6 +2598,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             background: var(--bg);
             color: var(--text);
             height: 100vh;
+            height: 100dvh; /* dynamic viewport for mobile address bar */
             overflow: hidden;
         }
         /* Screen-reader-only utility */
@@ -3297,6 +3298,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         #app-layout {
             display: flex;
             height: 100vh;
+            height: 100dvh;
             width: 100vw;
         }
 
@@ -4641,6 +4643,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 margin: 0;
             }
 
+            /* Cap product picker dropdown to viewport on mobile */
+            .product-picker-dropdown { max-height: 60vh; max-height: 60dvh; }
+
             /* Expanded panel becomes full-screen overlay */
             #expanded-panel {
                 position: fixed;
@@ -4648,6 +4653,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 left: 0;
                 width: 100vw;
                 height: calc(100vh - 48px);
+                height: calc(100dvh - 48px);
                 z-index: var(--z-panel-mobile);
                 border-right: none;
                 transition: transform 0.25s ease, opacity 0.2s ease;
@@ -4711,6 +4717,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             body.menu-top #expanded-panel {
                 top: 48px;
                 height: calc(100vh - 48px);
+                height: calc(100dvh - 48px);
             }
             body.menu-top #bottom-panel { bottom: 0; }
         }
@@ -4719,8 +4726,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         @media (max-width: 400px) {
             .icon-tab { width: 38px; height: 38px; }
             #icon-sidebar { height: 44px; }
-            #expanded-panel { height: calc(100vh - 44px); }
-            body.menu-top #expanded-panel { top: 44px; height: calc(100vh - 44px); }
+            #expanded-panel { height: calc(100vh - 44px); height: calc(100dvh - 44px); }
+            body.menu-top #expanded-panel { top: 44px; height: calc(100vh - 44px); height: calc(100dvh - 44px); }
             .chip { padding: 5px 7px; font-size: 11px; }
         }
 
