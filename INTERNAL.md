@@ -113,6 +113,8 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 
 **NAM/RAP v-wind issue**: Standard GRIB products (awphys, awp130pgrb) lack v-component of wind on isobaric levels. Full products (bgrd3d 441MB, wrfprs 228MB) have all fields but use non-standard grids that eccodes can't decode. Wind-dependent styles (wind_speed, shear, moisture_transport, fire_wx) are excluded for NAM and RAP via `MODEL_EXCLUDED_STYLES`.
 
+**Sub-hourly data**: No publicly available NWP model provides sub-hourly 3D pressure level data. HRRR wrfsubhf (15-min) is surface-only (2D) — useless for cross-sections. All 3D data (wrfprs, prslev, etc.) is hourly at best. Future possibility: 3D-RTMA (15-min 3D analysis) is in experimental/prototype stage at NCEP, not yet available.
+
 ## How the Speed Works (Technical Deep Dive)
 
 ### Mmap Cache Architecture

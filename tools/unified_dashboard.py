@@ -2732,12 +2732,14 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         #panel-header {
             padding: 12px 16px;
             border-bottom: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
             font-weight: 600;
             font-size: 14px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-shrink: 0;
+            background: linear-gradient(90deg, rgba(14, 165, 233, 0.06) 0%, transparent 60%);
         }
         #panel-header .close-panel {
             background: none; border: none; color: var(--muted); cursor: pointer;
@@ -2851,11 +2853,37 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             max-width: 100%;
             max-height: 100%;
             border-radius: 4px;
+            opacity: 0;
+            transition: opacity 0.35s ease-in-out;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
         }
+        #xsect-img.loaded { opacity: 1; }
         #instructions {
             color: var(--muted);
             text-align: center;
             padding: 20px;
+        }
+        .loading-spinner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            padding: 24px;
+        }
+        .loading-spinner .spinner-ring {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-spinner .spinner-text {
+            color: var(--accent);
+            font-size: 12px;
+            font-weight: 500;
+            animation: pulse 1.5s ease-in-out infinite;
         }
         .loading-text {
             color: var(--accent);
@@ -2874,6 +2902,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .xsect-panel-label {
             padding: 4px 12px; font-size: 11px; color: var(--muted);
             border-bottom: 1px solid var(--border); display: none;
+            background: rgba(14, 165, 233, 0.05); font-weight: 500;
         }
         #xsect-panels.compare-active .xsect-panel-label { display: block; }
         #xsect-panels.compare-active .xsect-panel + .xsect-panel { border-left: 1px solid var(--border); }
@@ -3821,6 +3850,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <span id="hud-cycle" style="background:rgba(0,0,0,0.7);color:#ccc;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;"></span>
                 <span id="hud-fhr" style="background:rgba(0,0,0,0.7);color:var(--warning);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;"></span>
             </div>
+            <div id="map-attribution" style="position:absolute;bottom:4px;left:52px;z-index:500;font-size:9px;color:rgba(148,163,184,0.6);pointer-events:none;letter-spacing:0.3px;">wxsection.com &middot; NOAA NWP Data</div>
             <div id="overlay-colorbar" style="display:none;position:absolute;bottom:30px;right:10px;z-index:1000;background:rgba(0,0,0,0.75);border-radius:6px;padding:6px 10px;pointer-events:none;">
                 <div style="font-size:10px;color:#ccc;margin-bottom:3px;" id="colorbar-title"></div>
                 <canvas id="colorbar-canvas" width="200" height="14" style="border-radius:2px;display:block;"></canvas>
@@ -6546,6 +6576,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 if (oldImg && oldImg.src && oldImg.src.startsWith('blob:')) URL.revokeObjectURL(oldImg.src);
                 const img = document.createElement('img');
                 img.id = 'xsect-img';
+                img.onload = () => img.classList.add('loaded');
                 img.src = URL.createObjectURL(blob);
                 container.innerHTML = '';
                 container.appendChild(img);
@@ -6767,7 +6798,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             xsectAbortController = new AbortController();
 
             const container = document.getElementById('xsect-container');
-            container.innerHTML = '<div class="loading-text">Generating cross-section...</div>';
+            container.innerHTML = '<div class="loading-spinner"><div class="spinner-ring"></div><div class="spinner-text">Generating cross-section...</div></div>';
 
             const start = startMarker.getLatLng();
             const end = endMarker.getLatLng();
@@ -6792,6 +6823,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 if (oldImg && oldImg.src && oldImg.src.startsWith('blob:')) URL.revokeObjectURL(oldImg.src);
                 const img = document.createElement('img');
                 img.id = 'xsect-img';
+                img.onload = () => img.classList.add('loaded');
                 img.src = URL.createObjectURL(blob);
                 container.innerHTML = '';
                 container.appendChild(img);
@@ -8065,6 +8097,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 if (oldImg && oldImg.src && oldImg.src.startsWith('blob:')) URL.revokeObjectURL(oldImg.src);
                 const img = document.createElement('img');
                 img.id = 'xsect-img';
+                img.onload = () => img.classList.add('loaded');
                 img.src = URL.createObjectURL(blob);
                 container.innerHTML = '';
                 container.appendChild(img);
@@ -8137,6 +8170,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 if (oldImg && oldImg.src && oldImg.src.startsWith('blob:')) URL.revokeObjectURL(oldImg.src);
                 const img = document.createElement('img');
                 img.id = 'xsect-img';
+                img.onload = () => img.classList.add('loaded');
                 img.src = URL.createObjectURL(blob);
                 container.innerHTML = '';
                 container.appendChild(img);
