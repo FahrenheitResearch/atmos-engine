@@ -13927,8 +13927,23 @@ def api_v1_cross_section():
 @app.route('/api/v1/products')
 @rate_limit
 def api_v1_products():
-    """List available cross-section products. Filters by model (e.g. no smoke for GFS)."""
+    """List available cross-section products. Filters by model (e.g. no smoke for GFS).
+
+    Pass ?model=all to get all products with per-model availability info.
+    """
     model = request.args.get('model', 'hrrr').lower()
+
+    if model == 'all':
+        # Return all products with per-model availability
+        all_models = ['hrrr', 'gfs', 'rrfs', 'nam', 'rap', 'nam_nest']
+        products = []
+        for p in PRODUCTS_INFO:
+            style = PRODUCT_TO_STYLE.get(p['id'])
+            entry = dict(p)
+            entry['available_models'] = [m for m in all_models if style not in MODEL_EXCLUDED_STYLES.get(m, set())]
+            products.append(entry)
+        return jsonify({'products': products, 'model': 'all'})
+
     excluded = MODEL_EXCLUDED_STYLES.get(model, set())
     if excluded:
         filtered = [p for p in PRODUCTS_INFO if PRODUCT_TO_STYLE.get(p['id']) not in excluded]
