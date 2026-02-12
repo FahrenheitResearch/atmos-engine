@@ -2641,18 +2641,18 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         /* ===== Quick Workflow Buttons ===== */
         .workflow-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(4, 1fr);
             gap: 4px;
         }
         .workflow-btn {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 2px;
+            gap: 1px;
             background: var(--card);
             border: 1px solid var(--border);
             border-radius: 8px;
-            padding: 8px 4px;
+            padding: 6px 2px;
             cursor: pointer;
             font-size: 10px;
             font-weight: 500;
@@ -2662,8 +2662,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             line-height: 1.2;
         }
         .workflow-btn:hover { border-color: var(--accent); color: var(--text); background: rgba(14, 165, 233, 0.1); }
-        .workflow-btn .wf-icon { font-size: 16px; margin-bottom: 1px; }
-        .workflow-btn .wf-label { font-size: 10px; }
+        .workflow-btn .wf-icon { font-size: 14px; }
+        .workflow-btn .wf-label { font-size: 9px; }
 
         /* ===== Toggle Groups ===== */
         .toggle-group {
@@ -3749,7 +3749,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                             <div class="product-picker-dropdown" id="product-picker-dropdown" role="listbox"></div>
                         </div>
                     </div>
-                    <div id="cmap-preview" style="height:4px;border-radius:2px;margin:-2px 0 4px;background:linear-gradient(to right,#2b0a56,#0ea5e9,#22c55e,#f59e0b,#ef4444,#7c0a20);"></div>
+                    <div style="position:relative;margin:-2px 0 4px;">
+                        <div id="cmap-preview" style="height:4px;border-radius:2px;background:linear-gradient(to right,#2b0a56,#0ea5e9,#22c55e,#f59e0b,#ef4444,#7c0a20);"></div>
+                        <div id="cmap-range" style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:1px;"></div>
+                    </div>
                     <div class="ctrl-row" id="temp-cmap-row" style="display:none;">
                         <label>Colormap:</label>
                         <select id="temp-cmap-select">
@@ -5455,9 +5458,24 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             smoke: 'linear-gradient(to right,#f7fbff,#bcbddc,#807dba,#4a1486)',
             isentropic_ascent: 'linear-gradient(to right,#b2182b,#fddbc7,#f7f7f7,#d1e5f0,#2166ac)',
         };
+        // Value range labels for each product colorbar
+        const cmapRanges = {
+            temp: ['-40\u00b0C', '40\u00b0C'], wind_speed: ['0 kt', '80 kt'], rh: ['0%', '100%'],
+            theta_e: ['290 K', '360 K'], lapse_rate: ['0', '10 \u00b0C/km'], wetbulb: ['-20\u00b0C', '30\u00b0C'],
+            vpd: ['0 hPa', '50 hPa'], q: ['0', '20 g/kg'], dewpoint_dep: ['0\u00b0C', '30\u00b0C'],
+            moisture_transport: ['0', '200'], omega: ['\u2191 Rise', '\u2193 Sink'],
+            vorticity: ['\u2212 Cycl', '+ Anticycl'], shear: ['0', '40 kt/km'],
+            pv: ['\u2212 Trop', '+ Strat'], frontogenesis: ['\u2212 Lysis', '+ Genesis'],
+            cloud: ['0', '0.5 g/kg'], cloud_total: ['0', '1 g/kg'], icing: ['0', 'High'],
+            fire_wx: ['Extreme', 'Low'], smoke: ['0', '500 \u00b5g/m\u00b3'],
+            isentropic_ascent: ['\u2191 Rise', '\u2193 Sink'],
+        };
         function updateCmapPreview() {
             const el = document.getElementById('cmap-preview');
             if (el) el.style.background = cmapGradients[styleSelect.value] || cmapGradients.temp;
+            const range = document.getElementById('cmap-range');
+            const r = cmapRanges[styleSelect.value];
+            if (range) range.innerHTML = r ? `<span>${r[0]}</span><span>${r[1]}</span>` : '';
         }
         updateCmapPreview();
 
