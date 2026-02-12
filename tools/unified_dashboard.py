@@ -3729,15 +3729,15 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     <div class="ctrl-row">
                         <label>Overlay:</label>
                         <div class="toggle-group">
-                            <button class="toggle-btn active" id="overlay-off" title="Hide map overlay (O)">Off</button>
-                            <button class="toggle-btn" id="overlay-on" title="Show map overlay (O)">On</button>
+                            <button class="toggle-btn active" id="overlay-off" title="Hide map overlay (O)" aria-label="Overlay off">Off</button>
+                            <button class="toggle-btn" id="overlay-on" title="Show map overlay (O)" aria-label="Overlay on">On</button>
                         </div>
-                        <button class="toggle-btn" id="overlay-loop" style="margin-left:4px;font-size:10px;padding:2px 6px;" title="Animate through forecast hours">Loop</button>
+                        <button class="toggle-btn" id="overlay-loop" style="margin-left:4px;font-size:10px;padding:2px 6px;" title="Animate through forecast hours" aria-label="Loop overlay">Loop</button>
                     </div>
                     <div id="overlay-controls" style="display:none;">
                         <div class="ctrl-row">
                             <label>Product:</label>
-                            <select id="overlay-product-select" style="flex:1;font-size:11px;">
+                            <select id="overlay-product-select" style="flex:1;font-size:11px;" aria-label="Overlay product">
                                 <option value="surface_analysis">Surface Analysis</option>
                                 <option value="radar_composite">Reflectivity</option>
                                 <option value="severe_weather">Severe Weather</option>
@@ -3752,11 +3752,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <div id="overlay-custom-controls">
                             <div class="ctrl-row">
                                 <label>Field:</label>
-                                <select id="overlay-field-select" style="flex:1;font-size:11px;"></select>
+                                <select id="overlay-field-select" style="flex:1;font-size:11px;" aria-label="Overlay field"></select>
                             </div>
                             <div class="ctrl-row" id="overlay-level-row" style="display:none;">
                                 <label>Level:</label>
-                                <select id="overlay-level-select" style="min-width:80px;">
+                                <select id="overlay-level-select" style="min-width:80px;" aria-label="Overlay pressure level">
                                     <option value="850">850 hPa</option>
                                     <option value="700">700 hPa</option>
                                     <option value="500" selected>500 hPa</option>
@@ -3767,7 +3767,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         </div>
                         <div class="ctrl-row">
                             <label>Opacity:</label>
-                            <input type="range" id="overlay-opacity" min="0" max="100" value="70" style="flex:1;">
+                            <input type="range" id="overlay-opacity" min="0" max="100" value="70" style="flex:1;" aria-label="Overlay opacity">
                             <span id="overlay-opacity-val" style="font-size:11px;min-width:30px;">70%</span>
                         </div>
                     </div>
@@ -3779,25 +3779,25 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <div class="ctrl-section">
                     <div class="ctrl-section-title">Actions</div>
                     <div class="ctrl-row" style="flex-wrap:wrap;">
-                        <button id="swap-btn" style="padding:3px 8px;font-size:12px;" title="Swap A/B endpoints (S)">Swap</button>
-                        <button id="clear-btn" style="padding:3px 8px;font-size:12px;" title="Clear cross-section line (Esc)">Clear</button>
-                        <button id="poi-btn" style="padding:3px 8px;font-size:12px;" title="Place POI marker (or right-click map)">+ POI</button>
-                        <button id="load-all-btn" style="padding:3px 8px;font-size:12px;">Load All</button>
-                        <button id="gif-btn" style="padding:3px 8px;font-size:12px;" title="Generate animated GIF of cross-section loop">GIF</button>
-                        <button id="compare-btn" style="padding:3px 8px;font-size:12px;" title="Compare two cycles side-by-side (C)">Compare</button>
-                        <button id="share-btn" style="padding:3px 8px;font-size:12px;" title="Copy shareable link to clipboard">Share</button>
-                        <button id="save-btn" style="padding:3px 8px;font-size:12px;" title="Download cross-section as PNG">Save</button>
-                        <button id="help-btn" style="padding:3px 8px;font-size:12px;" title="Keyboard shortcuts and guide (?)">Guide</button>
+                        <button id="swap-btn" style="padding:3px 8px;font-size:12px;" title="Swap A/B endpoints (S)" aria-label="Swap endpoints">Swap</button>
+                        <button id="clear-btn" style="padding:3px 8px;font-size:12px;" title="Clear cross-section line (Esc)" aria-label="Clear line">Clear</button>
+                        <button id="poi-btn" style="padding:3px 8px;font-size:12px;" title="Place POI marker (or right-click map)" aria-label="Add point of interest">+ POI</button>
+                        <button id="load-all-btn" style="padding:3px 8px;font-size:12px;" aria-label="Load all forecast hours">Load All</button>
+                        <button id="gif-btn" style="padding:3px 8px;font-size:12px;" title="Generate animated GIF of cross-section loop" aria-label="Generate GIF">GIF</button>
+                        <button id="compare-btn" style="padding:3px 8px;font-size:12px;" title="Compare two cycles side-by-side (C)" aria-label="Compare cycles">Compare</button>
+                        <button id="share-btn" style="padding:3px 8px;font-size:12px;" title="Copy shareable link to clipboard" aria-label="Share link">Share</button>
+                        <button id="save-btn" style="padding:3px 8px;font-size:12px;" title="Download cross-section as PNG" aria-label="Save image">Save</button>
+                        <button id="help-btn" style="padding:3px 8px;font-size:12px;" title="Keyboard shortcuts and guide (?)" aria-label="Open guide">Guide</button>
                     </div>
                     <div class="ctrl-row">
-                        <select id="gif-speed" title="GIF speed" style="min-width:55px;font-size:11px;">
+                        <select id="gif-speed" title="GIF speed" aria-label="GIF speed" style="min-width:55px;font-size:11px;">
                             <option value="1">1x</option>
                             <option value="0.75">0.75x</option>
                             <option value="0.5" selected>0.5x</option>
                             <option value="0.25">0.25x</option>
                         </select>
-                        <input id="gif-fhr-min" type="number" placeholder="F start" title="GIF start FHR" style="width:50px;padding:2px 4px;font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);">
-                        <input id="gif-fhr-max" type="number" placeholder="F end" title="GIF end FHR" style="width:50px;padding:2px 4px;font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);">
+                        <input id="gif-fhr-min" type="number" placeholder="F start" title="GIF start FHR" aria-label="GIF start forecast hour" style="width:50px;padding:2px 4px;font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);">
+                        <input id="gif-fhr-max" type="number" placeholder="F end" title="GIF end FHR" aria-label="GIF end forecast hour" style="width:50px;padding:2px 4px;font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);">
                     </div>
                     <div class="ctrl-row">
                         <select id="multi-panel-mode" title="Multi-panel comparison" style="font-size:11px;padding:2px 4px;flex:1;">
@@ -3815,7 +3815,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             <!-- TAB: Cities -->
             <div class="tab-content" id="tab-cities">
                 <div id="city-list-view">
-                    <input type="text" id="city-search" placeholder="Search 232 cities...">
+                    <input type="text" id="city-search" placeholder="Search 232 cities..." aria-label="Search cities">
                     <div class="region-chips" id="region-chips">
                         <span class="region-chip active" data-region="all" style="background:var(--card);color:var(--text);">All</span>
                         <span class="region-chip" data-region="california">CA</span>
@@ -3836,10 +3836,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             <!-- TAB: Events -->
             <div class="tab-content" id="tab-events">
                 <div id="event-list-view">
-                    <input type="text" id="event-search" placeholder="Search events..." style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 12px;font-size:13px;margin-bottom:8px;">
+                    <input type="text" id="event-search" placeholder="Search events..." aria-label="Search events" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 12px;font-size:13px;margin-bottom:8px;">
                     <div class="ctrl-row" style="margin-bottom:8px;">
                         <label style="font-size:11px;">Filter:</label>
-                        <select id="event-category-filter" style="font-size:11px;min-width:80px;">
+                        <select id="event-category-filter" aria-label="Event category filter" style="font-size:11px;min-width:80px;">
                             <option value="">All Categories</option>
                         </select>
                         <label><input type="checkbox" id="event-coords-only" style="margin-right:4px;">With coords</label>
@@ -3953,19 +3953,19 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <div id="bottom-body">
                     <!-- Slider row -->
                     <div id="slider-row">
-                        <button id="prev-btn" title="Previous frame (Left / J)" style="padding:3px 6px;font-size:12px;min-width:28px;">&#9664;</button>
-                        <button id="play-btn" title="Auto-play (Space)" style="padding:3px 8px;font-size:14px;min-width:32px;">&#9654;</button>
-                        <button id="next-btn" title="Next frame (Right / K)" style="padding:3px 6px;font-size:12px;min-width:28px;">&#9654;</button>
-                        <input type="range" id="fhr-slider" min="0" max="18" value="0" style="flex:1;">
+                        <button id="prev-btn" title="Previous frame (Left / J)" aria-label="Previous frame" style="padding:3px 6px;font-size:12px;min-width:28px;">&#9664;</button>
+                        <button id="play-btn" title="Auto-play (Space)" aria-label="Play" style="padding:3px 8px;font-size:14px;min-width:32px;">&#9654;</button>
+                        <button id="next-btn" title="Next frame (Right / K)" aria-label="Next frame" style="padding:3px 6px;font-size:12px;min-width:28px;">&#9654;</button>
+                        <input type="range" id="fhr-slider" min="0" max="18" value="0" style="flex:1;" aria-label="Forecast hour slider">
                         <span id="slider-label" style="font-size:11px;color:var(--muted);min-width:110px;text-align:center;white-space:nowrap;">F00</span>
                         <span id="frame-counter" style="font-size:10px;color:var(--muted);min-width:50px;text-align:center;display:none;"></span>
-                        <select id="play-speed" title="Playback speed" style="min-width:50px;font-size:11px;">
+                        <select id="play-speed" title="Playback speed" aria-label="Playback speed" style="min-width:50px;font-size:11px;">
                             <option value="2000">0.5x</option>
                             <option value="1000" selected>1x</option>
                             <option value="500">2x</option>
                             <option value="250">4x</option>
                         </select>
-                        <button id="prerender-btn" title="Pre-render all FHR frames for instant playback" style="padding:3px 6px;font-size:11px;">Pre-render</button>
+                        <button id="prerender-btn" title="Pre-render all FHR frames for instant playback" aria-label="Pre-render frames" style="padding:3px 6px;font-size:11px;">Pre-render</button>
                     </div>
                     <!-- Compare controls -->
                     <div id="compare-controls">
