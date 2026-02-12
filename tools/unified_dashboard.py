@@ -8428,6 +8428,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 if (url && url.startsWith('blob:')) URL.revokeObjectURL(url);
             });
             prerenderedFrames = {};
+            updateChipStates();
         }
 
         // Helper: get current multi-panel comparison params for prerender/fetch
@@ -8558,6 +8559,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                                     } catch (e) { /* skip failed frames */ }
                                 }
                             }
+                            updateChipStates();
                             showToast(`${sorted.length} frames pre-rendered`, 'success');
                         }
                     } catch (e) {
