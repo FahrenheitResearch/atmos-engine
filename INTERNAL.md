@@ -19,25 +19,25 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 | `core/map_overlay.py` | ~1,133 | Map overlay rendering. Reprojection (KDTree for curvilinear, bilinear for GFS), composite assembly (fill + contours + barbs), PNG/binary output |
 | `model_config.py` | ~320 | Model registry. 6 models (HRRR/GFS/RRFS/NAM/RAP/NAM-Nest) metadata, grid specs, download URLs, forecast hour lists |
 
-### Server + UI (1 file, ~12,870 lines)
+### Server + UI (1 file, ~12,920 lines)
 
 | File | Lines | What It Does |
 |------|-------|-------------|
-| `tools/unified_dashboard.py` | ~12,870 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 57 API endpoints (34 v1 + 23 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects, og:image preview, FHR hover thumbnails |
+| `tools/unified_dashboard.py` | ~12,920 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 57 API endpoints (34 v1 + 23 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects, og:image preview, FHR hover thumbnails, hero cross-section |
 
 **Key sections in unified_dashboard.py:**
 - Lines 1-1031: Imports, constants, overlay cache, helper functions, model config dicts
 - Lines 1032-1253: `CrossSectionManager` class — init, config, model management
 - Lines 1254-1720: `scan_available_cycles()`, `preload_latest_cycles()`, loading logic
 - Lines 1721-2477: `auto_load_latest()`, orchestration, prerender hooks
-- Lines 2478-9483: HTML template (inline, ~7,006 lines) — the entire frontend
+- Lines 2478-9539: HTML template (inline, ~7,062 lines) — the entire frontend
   - CSS (~1,200 lines): Inter font, model pills, workflow grid, product picker, map HUD, dark theme with cyan accents, loading spinners
-  - HTML body (~950 lines): icon sidebar (48px) + expanded panel (400px) + map + bottom slide-up
+  - HTML body (~960 lines): icon sidebar (48px) + expanded panel (400px) + map + bottom slide-up + hero preview
   - Mapbox GL JS map init + overlay controller (~2,100 lines): starts ~line 4500, double-buffered swap with 8s timeout
-  - Frontend JS (~2,700 lines): model pills, FHR slider, FHR hover thumbnails, visual product picker, keyboard shortcuts (18 bindings), URL state, user preference persistence, GIF, events, cities, transect presets, quick-start, guide modal, recent transects
-- Lines 9485: Flask routes start — `/` serves HTML with token injection
-- Lines 9485-12730: All API route handlers (57 endpoints + og-preview)
-- Lines 12732-12866: Startup — argument parsing, preload, rescan thread, server launch
+  - Frontend JS (~2,800 lines): model pills, FHR slider, FHR hover thumbnails, hero cross-section loader, visual product picker, keyboard shortcuts (18 bindings), URL state, user preference persistence, local timezone display, GIF, events, cities, transect presets, quick-start, guide modal, recent transects
+- Lines 9541: Flask routes start — `/` serves HTML, `/og-preview.png` serves branded preview
+- Lines 9541-12786: All API route handlers (57 endpoints + og-preview)
+- Lines 12788-12922: Startup — argument parsing, preload, rescan thread, server launch
 
 ### Download System (2 files, ~1,240 lines)
 
@@ -288,7 +288,10 @@ All action buttons include keyboard shortcut hints in their tooltips.
 When hovering over a loaded (green) FHR chip for 300ms, a thumbnail preview of the cross-section at that forecast hour appears above the chip. Uses the existing frame cache for instant response. Thumbnails are cached as blob URLs client-side to avoid redundant fetches. Only triggers for loaded FHRs with an active cross-section line.
 
 ### Onboarding Landing Panel
-Visual 1-2-3 step guide ("Click A → Click B → Explore") with numbered circles. Includes 6 quick-start transect buttons and live cycle info.
+Visual 1-2-3 step guide ("Click A → Click B → Explore") with numbered circles. Includes 6 quick-start transect buttons, hero cross-section preview, and live cycle info.
+
+### Hero Cross-Section Preview
+Auto-loads a sample cross-section (randomly: Denver Front Range, Oregon Cascades, or Sierra Nevada) 2s after page load. Displayed as a clickable thumbnail in the landing panel — click to load the full transect. Fades in smoothly; disappears when user draws their own line or clicks a quick-start button.
 
 ### Quick-Start Transects
 6 preloaded transects on the landing page: Denver Front Range, Columbia Gorge, Sierra Nevada, Great Plains Dryline, Oregon Cascades, LA Basin.
