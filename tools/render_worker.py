@@ -48,9 +48,16 @@ def render_frame(args):
 
     # Load FHR from mmap if not already loaded in this worker
     if engine_key not in _engine.forecast_hours:
-        _engine.load_forecast_hour(grib_file, engine_key)
+        try:
+            _engine.load_forecast_hour(grib_file, engine_key)
+        except Exception as load_err:
+            print(f"render_frame load error for {engine_key}: {load_err}", file=sys.stderr, flush=True)
+            return engine_key, None
+        if engine_key not in _engine.forecast_hours:
+            print(f"render_frame: load_forecast_hour did not load {engine_key}", file=sys.stderr, flush=True)
+            return engine_key, None
 
-    # Render
+    # Render (marker/marker_label/markers are UI-only overlays not supported by engine)
     try:
         png = _engine.get_cross_section(
             start_point=start,
@@ -67,12 +74,11 @@ def render_frame(args):
             temp_cmap=temp_cmap,
             metadata=metadata,
             anomaly=anomaly,
-            marker=marker,
-            marker_label=marker_label,
-            markers=markers,
         )
         return engine_key, png
     except Exception as e:
+        import traceback
+        print(f"render_frame error for {engine_key}: {e}\n{traceback.format_exc()}", file=sys.stderr, flush=True)
         return engine_key, None
 
 

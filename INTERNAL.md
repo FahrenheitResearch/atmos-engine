@@ -19,25 +19,25 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 | `core/map_overlay.py` | ~1,133 | Map overlay rendering. Reprojection (KDTree for curvilinear, bilinear for GFS), composite assembly (fill + contours + barbs), PNG/binary output |
 | `model_config.py` | ~320 | Model registry. 6 models (HRRR/GFS/RRFS/NAM/RAP/NAM-Nest) metadata, grid specs, download URLs, forecast hour lists |
 
-### Server + UI (1 file, ~11,800 lines)
+### Server + UI (1 file, ~12,000 lines)
 
 | File | Lines | What It Does |
 |------|-------|-------------|
-| `tools/unified_dashboard.py` | ~11,950 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 57 API endpoints (34 v1 + 23 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects |
+| `tools/unified_dashboard.py` | ~11,990 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 57 API endpoints (34 v1 + 23 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects |
 
 **Key sections in unified_dashboard.py:**
 - Lines 1-1018: Imports, constants, overlay cache, helper functions, model config dicts
 - Lines 1019-1239: `CrossSectionManager` class — init, config, model management
 - Lines 1240-1710: `scan_available_cycles()`, `preload_latest_cycles()`, loading logic
 - Lines 1711-2461: `auto_load_latest()`, orchestration, prerender hooks
-- Lines 2462-8635: HTML template (inline, ~6,174 lines) — the entire frontend
-  - CSS (~1,060 lines): Inter font, model pills, workflow grid, map HUD, dark theme with cyan accents
+- Lines 2462-8672: HTML template (inline, ~6,210 lines) — the entire frontend
+  - CSS (~1,060 lines): Inter font, model pills, workflow grid, map HUD, dark theme with cyan accents, loading spinners
   - HTML body (~900 lines): icon sidebar (48px) + expanded panel (400px) + map + bottom slide-up
-  - Mapbox GL JS map init + overlay controller (~2,000 lines): starts ~line 4460
-  - Frontend JS (~2,000 lines): model pills, FHR slider, product selector, keyboard shortcuts, URL state, GIF, events, cities, transect presets, quick-start
-- Lines 8641: Flask route `/` — serves HTML with token injection
-- Lines 8645-11815: All API route handlers
-- Lines 11816-11950: Startup — argument parsing, preload, rescan thread, server launch
+  - Mapbox GL JS map init + overlay controller (~2,000 lines): starts ~line 4460, double-buffered swap with 8s timeout
+  - Frontend JS (~2,100 lines): model pills, FHR slider, product selector, keyboard shortcuts (1-6 model switch, Home/End, o=overlay toggle), URL state, GIF, events, cities, transect presets, quick-start
+- Lines 8678: Flask route `/` — serves HTML with token injection
+- Lines 8682-11850: All API route handlers (57 endpoints)
+- Lines 11853-11987: Startup — argument parsing, preload, rescan thread, server launch
 
 ### Download System (2 files, ~1,240 lines)
 

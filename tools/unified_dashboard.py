@@ -3760,6 +3760,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <button id="load-all-btn" style="padding:3px 8px;font-size:12px;">Load All</button>
                         <button id="gif-btn" style="padding:3px 8px;font-size:12px;">GIF</button>
                         <button id="compare-btn" style="padding:3px 8px;font-size:12px;">Compare</button>
+                        <button id="share-btn" style="padding:3px 8px;font-size:12px;" title="Copy shareable link to clipboard">Share</button>
+                        <button id="save-btn" style="padding:3px 8px;font-size:12px;" title="Download cross-section as PNG">Save</button>
                         <button id="help-btn" style="padding:3px 8px;font-size:12px;">Guide</button>
                     </div>
                     <div class="ctrl-row">
@@ -4634,9 +4636,15 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     const backSrc = map.getSource('weather-overlay-' + back);
                     if (!backSrc) { resolve(false); return; }
 
-                    // Pre-decode image
+                    // Pre-decode image with timeout
                     const img = new Image();
+                    const timeout = setTimeout(() => {
+                        img.onload = img.onerror = null;
+                        console.warn('Overlay image load timed out:', url.substring(0, 80));
+                        resolve(false);
+                    }, 8000);
                     img.onload = () => {
+                        clearTimeout(timeout);
                         // Stale check: if a newer swap was requested, skip this one
                         if (seq !== _swapSeq) { resolve(false); return; }
                         // Load into back buffer
@@ -4653,7 +4661,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                             resolve(true);
                         });
                     };
-                    img.onerror = () => resolve(false);
+                    img.onerror = () => { clearTimeout(timeout); resolve(false); };
                     img.src = url;
                 });
             }
@@ -6672,9 +6680,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 params += `&cycles=${currentCycle},${mpCycle}&cycle_match=${multiPanelCycleMatch}`;
             }
 
-            // Show loading
+            // Show loading spinner
             const container = document.getElementById('xsect-container');
-            container.innerHTML = '<div class="loading-text">Generating multi-panel...</div>';
+            container.innerHTML = '<div class="loading-spinner"><div class="spinner-ring"></div><div class="spinner-text">Generating ' + multiPanelMode + ' comparison...</div></div>';
             mpStatus.textContent = 'Rendering...';
             mpStatus.style.display = '';
 
@@ -7072,6 +7080,38 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
             // Regenerate cross-section
             generateCrossSection();
+        };
+
+        // Share button: copy current URL to clipboard
+        document.getElementById('share-btn').onclick = async () => {
+            updateURLState();
+            try {
+                await navigator.clipboard.writeText(window.location.href);
+                showToast('Link copied to clipboard', 'success');
+            } catch (e) {
+                // Fallback for non-HTTPS contexts
+                const input = document.createElement('input');
+                input.value = window.location.href;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                document.body.removeChild(input);
+                showToast('Link copied to clipboard', 'success');
+            }
+        };
+
+        // Save button: download cross-section PNG
+        document.getElementById('save-btn').onclick = () => {
+            const img = document.getElementById('xsect-img');
+            if (!img || !img.src) { showToast('No cross-section to save', 'error'); return; }
+            const a = document.createElement('a');
+            a.href = img.src;
+            const style = document.getElementById('style-select')?.value || 'xsect';
+            const fhrStr = activeFhr != null ? `F${String(activeFhr).padStart(2, '0')}` : '';
+            a.download = `wxsection_${currentModel}_${style}_${fhrStr}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         };
 
         // =========================================================================
@@ -8536,6 +8576,16 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     e.preventDefault();
                     document.getElementById('next-btn')?.click();
                     break;
+                case 'Home':
+                    e.preventDefault();
+                    { const slider = document.getElementById('fhr-slider');
+                      if (slider) { slider.value = 0; slider.dispatchEvent(new Event('input')); } }
+                    break;
+                case 'End':
+                    e.preventDefault();
+                    { const slider = document.getElementById('fhr-slider');
+                      if (slider) { slider.value = slider.max; slider.dispatchEvent(new Event('input')); } }
+                    break;
                 case ' ':
                     e.preventDefault();
                     document.getElementById('play-btn')?.click();
@@ -8546,11 +8596,24 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 case 's':
                     document.getElementById('swap-btn')?.click();
                     break;
+                case 'o':
+                    { const onBtn = document.getElementById('overlay-on');
+                      const offBtn = document.getElementById('overlay-off');
+                      if (onBtn && offBtn) {
+                          if (offBtn.classList.contains('active')) onBtn.click();
+                          else offBtn.click();
+                      } }
+                    break;
                 case 'Escape':
                     document.getElementById('clear-btn')?.click();
                     break;
                 case '?':
                     showShortcutHelp();
+                    break;
+                case '1': case '2': case '3': case '4': case '5': case '6':
+                    { const pills = document.querySelectorAll('.model-pill');
+                      const idx = parseInt(e.key) - 1;
+                      if (idx < pills.length) pills[idx].click(); }
                     break;
             }
         });
@@ -8560,20 +8623,28 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             if (existing) { existing.remove(); return; }
             const div = document.createElement('div');
             div.id = 'shortcut-help';
-            div.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9999;background:rgba(15,23,42,0.95);border:1px solid var(--border);border-radius:12px;padding:20px 28px;max-width:320px;backdrop-filter:blur(8px);';
-            div.innerHTML = '<div style="font-size:14px;font-weight:700;color:var(--accent);margin-bottom:12px;">Keyboard Shortcuts</div>' +
-                '<div style="display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:12px;">' +
-                '<kbd style="background:var(--card);padding:2px 6px;border-radius:3px;font-family:monospace;">\\u2190 / j</kbd><span style="color:var(--muted);">Previous FHR</span>' +
-                '<kbd style="background:var(--card);padding:2px 6px;border-radius:3px;font-family:monospace;">\\u2192 / k</kbd><span style="color:var(--muted);">Next FHR</span>' +
-                '<kbd style="background:var(--card);padding:2px 6px;border-radius:3px;font-family:monospace;">Space</kbd><span style="color:var(--muted);">Play / Pause</span>' +
-                '<kbd style="background:var(--card);padding:2px 6px;border-radius:3px;font-family:monospace;">c</kbd><span style="color:var(--muted);">Compare mode</span>' +
-                '<kbd style="background:var(--card);padding:2px 6px;border-radius:3px;font-family:monospace;">s</kbd><span style="color:var(--muted);">Swap endpoints</span>' +
-                '<kbd style="background:var(--card);padding:2px 6px;border-radius:3px;font-family:monospace;">Esc</kbd><span style="color:var(--muted);">Clear line</span>' +
-                '<kbd style="background:var(--card);padding:2px 6px;border-radius:3px;font-family:monospace;">?</kbd><span style="color:var(--muted);">Toggle this help</span>' +
-                '</div>';
+            div.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9999;background:rgba(15,23,42,0.95);border:1px solid var(--border);border-radius:12px;padding:24px 32px;max-width:380px;backdrop-filter:blur(8px);box-shadow:0 8px 32px rgba(0,0,0,0.5);';
+            const kbd = 'background:var(--card);padding:2px 8px;border-radius:4px;font-family:monospace;border:1px solid var(--border);font-size:11px;';
+            div.innerHTML = '<div style="font-size:14px;font-weight:700;color:var(--accent);margin-bottom:14px;">Keyboard Shortcuts</div>' +
+                '<div style="display:grid;grid-template-columns:auto 1fr;gap:7px 18px;font-size:12px;">' +
+                '<div style="grid-column:1/-1;font-size:10px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Navigation</div>' +
+                '<kbd style="' + kbd + '">\\u2190 / j</kbd><span style="color:var(--muted);">Previous FHR</span>' +
+                '<kbd style="' + kbd + '">\\u2192 / k</kbd><span style="color:var(--muted);">Next FHR</span>' +
+                '<kbd style="' + kbd + '">Home</kbd><span style="color:var(--muted);">First FHR (F00)</span>' +
+                '<kbd style="' + kbd + '">End</kbd><span style="color:var(--muted);">Last FHR</span>' +
+                '<kbd style="' + kbd + '">Space</kbd><span style="color:var(--muted);">Play / Pause</span>' +
+                '<div style="grid-column:1/-1;font-size:10px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-top:6px;">Actions</div>' +
+                '<kbd style="' + kbd + '">1-6</kbd><span style="color:var(--muted);">Switch model (HRRR..NAM-Nest)</span>' +
+                '<kbd style="' + kbd + '">o</kbd><span style="color:var(--muted);">Toggle map overlay</span>' +
+                '<kbd style="' + kbd + '">c</kbd><span style="color:var(--muted);">Compare mode</span>' +
+                '<kbd style="' + kbd + '">s</kbd><span style="color:var(--muted);">Swap endpoints</span>' +
+                '<kbd style="' + kbd + '">Esc</kbd><span style="color:var(--muted);">Clear line</span>' +
+                '<kbd style="' + kbd + '">?</kbd><span style="color:var(--muted);">Toggle this help</span>' +
+                '</div>' +
+                '<div style="margin-top:12px;font-size:10px;color:var(--muted);text-align:center;">Click anywhere to close</div>';
             div.onclick = () => div.remove();
             document.body.appendChild(div);
-            setTimeout(() => div.remove(), 8000);
+            setTimeout(() => div.remove(), 12000);
         }
 
         // =====================================================================
@@ -9071,8 +9142,10 @@ def api_xsect_gif():
                     if png_bytes:
                         rendered_pngs[fhr] = png_bytes
                         frame_cache_put(cache_k, png_bytes)
-                except Exception:
-                    pass
+                    else:
+                        logger.warning(f"GIF frame F{fhr:02d} returned None (render_frame returned no data)")
+                except Exception as frame_err:
+                    logger.error(f"GIF frame F{fhr:02d} error: {frame_err}")
         except Exception as e:
             logger.error(f"GIF render pool error: {e}, falling back to sequential")
             # Fallback: sequential rendering in main process
@@ -9097,7 +9170,12 @@ def api_xsect_gif():
                 frames.append(imageio.imread(io.BytesIO(png) if isinstance(png, bytes) else png))
 
     if len(frames) < 2:
-        return jsonify({'error': 'Failed to generate enough frames'}), 500
+        n_loaded = len(loaded_fhrs)
+        n_cached = len(cached_frames)
+        n_rendered = len(rendered_pngs) if 'rendered_pngs' in dir() else 0
+        n_no_info = sum(1 for fhr in loaded_fhrs if mgr.get_render_info(cycle_key, fhr) is None)
+        logger.error(f"GIF failed: {n_loaded} loaded FHRs, {n_cached} cached, {n_rendered} rendered, {n_no_info} with no render_info, cycle={cycle_key}")
+        return jsonify({'error': f'Failed to generate frames (loaded={n_loaded}, cached={n_cached}, rendered={n_rendered}, no_render_info={n_no_info})'}), 500
 
     # Speed: 1x = 250ms (fast), 0.75x = 500ms, 0.5x = 1000ms, 0.25x = 2000ms
     SPEED_MS = {'1': 250, '0.75': 500, '0.5': 1000, '0.25': 2000}
