@@ -5768,7 +5768,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
 
         iconTabs.forEach(tab => {
+            tab.setAttribute('role', 'tab');
+            tab.setAttribute('tabindex', '0');
             tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+            tab.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); switchTab(tab.dataset.tab); } });
         });
 
         document.getElementById('close-panel-btn').onclick = () => {
@@ -5781,9 +5784,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         // Sidebar section collapse/expand
         document.querySelectorAll('.ctrl-section-title').forEach(title => {
             if (title.classList.contains('preset-toggle')) return; // Preset library has its own toggle
-            title.addEventListener('click', () => {
-                title.parentElement.classList.toggle('collapsed');
-            });
+            title.setAttribute('role', 'button');
+            title.setAttribute('tabindex', '0');
+            title.addEventListener('click', () => { title.parentElement.classList.toggle('collapsed'); });
+            title.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); title.parentElement.classList.toggle('collapsed'); } });
         });
 
         // =====================================================================
