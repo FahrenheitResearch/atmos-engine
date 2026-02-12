@@ -2817,6 +2817,17 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .guide-card-body { font-size: 12px; color: var(--text); line-height: 1.8; }
         .guide-product-group { margin-bottom: 16px; }
         .guide-product-group h3 { color: var(--accent); font-size: 14px; margin: 12px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+        /* City/event detail views */
+        .detail-section { margin-bottom: 10px; }
+        .detail-section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; margin-bottom: 4px; }
+        .detail-section-body { font-size: 12px; line-height: 1.5; }
+        .detail-item { font-size: 12px; padding: 3px 0; }
+        .detail-item-bordered { font-size: 12px; padding: 4px 0; border-bottom: 1px solid var(--border); }
+        .detail-header { margin-bottom: 12px; }
+        .detail-header h3 { font-size: 16px; margin: 0 0 4px; }
+        .detail-header-meta { font-size: 11px; color: var(--muted); }
+        .detail-action { margin-top: 12px; }
+        .detail-action button { width: 100%; padding: 8px; font-size: 13px; }
         /* Map HUD */
         .map-hud {
             position: absolute; top: 10px; left: 10px; z-index: var(--z-map-hud);
@@ -10252,57 +10263,57 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const res = await fetch(`/api/v1/cities/${key}`);
                 const p = await res.json();
 
-                let html = `<div style="margin-bottom:12px;">
-                    <h3 style="font-size:16px;margin:0 0 4px;">${p.name}</h3>
-                    <span style="font-size:11px;color:var(--muted);">${REGION_LABELS[p.region] || p.region}${p.elevation_ft ? ' · ' + p.elevation_ft + ' ft' : ''}</span>
+                let html = `<div class="detail-header">
+                    <h3>${p.name}</h3>
+                    <span class="detail-header-meta">${REGION_LABELS[p.region] || p.region}${p.elevation_ft ? ' · ' + p.elevation_ft + ' ft' : ''}</span>
                 </div>`;
 
                 if (p.terrain_notes) {
-                    html += `<div style="margin-bottom:10px;"><div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Terrain</div><div style="font-size:12px;line-height:1.5;">${p.terrain_notes}</div></div>`;
+                    html += `<div class="detail-section"><div class="detail-section-title" style="color:var(--muted);">Terrain</div><div class="detail-section-body">${p.terrain_notes}</div></div>`;
                 }
 
                 if (p.danger_quadrants && p.danger_quadrants.length) {
-                    html += `<div style="margin-bottom:10px;"><div style="font-size:11px;font-weight:600;color:var(--danger);text-transform:uppercase;margin-bottom:4px;">Danger Quadrants</div><div style="font-size:12px;">${p.danger_quadrants.join(', ')}</div></div>`;
+                    html += `<div class="detail-section"><div class="detail-section-title" style="color:var(--danger);">Danger Quadrants</div><div class="detail-section-body">${p.danger_quadrants.join(', ')}</div></div>`;
                 }
 
                 if (p.wui_exposure) {
-                    html += `<div style="margin-bottom:10px;"><div style="font-size:11px;font-weight:600;color:var(--warning);text-transform:uppercase;margin-bottom:4px;">WUI Exposure</div><div style="font-size:12px;line-height:1.5;">${p.wui_exposure}</div></div>`;
+                    html += `<div class="detail-section"><div class="detail-section-title" style="color:var(--warning);">WUI Exposure</div><div class="detail-section-body">${p.wui_exposure}</div></div>`;
                 }
 
                 if (p.key_features && p.key_features.length) {
-                    html += `<div style="margin-bottom:10px;"><div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Key Features</div>`;
+                    html += `<div class="detail-section"><div class="detail-section-title" style="color:var(--muted);">Key Features</div>`;
                     p.key_features.forEach(f => {
                         if (typeof f === 'string') {
-                            html += `<div style="font-size:12px;padding:4px 0;border-bottom:1px solid var(--border);">${f}</div>`;
+                            html += `<div class="detail-item-bordered">${f}</div>`;
                         } else {
-                            html += `<div style="font-size:12px;padding:4px 0;border-bottom:1px solid var(--border);"><strong>${f.name}</strong> <span style="color:var(--muted);">${f.bearing || ''} · ${f.type || ''}</span>${f.notes ? '<br><span style="color:var(--muted);">' + f.notes + '</span>' : ''}</div>`;
+                            html += `<div class="detail-item-bordered"><strong>${f.name}</strong> <span style="color:var(--muted);">${f.bearing || ''} · ${f.type || ''}</span>${f.notes ? '<br><span style="color:var(--muted);">' + f.notes + '</span>' : ''}</div>`;
                         }
                     });
                     html += '</div>';
                 }
 
                 if (p.historical_fires && p.historical_fires.length) {
-                    html += `<div style="margin-bottom:10px;"><div style="font-size:11px;font-weight:600;color:var(--danger);text-transform:uppercase;margin-bottom:4px;">Historical Fires</div>`;
+                    html += `<div class="detail-section"><div class="detail-section-title" style="color:var(--danger);">Historical Fires</div>`;
                     p.historical_fires.forEach(f => {
                         if (typeof f === 'string') {
-                            html += `<div style="font-size:12px;padding:3px 0;">${f}</div>`;
+                            html += `<div class="detail-item">${f}</div>`;
                         } else {
-                            html += `<div style="font-size:12px;padding:3px 0;"><strong>${f.name || 'Unknown'}</strong> ${f.year ? '(' + f.year + ')' : ''} ${f.acres ? '- ' + f.acres.toLocaleString() + ' acres' : ''}</div>`;
+                            html += `<div class="detail-item"><strong>${f.name || 'Unknown'}</strong> ${f.year ? '(' + f.year + ')' : ''} ${f.acres ? '- ' + f.acres.toLocaleString() + ' acres' : ''}</div>`;
                         }
                     });
                     html += '</div>';
                 }
 
                 if (p.evacuation_routes && p.evacuation_routes.length) {
-                    html += `<div style="margin-bottom:10px;"><div style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;margin-bottom:4px;">Evacuation Routes</div>`;
+                    html += `<div class="detail-section"><div class="detail-section-title" style="color:var(--accent);">Evacuation Routes</div>`;
                     p.evacuation_routes.forEach(r => {
-                        html += `<div style="font-size:12px;padding:3px 0;">${typeof r === 'string' ? r : (r.route || r.name || JSON.stringify(r))}</div>`;
+                        html += `<div class="detail-item">${typeof r === 'string' ? r : (r.route || r.name || JSON.stringify(r))}</div>`;
                     });
                     html += '</div>';
                 }
 
                 // Set cross-section button
-                html += `<div style="margin-top:12px;"><button onclick="setCitySection('${key}')" style="width:100%;padding:8px;font-size:13px;">Set Cross-Section</button></div>`;
+                html += `<div class="detail-action"><button onclick="setCitySection('${key}')">Set Cross-Section</button></div>`;
 
                 content.innerHTML = html;
             } catch (e) {
