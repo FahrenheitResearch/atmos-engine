@@ -19,25 +19,25 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 | `core/map_overlay.py` | ~1,133 | Map overlay rendering. Reprojection (KDTree for curvilinear, bilinear for GFS), composite assembly (fill + contours + barbs), PNG/binary output |
 | `model_config.py` | ~320 | Model registry. 6 models (HRRR/GFS/RRFS/NAM/RAP/NAM-Nest) metadata, grid specs, download URLs, forecast hour lists |
 
-### Server + UI (1 file, ~12,580 lines)
+### Server + UI (1 file, ~12,630 lines)
 
 | File | Lines | What It Does |
 |------|-------|-------------|
-| `tools/unified_dashboard.py` | ~12,580 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 57 API endpoints (34 v1 + 23 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects |
+| `tools/unified_dashboard.py` | ~12,630 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 57 API endpoints (34 v1 + 23 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects |
 
 **Key sections in unified_dashboard.py:**
 - Lines 1-1018: Imports, constants, overlay cache, helper functions, model config dicts
 - Lines 1019-1240: `CrossSectionManager` class — init, config, model management
 - Lines 1241-1720: `scan_available_cycles()`, `preload_latest_cycles()`, loading logic
 - Lines 1721-2464: `auto_load_latest()`, orchestration, prerender hooks
-- Lines 2465-9015: HTML template (inline, ~6,550 lines) — the entire frontend
-  - CSS (~1,100 lines): Inter font, model pills, workflow grid, map HUD, dark theme with cyan accents, loading spinners
+- Lines 2478-9304: HTML template (inline, ~6,826 lines) — the entire frontend
+  - CSS (~1,200 lines): Inter font, model pills, workflow grid, product picker, map HUD, dark theme with cyan accents, loading spinners
   - HTML body (~950 lines): icon sidebar (48px) + expanded panel (400px) + map + bottom slide-up
   - Mapbox GL JS map init + overlay controller (~2,100 lines): starts ~line 4500, double-buffered swap with 8s timeout
-  - Frontend JS (~2,300 lines): model pills, FHR slider, product selector, keyboard shortcuts (1-6 model switch, Home/End, o=overlay toggle), URL state, GIF, events, cities, transect presets, quick-start, guide modal
-- Lines 9021: Flask route `/` — serves HTML with token injection
-- Lines 9021-12189: All API route handlers (57 endpoints)
-- Lines 12190-12338: Startup — argument parsing, preload, rescan thread, server launch
+  - Frontend JS (~2,500 lines): model pills, FHR slider, visual product picker, keyboard shortcuts, URL state, GIF, events, cities, transect presets, quick-start, guide modal, recent transects
+- Lines 9310: Flask route `/` — serves HTML with token injection
+- Lines 9310-12493: All API route handlers (57 endpoints)
+- Lines 12494-12628: Startup — argument parsing, preload, rescan thread, server launch
 
 ### Download System (2 files, ~1,240 lines)
 
