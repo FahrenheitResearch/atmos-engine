@@ -3429,10 +3429,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             justify-content: space-between;
             align-items: center;
             font-size: 13px;
-            transition: background var(--transition-fast), border-color var(--transition-fast);
+            transition: background var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
             border-left: 2px solid transparent;
         }
-        .city-item:hover { background: var(--card); border-left-color: var(--accent); }
+        .city-item:hover { background: var(--card); border-left-color: var(--accent); box-shadow: var(--shadow-sm); }
         .city-item .city-name { font-weight: 500; }
         .city-item .city-meta { font-size: 11px; color: var(--muted); }
         .city-detail-panel {
@@ -3453,11 +3453,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             border-radius: var(--radius-md);
             cursor: pointer;
             font-size: 13px;
-            transition: background 0.1s;
+            transition: background var(--transition-fast), box-shadow var(--transition-fast);
             border-left: 3px solid transparent;
             margin-bottom: 4px;
         }
-        .event-item:hover { background: var(--card); }
+        .event-item:hover { background: var(--card); box-shadow: var(--shadow-sm); }
         .event-item .event-name { font-weight: 500; }
         .event-item .event-meta { font-size: 11px; color: var(--muted); }
         .event-item.has-coords { border-left-color: var(--accent); }
@@ -3936,7 +3936,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .mem-fill { height: 100%; background: var(--accent); transition: width var(--transition-slow) ease; }
 
         /* Scrollbar styling */
-        ::-webkit-scrollbar { width: 6px; }
+        * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
