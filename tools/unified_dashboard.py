@@ -10585,7 +10585,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 '<kbd style="' + kbd + '">c</kbd><span style="color:var(--muted);">Compare mode</span>' +
                 '<kbd style="' + kbd + '">s</kbd><span style="color:var(--muted);">Swap endpoints</span>' +
                 '<kbd style="' + kbd + '">f</kbd><span style="color:var(--muted);">Fullscreen cross-section</span>' +
-                '<kbd style="' + kbd + '">Esc</kbd><span style="color:var(--muted);">Clear line / exit fullscreen</span>' +
+                '<kbd style="' + kbd + '">t</kbd><span style="color:var(--muted);">Toggle 3D terrain</span>' +
+                '<kbd style="' + kbd + '">m</kbd><span style="color:var(--muted);">Measure distance on map</span>' +
+                '<kbd style="' + kbd + '">Esc</kbd><span style="color:var(--muted);">Clear line / exit mode</span>' +
                 '<kbd style="' + kbd + '">?</kbd><span style="color:var(--muted);">Toggle this help</span>' +
                 '</div>' +
                 '<div style="margin-top:12px;font-size:10px;color:var(--muted);text-align:center;">Click anywhere to close</div>';
