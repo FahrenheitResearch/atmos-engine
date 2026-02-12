@@ -19,25 +19,25 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 | `core/map_overlay.py` | ~1,133 | Map overlay rendering. Reprojection (KDTree for curvilinear, bilinear for GFS), composite assembly (fill + contours + barbs), PNG/binary output |
 | `model_config.py` | ~320 | Model registry. 6 models (HRRR/GFS/RRFS/NAM/RAP/NAM-Nest) metadata, grid specs, download URLs, forecast hour lists |
 
-### Server + UI (1 file, ~12,920 lines)
+### Server + UI (1 file, ~13,080 lines)
 
 | File | Lines | What It Does |
 |------|-------|-------------|
-| `tools/unified_dashboard.py` | ~12,920 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 57 API endpoints (34 v1 + 23 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects, og:image preview, FHR hover thumbnails, hero cross-section |
+| `tools/unified_dashboard.py` | ~13,080 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 57 API endpoints (34 v1 + 23 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects, og:image preview, FHR hover thumbnails, hero cross-section, smart product suggestions, skeleton loading |
 
 **Key sections in unified_dashboard.py:**
 - Lines 1-1031: Imports, constants, overlay cache, helper functions, model config dicts
 - Lines 1032-1253: `CrossSectionManager` class — init, config, model management
 - Lines 1254-1720: `scan_available_cycles()`, `preload_latest_cycles()`, loading logic
 - Lines 1721-2477: `auto_load_latest()`, orchestration, prerender hooks
-- Lines 2478-9539: HTML template (inline, ~7,062 lines) — the entire frontend
-  - CSS (~1,200 lines): Inter font, model pills, workflow grid, product picker, map HUD, dark theme with cyan accents, loading spinners
+- Lines 2478-9700: HTML template (inline, ~7,223 lines) — the entire frontend
+  - CSS (~1,260 lines): Inter font, model pills, workflow grid, product picker, map HUD, dark theme with cyan accents, skeleton loading animation, event category pills
   - HTML body (~960 lines): icon sidebar (48px) + expanded panel (400px) + map + bottom slide-up + hero preview
   - Mapbox GL JS map init + overlay controller (~2,100 lines): starts ~line 4500, double-buffered swap with 8s timeout
-  - Frontend JS (~2,800 lines): model pills, FHR slider, FHR hover thumbnails, hero cross-section loader, visual product picker, keyboard shortcuts (18 bindings), URL state, user preference persistence, local timezone display, GIF, events, cities, transect presets, quick-start, guide modal, recent transects
-- Lines 9541: Flask routes start — `/` serves HTML, `/og-preview.png` serves branded preview
-- Lines 9541-12786: All API route handlers (57 endpoints + og-preview)
-- Lines 12788-12922: Startup — argument parsing, preload, rescan thread, server launch
+  - Frontend JS (~2,900 lines): model pills, FHR slider, FHR hover thumbnails, hero cross-section loader, smart product suggestions (geography-based), visual product picker, keyboard shortcuts (18 bindings), URL state, user preference persistence, local timezone display, GIF, events with category pills, cities, transect presets, quick-start, guide modal, recent transects, all-models compare
+- Lines 9700: Flask routes start — `/` serves HTML, `/og-preview.png` serves branded preview
+- Lines 9700-12950: All API route handlers (57 endpoints + og-preview)
+- Lines 12950-13084: Startup — argument parsing, preload, rescan thread, server launch
 
 ### Download System (2 files, ~1,240 lines)
 
@@ -323,6 +323,18 @@ Full Open Graph + Twitter Card meta tags. Server-generated 1200x630 OG preview i
 
 ### User Preference Persistence
 Saves user choices to `localStorage` under `wxs-prefs` key: style, model, basemap, y_axis, y_top, units. Restored on next visit, but URL state always takes priority. Implemented via function patching on `switchModel()` and `setYAxis()` plus change listeners on select elements.
+
+### Smart Product Suggestions
+After rendering a cross-section, a "Try:" row suggests 2-3 relevant products based on transect geography. Rules: mountains → wind/lapse_rate/isentropic_ascent, fire regions → fire_wx/VPD/RH, Great Plains → theta_e/shear/omega, coastal → moisture_transport/RH, winter months → icing/wetbulb. Implemented in `getSmartSuggestions()`.
+
+### Skeleton Loading Animation
+Cross-section render shows a dark card with shimmer effect and terrain silhouette instead of a plain spinner. CSS `.xsect-skeleton` with `clip-path` mountain shape and gradient shimmer animation.
+
+### All Models Compare Button
+One-click "All Models" button in toolbar triggers multi-panel model comparison across all 6 models for the current transect and FHR. Activates multi-panel mode and selects all model chips automatically.
+
+### Event Category Filter Pills
+Color-coded category pills (fire-ca, hurricane, tornado, derecho, hail, ar, winter) with counts replace the dropdown filter for instant visual category scanning. Active pill highlighted, click to filter. `selectEventCatPill()` syncs pills with hidden select.
 
 ### Accessibility
 All interactive controls have `aria-label` attributes: playback buttons, FHR slider, overlay toggles/selects, search inputs, GIF controls, event filter, toolbar buttons. Product picker has `role="listbox"` with `role="option"` items and full keyboard navigation.
