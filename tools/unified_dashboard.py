@@ -2588,6 +2588,20 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
         /* Screen-reader-only utility */
         .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+        /* Keyboard shortcut badge */
+        .kbd { background: var(--card); padding: 2px 8px; border-radius: 4px; font-family: monospace; border: 1px solid var(--border); font-size: 11px; }
+        /* Shortcut help modal */
+        .shortcut-help {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%) scale(0.95);
+            z-index: var(--z-tooltip); background: var(--bg); border: 1px solid var(--border);
+            border-radius: 12px; padding: 24px 32px; max-width: 380px; backdrop-filter: blur(8px);
+            box-shadow: var(--shadow-xl); opacity: 0; transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        .shortcut-help.visible { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+        .shortcut-grid { display: grid; grid-template-columns: auto 1fr; gap: 7px 18px; font-size: 12px; }
+        .shortcut-section { grid-column: 1/-1; font-size: 10px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+        .shortcut-section + .shortcut-section { margin-top: 6px; }
+        .shortcut-grid span { color: var(--muted); }
         /* Focus-visible for keyboard accessibility */
         :focus-visible {
             outline: 2px solid var(--accent);
@@ -9523,7 +9537,6 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             body.style.opacity = '0'; body.style.transform = 'translateY(4px)';
             setTimeout(() => { body.style.transition = 'opacity 0.2s ease, transform 0.2s ease'; body.style.opacity = '1'; body.style.transform = 'translateY(0)'; }, 20);
             if (tab === 'getting-started') {
-                const kbd = 'background:var(--card);padding:2px 6px;border-radius:4px;font-family:monospace;border:1px solid var(--border);font-size:11px;';
                 body.innerHTML = `
                     <div style="text-align:center;margin-bottom:16px;">
                         <div style="font-size:16px;font-weight:700;color:var(--accent);margin-bottom:4px;">wxsection.com</div>
@@ -9561,12 +9574,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     </div>
                     <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 16px;">
                         <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:8px;">Quick Shortcuts</div>
-                        <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12px;">
-                            <kbd style="${kbd}">\u2190 / \u2192</kbd><span style="color:var(--muted);">Step through forecast hours</span>
-                            <kbd style="${kbd}">Space</kbd><span style="color:var(--muted);">Play/pause animation</span>
-                            <kbd style="${kbd}">1-6</kbd><span style="color:var(--muted);">Switch between models</span>
-                            <kbd style="${kbd}">O</kbd><span style="color:var(--muted);">Toggle map overlay</span>
-                            <kbd style="${kbd}">C</kbd><span style="color:var(--muted);">Compare mode</span>
+                        <div class="shortcut-grid" style="gap:4px 12px;">
+                            <kbd class="kbd">\u2190 / \u2192</kbd><span>Step through forecast hours</span>
+                            <kbd class="kbd">Space</kbd><span>Play/pause animation</span>
+                            <kbd class="kbd">1-6</kbd><span>Switch between models</span>
+                            <kbd class="kbd">O</kbd><span>Toggle map overlay</span>
+                            <kbd class="kbd">C</kbd><span>Compare mode</span>
                         </div>
                     </div>`;
             } else if (tab === 'products') {
@@ -9583,38 +9596,37 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     </div>
                 `).join('');
             } else if (tab === 'shortcuts') {
-                const kbd = 'background:var(--card);padding:2px 8px;border-radius:4px;font-family:monospace;border:1px solid var(--border);font-size:11px;';
                 body.innerHTML = `
-                    <div style="display:grid;grid-template-columns:auto 1fr;gap:7px 18px;font-size:12px;">
-                        <div style="grid-column:1/-1;font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-top:4px;">Navigation</div>
-                        <kbd style="${kbd}">\u2190 / J</kbd><span style="color:var(--muted);">Previous forecast hour</span>
-                        <kbd style="${kbd}">\u2192 / K</kbd><span style="color:var(--muted);">Next forecast hour</span>
-                        <kbd style="${kbd}">Home</kbd><span style="color:var(--muted);">First FHR (F00)</span>
-                        <kbd style="${kbd}">End</kbd><span style="color:var(--muted);">Last FHR</span>
-                        <kbd style="${kbd}">Space</kbd><span style="color:var(--muted);">Play / pause animation</span>
+                    <div class="shortcut-grid">
+                        <div class="shortcut-section">Navigation</div>
+                        <kbd class="kbd">\u2190 / J</kbd><span>Previous forecast hour</span>
+                        <kbd class="kbd">\u2192 / K</kbd><span>Next forecast hour</span>
+                        <kbd class="kbd">Home</kbd><span>First FHR (F00)</span>
+                        <kbd class="kbd">End</kbd><span>Last FHR</span>
+                        <kbd class="kbd">Space</kbd><span>Play / pause animation</span>
 
-                        <div style="grid-column:1/-1;font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-top:10px;">Models</div>
-                        <kbd style="${kbd}">1</kbd><span style="color:var(--muted);">HRRR (3km)</span>
-                        <kbd style="${kbd}">2</kbd><span style="color:var(--muted);">GFS (0.25\u00b0)</span>
-                        <kbd style="${kbd}">3</kbd><span style="color:var(--muted);">RRFS (3km)</span>
-                        <kbd style="${kbd}">4</kbd><span style="color:var(--muted);">NAM (12km)</span>
-                        <kbd style="${kbd}">5</kbd><span style="color:var(--muted);">RAP (13km)</span>
-                        <kbd style="${kbd}">6</kbd><span style="color:var(--muted);">NAM-Nest (3km)</span>
+                        <div class="shortcut-section">Models</div>
+                        <kbd class="kbd">1</kbd><span>HRRR (3km)</span>
+                        <kbd class="kbd">2</kbd><span>GFS (0.25\u00b0)</span>
+                        <kbd class="kbd">3</kbd><span>RRFS (3km)</span>
+                        <kbd class="kbd">4</kbd><span>NAM (12km)</span>
+                        <kbd class="kbd">5</kbd><span>RAP (13km)</span>
+                        <kbd class="kbd">6</kbd><span>NAM-Nest (3km)</span>
 
-                        <div style="grid-column:1/-1;font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-top:10px;">Products &amp; Display</div>
-                        <kbd style="${kbd}">[ / ]</kbd><span style="color:var(--muted);">Previous / next product</span>
-                        <kbd style="${kbd}">A</kbd><span style="color:var(--muted);">Toggle anomaly mode</span>
-                        <kbd style="${kbd}">Y</kbd><span style="color:var(--muted);">Cycle y-axis (pressure / height / \u03b8)</span>
-                        <kbd style="${kbd}">F</kbd><span style="color:var(--muted);">Fullscreen cross-section</span>
+                        <div class="shortcut-section">Products &amp; Display</div>
+                        <kbd class="kbd">[ / ]</kbd><span>Previous / next product</span>
+                        <kbd class="kbd">A</kbd><span>Toggle anomaly mode</span>
+                        <kbd class="kbd">Y</kbd><span>Cycle y-axis (pressure / height / \u03b8)</span>
+                        <kbd class="kbd">F</kbd><span>Fullscreen cross-section</span>
 
-                        <div style="grid-column:1/-1;font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-top:10px;">Actions</div>
-                        <kbd style="${kbd}">O</kbd><span style="color:var(--muted);">Toggle map overlay on/off</span>
-                        <kbd style="${kbd}">C</kbd><span style="color:var(--muted);">Compare mode</span>
-                        <kbd style="${kbd}">S</kbd><span style="color:var(--muted);">Swap A/B endpoints</span>
-                        <kbd style="${kbd}">T</kbd><span style="color:var(--muted);">Toggle 3D terrain</span>
-                        <kbd style="${kbd}">M</kbd><span style="color:var(--muted);">Measure distance on map</span>
-                        <kbd style="${kbd}">Esc</kbd><span style="color:var(--muted);">Clear line / exit mode</span>
-                        <kbd style="${kbd}">?</kbd><span style="color:var(--muted);">Quick shortcuts popup</span>
+                        <div class="shortcut-section">Actions</div>
+                        <kbd class="kbd">O</kbd><span>Toggle map overlay on/off</span>
+                        <kbd class="kbd">C</kbd><span>Compare mode</span>
+                        <kbd class="kbd">S</kbd><span>Swap A/B endpoints</span>
+                        <kbd class="kbd">T</kbd><span>Toggle 3D terrain</span>
+                        <kbd class="kbd">M</kbd><span>Measure distance on map</span>
+                        <kbd class="kbd">Esc</kbd><span>Clear line / exit mode</span>
+                        <kbd class="kbd">?</kbd><span>Quick shortcuts popup</span>
                     </div>`;
             }
         }
@@ -11328,34 +11340,33 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             if (existing) { existing.remove(); return; }
             const div = document.createElement('div');
             div.id = 'shortcut-help';
-            div.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.95);z-index:var(--z-tooltip);background:rgba(15,23,42,0.95);border:1px solid var(--border);border-radius:12px;padding:24px 32px;max-width:380px;backdrop-filter:blur(8px);box-shadow:0 8px 32px rgba(0,0,0,0.5);opacity:0;transition:opacity 0.2s ease,transform 0.2s ease;';
-            requestAnimationFrame(() => { div.style.opacity = '1'; div.style.transform = 'translate(-50%,-50%) scale(1)'; });
-            const kbd = 'background:var(--card);padding:2px 8px;border-radius:4px;font-family:monospace;border:1px solid var(--border);font-size:11px;';
+            div.className = 'shortcut-help';
+            requestAnimationFrame(() => div.classList.add('visible'));
             div.innerHTML = '<div style="font-size:14px;font-weight:700;color:var(--accent);margin-bottom:14px;">Keyboard Shortcuts</div>' +
-                '<div style="display:grid;grid-template-columns:auto 1fr;gap:7px 18px;font-size:12px;">' +
-                '<div style="grid-column:1/-1;font-size:10px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Navigation</div>' +
-                '<kbd style="' + kbd + '">\\u2190 / j</kbd><span style="color:var(--muted);">Previous FHR</span>' +
-                '<kbd style="' + kbd + '">\\u2192 / k</kbd><span style="color:var(--muted);">Next FHR</span>' +
-                '<kbd style="' + kbd + '">Home</kbd><span style="color:var(--muted);">First FHR (F00)</span>' +
-                '<kbd style="' + kbd + '">End</kbd><span style="color:var(--muted);">Last FHR</span>' +
-                '<kbd style="' + kbd + '">Space</kbd><span style="color:var(--muted);">Play / Pause</span>' +
-                '<div style="grid-column:1/-1;font-size:10px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-top:6px;">Actions</div>' +
-                '<kbd style="' + kbd + '">[ / ]</kbd><span style="color:var(--muted);">Previous / Next product</span>' +
-                '<kbd style="' + kbd + '">1-6</kbd><span style="color:var(--muted);">Switch model (HRRR..NAM-Nest)</span>' +
-                '<kbd style="' + kbd + '">y</kbd><span style="color:var(--muted);">Cycle y-axis (pressure/height/\\u03b8)</span>' +
-                '<kbd style="' + kbd + '">o</kbd><span style="color:var(--muted);">Toggle map overlay</span>' +
-                '<kbd style="' + kbd + '">O</kbd><span style="color:var(--muted);">Toggle overlay loop</span>' +
-                '<kbd style="' + kbd + '">{ / }</kbd><span style="color:var(--muted);">Cycle overlay product</span>' +
-                '<kbd style="' + kbd + '">c</kbd><span style="color:var(--muted);">Compare mode</span>' +
-                '<kbd style="' + kbd + '">s</kbd><span style="color:var(--muted);">Swap endpoints</span>' +
-                '<kbd style="' + kbd + '">f</kbd><span style="color:var(--muted);">Fullscreen cross-section</span>' +
-                '<kbd style="' + kbd + '">t</kbd><span style="color:var(--muted);">Toggle 3D terrain</span>' +
-                '<kbd style="' + kbd + '">m</kbd><span style="color:var(--muted);">Measure distance on map</span>' +
-                '<kbd style="' + kbd + '">Esc</kbd><span style="color:var(--muted);">Clear line / exit mode</span>' +
-                '<kbd style="' + kbd + '">?</kbd><span style="color:var(--muted);">Toggle this help</span>' +
+                '<div class="shortcut-grid">' +
+                '<div class="shortcut-section">Navigation</div>' +
+                '<kbd class="kbd">\u2190 / j</kbd><span>Previous FHR</span>' +
+                '<kbd class="kbd">\u2192 / k</kbd><span>Next FHR</span>' +
+                '<kbd class="kbd">Home</kbd><span>First FHR (F00)</span>' +
+                '<kbd class="kbd">End</kbd><span>Last FHR</span>' +
+                '<kbd class="kbd">Space</kbd><span>Play / Pause</span>' +
+                '<div class="shortcut-section">Actions</div>' +
+                '<kbd class="kbd">[ / ]</kbd><span>Previous / Next product</span>' +
+                '<kbd class="kbd">1-6</kbd><span>Switch model (HRRR..NAM-Nest)</span>' +
+                '<kbd class="kbd">y</kbd><span>Cycle y-axis (pressure/height/\u03b8)</span>' +
+                '<kbd class="kbd">o</kbd><span>Toggle map overlay</span>' +
+                '<kbd class="kbd">O</kbd><span>Toggle overlay loop</span>' +
+                '<kbd class="kbd">{ / }</kbd><span>Cycle overlay product</span>' +
+                '<kbd class="kbd">c</kbd><span>Compare mode</span>' +
+                '<kbd class="kbd">s</kbd><span>Swap endpoints</span>' +
+                '<kbd class="kbd">f</kbd><span>Fullscreen cross-section</span>' +
+                '<kbd class="kbd">t</kbd><span>Toggle 3D terrain</span>' +
+                '<kbd class="kbd">m</kbd><span>Measure distance on map</span>' +
+                '<kbd class="kbd">Esc</kbd><span>Clear line / exit mode</span>' +
+                '<kbd class="kbd">?</kbd><span>Toggle this help</span>' +
                 '</div>' +
                 '<div style="margin-top:12px;font-size:10px;color:var(--muted);text-align:center;">Click anywhere to close</div>';
-            const closeHelp = () => { div.style.opacity = '0'; div.style.transform = 'translate(-50%,-50%) scale(0.95)'; setTimeout(() => div.remove(), 200); };
+            const closeHelp = () => { div.classList.remove('visible'); setTimeout(() => div.remove(), 200); };
             div.onclick = closeHelp;
             document.body.appendChild(div);
             setTimeout(closeHelp, 12000);
