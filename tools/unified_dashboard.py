@@ -2526,6 +2526,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             --danger: #f43f5e;
             --sidebar-icon-w: 48px;
             --sidebar-panel-w: 400px;
+            --transition-fast: 0.12s;
+            --transition-default: 0.2s;
+            --transition-slow: 0.35s;
+            --surface: #253347;
+            --surface-alt: #2d3f56;
         }
         body {
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -2856,8 +2861,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             flex: 1;
             overflow-y: auto;
             padding: 12px 16px;
+            opacity: 0;
+            transform: translateY(4px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
         }
-        .tab-content.active { display: flex; flex-direction: column; }
+        .tab-content.active { display: flex; flex-direction: column; opacity: 1; transform: translateY(0); }
 
         /* ===== Map area (fills remaining space) ===== */
         #map-area {
@@ -2912,6 +2920,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             left: 50%;
             transform: translateX(-50%);
             top: 4px;
+            transition: background 0.15s, width 0.15s;
+        }
+        #bottom-handle:hover .drag-indicator {
+            background: var(--accent);
+            width: 56px;
         }
         #bottom-status {
             font-size: 12px;
@@ -3102,6 +3115,18 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
         #xsect-panels.compare-active .xsect-panel-label { display: block; }
         #xsect-panels.compare-active .xsect-panel + .xsect-panel { border-left: 1px solid var(--border); }
+        #compare-divider {
+            display: none; position: absolute; top: 0; bottom: 0; width: 6px;
+            background: var(--accent); cursor: col-resize; z-index: 5; left: 50%;
+            transform: translateX(-50%); opacity: 0.6; transition: opacity 0.15s;
+        }
+        #compare-divider:hover, #compare-divider.dragging { opacity: 1; }
+        #compare-divider::after {
+            content: '\u2195'; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%) rotate(90deg); color: #fff; font-size: 11px; font-weight: 700;
+        }
+        #xsect-panels.compare-active { position: relative; }
+        #xsect-panels.compare-active #compare-divider { display: block; }
         .xsect-panel-body {
             flex: 1; display: flex; align-items: center; justify-content: center;
             padding: 8px; overflow: hidden; position: relative;
@@ -3919,20 +3944,21 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
         <!-- Icon Sidebar (48px) -->
         <div id="icon-sidebar">
-            <div class="icon-tab active" data-tab="controls" title="Controls">
+            <div class="icon-tab active" data-tab="controls" title="Controls — model, product, overlay settings">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
             </div>
-            <div class="icon-tab" data-tab="cities" title="Fire Weather Cities (232)">
+            <div class="icon-tab" data-tab="cities" title="Fire Weather Cities — 232 profiled locations">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
+                <span class="badge" id="cities-badge" style="display:none;animation:none;background:var(--success);">0</span>
             </div>
-            <div class="icon-tab" data-tab="events" title="Historical Events (88)">
+            <div class="icon-tab" data-tab="events" title="Historical Events — 88 archived weather events">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             </div>
-            <div class="icon-tab" data-tab="activity" title="Activity">
+            <div class="icon-tab" data-tab="activity" title="Activity — download & render progress">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
                 <span class="badge" id="activity-badge" style="display:none;">0</span>
             </div>
-            <div class="icon-tab" data-tab="settings" title="Settings">
+            <div class="icon-tab" data-tab="settings" title="Settings — display preferences & API">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
             </div>
         </div>
@@ -4449,6 +4475,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                                 </div>
                             </div>
                         </div>
+                        <div id="compare-divider"></div>
                         <div class="xsect-panel" id="panel-compare" style="display:none;">
                             <div class="xsect-panel-label" id="panel-compare-label"></div>
                             <div class="xsect-panel-body" id="xsect-container-compare">
@@ -4486,9 +4513,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <button class="modal-close" id="modal-close">&times;</button>
             </div>
             <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin:-8px 0 8px;">
-                <button class="guide-tab active" data-tab="getting-started" style="flex:1;padding:8px 0;font-size:12px;background:none;border:none;border-bottom:2px solid var(--accent);color:var(--accent);cursor:pointer;font-family:inherit;">Getting Started</button>
-                <button class="guide-tab" data-tab="products" style="flex:1;padding:8px 0;font-size:12px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);cursor:pointer;font-family:inherit;">Products (21)</button>
-                <button class="guide-tab" data-tab="shortcuts" style="flex:1;padding:8px 0;font-size:12px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);cursor:pointer;font-family:inherit;">Shortcuts</button>
+                <button class="guide-tab active" data-tab="getting-started" style="flex:1;padding:8px 0;font-size:12px;background:none;border:none;border-bottom:2px solid var(--accent);color:var(--accent);cursor:pointer;font-family:inherit;transition:color 0.15s,border-color 0.15s;">&#9889; Getting Started</button>
+                <button class="guide-tab" data-tab="products" style="flex:1;padding:8px 0;font-size:12px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);cursor:pointer;font-family:inherit;transition:color 0.15s,border-color 0.15s;">&#127912; Products (21)</button>
+                <button class="guide-tab" data-tab="shortcuts" style="flex:1;padding:8px 0;font-size:12px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);cursor:pointer;font-family:inherit;transition:color 0.15s,border-color 0.15s;">&#9000; Shortcuts</button>
             </div>
             <div class="modal-body" id="modal-body"></div>
         </div>
@@ -5011,7 +5038,17 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             expandedPanel.classList.remove('collapsed');
             updateBackdrop(true);
             iconTabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tabId));
-            tabContents.forEach(tc => tc.classList.toggle('active', tc.id === 'tab-' + tabId));
+            // Animate tab content transition
+            tabContents.forEach(tc => {
+                const shouldBeActive = tc.id === 'tab-' + tabId;
+                if (shouldBeActive && !tc.classList.contains('active')) {
+                    tc.classList.add('active');
+                    tc.style.opacity = '0'; tc.style.transform = 'translateY(4px)';
+                    requestAnimationFrame(() => { tc.style.opacity = ''; tc.style.transform = ''; });
+                } else if (!shouldBeActive) {
+                    tc.classList.remove('active');
+                }
+            });
             panelTitle.textContent = tabNames[tabId] || tabId;
             // Trigger resize so map reflows
             setTimeout(() => map.resize(), 250);
@@ -5061,9 +5098,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             else if (bottomState === 'half') setBottomState('collapsed');
         };
 
-        // Double-click handle to toggle collapsed/half
+        // Double-click handle to cycle through collapsed/half/full
         document.getElementById('bottom-handle').addEventListener('dblclick', () => {
             if (bottomState === 'collapsed') setBottomState('half');
+            else if (bottomState === 'half') setBottomState('full');
             else setBottomState('collapsed');
         });
 
@@ -7656,15 +7694,38 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 compareCycle = null;
                 document.getElementById('xsect-container-compare').innerHTML =
                     '<div style="color:var(--muted);">Select a comparison cycle</div>';
-                // Reset diff mode
+                // Reset diff mode and divider
                 diffActive = false;
                 const diffBtn = document.getElementById('compare-diff-btn');
                 if (diffBtn) { diffBtn.classList.remove('active'); diffBtn.style.background = ''; diffBtn.style.color = ''; }
                 document.getElementById('panel-diff').style.display = 'none';
+                document.getElementById('compare-divider').style.left = '50%';
+                document.getElementById('panel-primary').style.flex = ''; document.getElementById('panel-primary').style.width = '';
+                panelCompare.style.flex = ''; panelCompare.style.width = '';
             }
         }
 
         document.getElementById('compare-btn').addEventListener('click', toggleCompareMode);
+
+        // Compare divider drag logic
+        (function() {
+            const divider = document.getElementById('compare-divider');
+            const panels = document.getElementById('xsect-panels');
+            let dragging = false;
+            divider.addEventListener('mousedown', e => { dragging = true; divider.classList.add('dragging'); e.preventDefault(); });
+            document.addEventListener('mousemove', e => {
+                if (!dragging) return;
+                const rect = panels.getBoundingClientRect();
+                let pct = ((e.clientX - rect.left) / rect.width) * 100;
+                pct = Math.max(15, Math.min(85, pct));
+                divider.style.left = pct + '%';
+                const primary = document.getElementById('panel-primary');
+                const compare = document.getElementById('panel-compare');
+                primary.style.flex = 'none'; primary.style.width = pct + '%';
+                compare.style.flex = 'none'; compare.style.width = (100 - pct) + '%';
+            });
+            document.addEventListener('mouseup', () => { if (dragging) { dragging = false; divider.classList.remove('dragging'); } });
+        })();
 
         function populateCompareCycleDropdown() {
             const sel = document.getElementById('compare-cycle-select');
@@ -9065,6 +9126,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 t.style.borderBottomColor = active ? 'var(--accent)' : 'transparent';
                 t.style.color = active ? 'var(--accent)' : 'var(--muted)';
             });
+            // Fade transition on content switch
+            body.style.opacity = '0'; body.style.transform = 'translateY(4px)';
+            setTimeout(() => { body.style.transition = 'opacity 0.2s ease, transform 0.2s ease'; body.style.opacity = '1'; body.style.transform = 'translateY(0)'; }, 20);
             if (tab === 'getting-started') {
                 const kbd = 'background:var(--card);padding:2px 6px;border-radius:4px;font-family:monospace;border:1px solid var(--border);font-size:11px;';
                 body.innerHTML = `
@@ -9435,6 +9499,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
                 if (mapStyleLoaded) addCityLayers(_citiesGeoJSON);
                 renderCityList();
+                const cb = document.getElementById('cities-badge');
+                if (cb && allCities.length > 0) { cb.textContent = allCities.length; cb.style.display = ''; }
             } catch (e) {
                 console.error('Failed to load cities:', e);
             }
@@ -9849,7 +9915,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     ${desc}
                     <div class="event-meta">
                         ${evt.date_local || ''} &middot;
-                        <span class="event-category-chip" style="border:1px solid ${catColor};color:${catColor};">${evt.category}</span>
+                        <span class="event-category-chip" style="border:1px solid ${catColor};color:${catColor};">${catIcons[evt.category] || ''} ${evt.category}</span>
                         ${hasCoords ? ' <span style="color:var(--accent);" title="Has map coordinates">&#128205;</span>' : ''}
                         ${dataTag}
                         ${heroTag}
@@ -9861,6 +9927,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
 
         // Populate category filter pills + dropdown
+        const catIcons = {
+            'fire-ca': String.fromCodePoint(0x1F525), 'fire-pnw': String.fromCodePoint(0x1F525), 'fire-co': String.fromCodePoint(0x1F525),
+            'fire-sw': String.fromCodePoint(0x1F525), 'hurricane': String.fromCodePoint(0x1F300), 'tornado': String.fromCodePoint(0x1F32A),
+            'derecho': String.fromCodePoint(0x26A1), 'hail': String.fromCodePoint(0x2744), 'ar': String.fromCodePoint(0x1F30A),
+            'winter': String.fromCodePoint(0x2744), 'other': String.fromCodePoint(0x1F310),
+        };
         function populateEventCategories() {
             const sel = document.getElementById('event-category-filter');
             const pillsEl = document.getElementById('event-cat-pills');
@@ -9885,11 +9957,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 pillsEl.appendChild(allPill);
                 Object.keys(cats).sort().forEach(cat => {
                     const color = catColors[cat] || '#64748b';
+                    const icon = catIcons[cat] || '';
                     const pill = document.createElement('span');
                     pill.className = 'event-cat-pill';
                     pill.dataset.cat = cat;
-                    pill.textContent = `${cat} (${cats[cat]})`;
-                    pill.style.cssText = `padding:2px 8px;border-radius:10px;font-size:10px;cursor:pointer;border:1px solid ${color};color:${color};opacity:0.7;transition:all 0.1s;`;
+                    pill.textContent = `${icon} ${cat} (${cats[cat]})`;
+                    pill.style.cssText = `padding:2px 8px;border-radius:10px;font-size:10px;cursor:pointer;border:1px solid ${color};color:${color};opacity:0.7;transition:all 0.15s;`;
                     pill.onclick = () => selectEventCatPill(cat);
                     pillsEl.appendChild(pill);
                 });
@@ -9905,11 +9978,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         function selectEventCatPill(cat) {
             const sel = document.getElementById('event-category-filter');
             if (sel) { sel.value = cat; sel.dispatchEvent(new Event('change')); }
+            const catColors2 = { 'fire-ca': '#f97316', 'fire-pnw': '#22c55e', 'fire-co': '#3b82f6', 'fire-sw': '#ef4444', 'hurricane': '#06b6d4', 'tornado': '#a855f7', 'derecho': '#eab308', 'hail': '#d946ef', 'ar': '#0ea5e9', 'winter': '#94a3b8' };
             document.querySelectorAll('.event-cat-pill').forEach(p => {
                 const isActive = p.dataset.cat === cat;
+                const c = catColors2[p.dataset.cat] || '#0ea5e9';
                 p.classList.toggle('active', isActive);
                 p.style.opacity = isActive ? '1' : '0.7';
-                p.style.background = isActive ? `rgba(${p.dataset.cat === '' ? '14,165,233' : '255,255,255'},0.15)` : 'transparent';
+                p.style.background = isActive ? c + '22' : 'transparent';
             });
         }
 
@@ -10074,7 +10149,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             let html = '<div class="event-detail-header">';
             html += `<h3>${evt.name || evt.cycle_key}</h3>`;
             html += '<div class="event-detail-badges">';
-            html += `<span class="event-category-chip" style="border:1px solid ${catColor};color:${catColor};">${evt.category}</span>`;
+            html += `<span class="event-category-chip" style="border:1px solid ${catColor};color:${catColor};">${catIcons[evt.category] || ''} ${evt.category}</span>`;
             if (hasHero) html += `<span class="event-hero-badge">${evt.hero_product} F${String(evt.hero_fhr).padStart(2,'0')}</span>`;
             if (evt.has_data) html += '<span class="event-data-badge">LIVE</span>';
             html += `<span style="font-size:11px;color:var(--muted);">${evt.date_local || evt.cycle_key}</span>`;
