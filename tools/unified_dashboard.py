@@ -4335,7 +4335,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     </div>
                 </div>
                 <div class="ctrl-section">
-                    <div class="ctrl-section-title" style="cursor:pointer;display:flex;align-items:center;gap:4px;" onclick="const lib=document.getElementById('preset-lib');const a=document.getElementById('preset-arrow');lib.classList.toggle('collapsed');a.style.transform=lib.classList.contains('collapsed')?'':'rotate(90deg)';">
+                    <div class="ctrl-section-title" style="cursor:pointer;display:flex;align-items:center;gap:4px;" onclick="const lib=document.getElementById('preset-lib');const a=document.getElementById('preset-arrow');if(lib){lib.classList.toggle('collapsed');if(a)a.style.transform=lib.classList.contains('collapsed')?'':'rotate(90deg)';}">
                         <span id="preset-arrow" style="font-size:10px;transition:transform 0.15s;">&#9654;</span> Transect Presets
                     </div>
                     <div id="preset-lib" class="collapsed"></div>
@@ -5137,7 +5137,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
         async function switchModel(modelId) {
             currentModel = modelId;
-            document.getElementById('model-select').value = modelId;
+            const _ms = document.getElementById('model-select');
+            if (_ms) _ms.value = modelId;
             // Update bottom panel model label
             const modelLabel = document.getElementById('bottom-model-label');
             if (modelLabel) {
@@ -5225,7 +5226,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 }
                 // Set y_top
                 if (wf.y_top) {
-                    document.getElementById('ytop-select').value = wf.y_top;
+                    const _yt = document.getElementById('ytop-select');
+                    if (_yt) _yt.value = wf.y_top;
                 }
                 // Enable overlay with product
                 const overlayOn = document.getElementById('overlay-on');
@@ -5511,7 +5513,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             setTerrain3D(this.checked, exag);
         };
         document.getElementById('terrain-exag').oninput = function() {
-            document.getElementById('terrain-exag-label').textContent = this.value + 'x';
+            const _tel = document.getElementById('terrain-exag-label');
+            if (_tel) _tel.textContent = this.value + 'x';
             if (terrain3DActive) setTerrain3D(true, parseFloat(this.value));
         };
         // Re-enable terrain after style change
@@ -5844,10 +5847,14 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const lut = colormapLUTs[cmapName];
                 if (!lut) { bar.style.display = 'none'; return; }
                 bar.style.display = 'block';
-                document.getElementById('colorbar-title').textContent = title;
-                document.getElementById('colorbar-min').textContent = vmin.toFixed(0);
-                document.getElementById('colorbar-max').textContent = vmax.toFixed(0);
-                document.getElementById('colorbar-units').textContent = units;
+                const _cbTitle = document.getElementById('colorbar-title');
+                const _cbMin = document.getElementById('colorbar-min');
+                const _cbMax = document.getElementById('colorbar-max');
+                const _cbUnits = document.getElementById('colorbar-units');
+                if (_cbTitle) _cbTitle.textContent = title;
+                if (_cbMin) _cbMin.textContent = vmin.toFixed(0);
+                if (_cbMax) _cbMax.textContent = vmax.toFixed(0);
+                if (_cbUnits) _cbUnits.textContent = units;
                 const imgData = ctx.createImageData(200, 14);
                 for (let x = 0; x < 200; x++) {
                     const idx = Math.round((x / 199) * 255);
@@ -6211,7 +6218,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             this.style.background = `linear-gradient(to right, var(--accent) ${this.value}%, var(--card) ${this.value}%)`;
         };
         // Initialize slider fill
-        { const s = document.getElementById('overlay-opacity'); s.style.background = `linear-gradient(to right, var(--accent) ${s.value}%, var(--card) ${s.value}%)`; }
+        { const s = document.getElementById('overlay-opacity'); if (s) s.style.background = `linear-gradient(to right, var(--accent) ${s.value}%, var(--card) ${s.value}%)`; }
         document.getElementById('overlay-loop').onclick = function() {
             modelMapOverlay.toggleLoop();
         };
