@@ -197,6 +197,9 @@ MIN_GRIB_SIZE = 500_000     # Download validation minimum (500KB)
 - Inlay display (small overview map showing transect location) is basic
 - Multi-product panels (e.g., temp + wind + rh side-by-side) need better visual hierarchy
 - `render_multi_panel()` uses PIL compositing: render each panel individually, paste into grid
+- **Comparison prerender**: `/api/prerender` accepts `comparison: {mode, products, models, cycles, cycle_match}` to batch-render multi-panel composites per FHR. Cached frames served via `/api/v1/comparison` (cache hit). Frontend detects `multiPanelMode` and sends comparison params automatically.
+- **Comparison GIF export**: GIF button routes to `/api/v1/comparison/gif` when in multi-panel mode (product, model, or cycle). Each frame is a full multi-panel composite at a different FHR.
+- **Comparison caching**: `/api/v1/comparison` now checks FRAME_CACHE before rendering and stores results after. Cache key includes mode, model, cycle, FHR, and mode-specific params.
 
 ### Events System
 - 88 events in events.json, 22 with curated coordinates and suggested_sections
