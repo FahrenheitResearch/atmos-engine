@@ -3246,15 +3246,17 @@ class InteractiveCrossSection:
         if surface_pressure is not None:
             legend_items.append(Patch(facecolor='saddlebrown', alpha=0.9, label='Terrain'))
         if legend_items:
-            ax.legend(handles=legend_items, loc='upper left', fontsize=7, framealpha=0.85,
+            ax.legend(handles=legend_items, loc='upper left', fontsize=8, framealpha=0.85,
                      edgecolor='#999', fancybox=False, borderpad=0.4, handlelength=1.5)
 
         # Title with full metadata
         panel_label = metadata.get('panel_label', '')
+        resolution = metadata.get('resolution', '')
         if panel_label:
             title_main = panel_label
         else:
-            title_main = f'{model} Cross-Section: {shading_label}'
+            res_str = f' ({resolution})' if resolution else ''
+            title_main = f'{model}{res_str} Cross-Section: {shading_label}'
         ax.set_title(title_main, fontsize=14, fontweight='bold', loc='left')
         ax.set_title(f'Init: {init_str}  |  F{forecast_hour:02d}  |  Valid: {valid_str}',
                     fontsize=10, loc='right', color='#555')
@@ -3294,7 +3296,7 @@ class InteractiveCrossSection:
         # Secondary x-axis with lat/lon + city labels below the main axis
         ax2 = ax.secondary_xaxis(-0.08)
         ax2.set_xticks(tick_positions)
-        ax2.set_xticklabels(tick_labels, fontsize=7, color='#555', ha='center')
+        ax2.set_xticklabels(tick_labels, fontsize=8, color='#555', ha='center')
         ax2.tick_params(axis='x', length=4, color='#999')
 
         # Path coords incorporated into A/B labels - no separate text needed

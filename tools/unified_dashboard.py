@@ -2220,6 +2220,7 @@ class CrossSectionManager:
         # Build metadata with real FHR (not engine key) — thread-safe, no shared state
         meta = {
             'model': self.model_name.upper(),
+            'resolution': self.model_config.resolution if self.model_config else '',
             'init_date': cycle['date'] if cycle else None,
             'init_hour': cycle['hour'] if cycle else None,
             'forecast_hour': fhr,
@@ -2264,6 +2265,7 @@ class CrossSectionManager:
             'engine_key': engine_key,
             'metadata': {
                 'model': self.model_name.upper(),
+                'resolution': self.model_config.resolution if self.model_config else '',
                 'init_date': cycle['date'] if cycle else None,
                 'init_hour': cycle['hour'] if cycle else None,
                 'forecast_hour': fhr,
@@ -2357,6 +2359,7 @@ class CrossSectionManager:
             from datetime import datetime, timedelta
             meta = {
                 'model': self.model_name.upper(),
+                'resolution': self.model_config.resolution if self.model_config else '',
                 'init_date': cycle['date'] if cycle else None,
                 'init_hour': cycle['hour'] if cycle else None,
                 'forecast_hour': fhr,
@@ -10336,6 +10339,7 @@ def api_v1_data():
         valid_dt = init_dt + timedelta(hours=fhr) if init_dt else None
         result['metadata'] = {
             'model': mgr.model_name,
+            'resolution': mgr.model_config.resolution if mgr.model_config else '',
             'cycle': cycle_key,
             'fhr': fhr,
             'valid_time': valid_dt.strftime('%Y-%m-%dT%H:%MZ') if valid_dt else None,
