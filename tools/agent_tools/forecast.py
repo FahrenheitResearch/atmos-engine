@@ -291,7 +291,7 @@ class ForecastResult:
 # ============================================================================
 
 def get_latest_cycle(model: str = "hrrr",
-                     base_url: str = "http://localhost:5565") -> str:
+                     base_url: str = "http://127.0.0.1:5565") -> str:
     """Return the latest available cycle key from the dashboard.
 
     Queries the /api/v1/cycles endpoint and returns the newest cycle
@@ -492,7 +492,7 @@ class ForecastGenerator:
         base_url: Dashboard API base URL.  Defaults to localhost:5565.
     """
 
-    def __init__(self, base_url: str = "http://localhost:5565", model: str = "hrrr"):
+    def __init__(self, base_url: str = "http://127.0.0.1:5565", model: str = "hrrr"):
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.cs = CrossSectionTool(base_url=self.base_url, model=model)
@@ -1562,7 +1562,7 @@ class AgentWorkflow:
         base_url: Dashboard API base URL.
     """
 
-    def __init__(self, base_url: str = "http://localhost:5565", model: str = "hrrr"):
+    def __init__(self, base_url: str = "http://127.0.0.1:5565", model: str = "hrrr"):
         self.base_url = base_url
         self.model = model
         self.gen = ForecastGenerator(base_url=base_url, model=model)

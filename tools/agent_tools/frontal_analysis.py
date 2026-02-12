@@ -379,7 +379,7 @@ def detect_wind_shifts(
     cycle: str = "latest",
     fhr_range: Optional[tuple] = None,
     fhr_step: int = 1,
-    base_url: str = "http://localhost:5565",
+    base_url: str = "http://127.0.0.1:5565",
 ) -> dict:
     """Detect significant wind direction shifts at a location over time.
 
@@ -395,7 +395,7 @@ def detect_wind_shifts(
         fhr_range: Tuple of (min_fhr, max_fhr). Default: full range.
         fhr_step: Step between forecast hours to sample. Default: 1.
             Use 3 for faster scans, 1 for precise timing.
-        base_url: Dashboard URL. Default: "http://localhost:5565".
+        base_url: Dashboard URL. Default: "http://127.0.0.1:5565".
 
     Returns:
         Dict with keys:
@@ -563,7 +563,7 @@ def analyze_frontal_impact_on_fires(
     fire_bearing: Optional[float] = None,
     model: str = "hrrr",
     cycle: str = "latest",
-    base_url: str = "http://localhost:5565",
+    base_url: str = "http://127.0.0.1:5565",
 ) -> dict:
     """Analyze how a detected wind shift will affect an active fire.
 
@@ -577,7 +577,7 @@ def analyze_frontal_impact_on_fires(
             If None, inferred from current wind direction.
         model: Model name. Default: "hrrr".
         cycle: Cycle key or "latest". Default: "latest".
-        base_url: Dashboard URL. Default: "http://localhost:5565".
+        base_url: Dashboard URL. Default: "http://127.0.0.1:5565".
 
     Returns:
         Dict with current_spread, post_shift_spread, impact assessment,
@@ -975,7 +975,7 @@ def classify_overnight_conditions(
     lon: float,
     model: str = "hrrr",
     cycle: str = "latest",
-    base_url: str = "http://localhost:5565",
+    base_url: str = "http://127.0.0.1:5565",
 ) -> dict:
     """Classify what actually happens overnight instead of blindly saying "recovery."
 
@@ -990,7 +990,7 @@ def classify_overnight_conditions(
         lon: Longitude.
         model: Model name. Default: "hrrr".
         cycle: Cycle key or "latest". Default: "latest".
-        base_url: Dashboard URL. Default: "http://localhost:5565".
+        base_url: Dashboard URL. Default: "http://127.0.0.1:5565".
 
     Returns:
         Dict with classification, actual conditions, and plain-English assessment.

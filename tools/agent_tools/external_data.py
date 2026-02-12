@@ -774,7 +774,7 @@ def get_point_surface_conditions(
     model: str = "hrrr",
     cycle: str = "latest",
     fhr: int = 0,
-    base_url: str = "http://localhost:5565",
+    base_url: str = "http://127.0.0.1:5565",
 ) -> dict:
     """Extract HRRR/GFS/RRFS model surface-level data for a specific lat/lon point.
 
@@ -791,7 +791,7 @@ def get_point_surface_conditions(
         model: Model name ("hrrr", "gfs", "rrfs"). Default: "hrrr".
         cycle: Cycle key (e.g. "20260209_06z") or "latest". Default: "latest".
         fhr: Forecast hour. Default: 0.
-        base_url: Dashboard URL. Default: "http://localhost:5565".
+        base_url: Dashboard URL. Default: "http://127.0.0.1:5565".
 
     Returns:
         Dict with surface temperature, RH, wind, dewpoint, VPD, and metadata.
@@ -930,7 +930,7 @@ def get_model_obs_comparison(
     model: str = "hrrr",
     cycle: str = "latest",
     fhr: int = 0,
-    base_url: str = "http://localhost:5565",
+    base_url: str = "http://127.0.0.1:5565",
 ) -> dict:
     """Compare model surface conditions with actual METAR observations.
 
@@ -952,7 +952,7 @@ def get_model_obs_comparison(
         model: Model name. Default: "hrrr".
         cycle: Cycle key or "latest". Default: "latest".
         fhr: Forecast hour. Default: 0.
-        base_url: Dashboard URL. Default: "http://localhost:5565".
+        base_url: Dashboard URL. Default: "http://127.0.0.1:5565".
 
     Returns:
         Dict with keys: model, observed, differences, assessment.

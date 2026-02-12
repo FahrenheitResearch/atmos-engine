@@ -35,9 +35,21 @@ GRIB_WORKERS = 8
 PID_FILE = os.path.join(os.environ.get("TEMP", r"C:\Users\drew\AppData\Local\Temp"), "wxsection_dashboard.pid")
 LOG_FILE = os.path.join(os.environ.get("TEMP", r"C:\Users\drew\AppData\Local\Temp"), "wxsection_dashboard.log")
 
+def _get_user_env(name):
+    """Get env var, falling back to Windows User registry (for vars set via SetEnvironmentVariable)."""
+    val = os.environ.get(name, "")
+    if not val and sys.platform == "win32":
+        try:
+            import winreg
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment") as key:
+                val, _ = winreg.QueryValueEx(key, name)
+        except (OSError, FileNotFoundError):
+            pass
+    return val
+
 ENV_VARS = {
     "XSECT_GRIB_BACKEND": "auto",
-    "MAPBOX_TOKEN": os.environ.get("MAPBOX_TOKEN", ""),
+    "MAPBOX_TOKEN": _get_user_env("MAPBOX_TOKEN"),
     "XSECT_CACHE_DIR": r"C:\Users\drew\hrrr-maps\cache\xsect",
     "XSECT_OUTPUTS_DIR": r"C:\Users\drew\hrrr-maps\outputs",
     "XSECT_ARCHIVE_DIR": r"E:\hrrr-archive,F:\hrrr-archive,H:\hrrr-archive",

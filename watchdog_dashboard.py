@@ -18,7 +18,7 @@ from datetime import datetime
 from urllib.request import urlopen, Request
 from urllib.error import URLError
 
-HEALTH_URL = "http://localhost:5565/api/v1/status"
+HEALTH_URL = "http://127.0.0.1:5565/api/v1/status"
 CHECK_INTERVAL = 30  # seconds between health checks
 RESTART_COOLDOWN = 60  # minimum seconds between restart attempts
 RESTART_SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "restart_dashboard.py")

@@ -57,8 +57,7 @@ Logs: `/tmp/dashboard.log`, `/tmp/auto_update.log`, `/tmp/cloudflared.log`
 | Mmap load (cached on NVMe) | <0.1s |
 | Cached preload (176 FHRs) | ~4s total |
 | Parallel prerender (19 frames) | ~4s |
-| HRRR FHR download (262MB, byte-range) | ~26s |
-| HRRR FHR download (full 1.17GB, legacy) | ~170s |
+| HRRR FHR download (519MB, wrfprs+wrfsfc) | ~80s |
 | GFS FHR download (516MB) | ~83s |
 | RRFS FHR download (795MB) | ~124s |
 
@@ -89,10 +88,10 @@ RRFS_SLOTS = 8             # --rrfs-slots: concurrent RRFS downloads (AWS, no th
 DISK_LIMIT_GB = 500        # GRIB source disk limit (auto_update)
 STATUS_FILE = '/tmp/auto_update_status.json'  # IPC to dashboard
 
-# orchestrator.py (byte-range download)
-# HRRR downloads use .idx byte-range subsetting: wrfprs 249MB (vs 383MB), wrfsfc 13MB (vs 136MB)
-# wrfnat (663MB) skipped entirely — lazy-downloaded on smoke style request
-# HTTP connection pooling via requests.Session with 10 connections/host
+# orchestrator.py (download)
+# HRRR downloads full wrfprs (~383MB) + wrfsfc (~136MB) = ~519MB per FHR
+# wrfnat (~663MB) skipped — lazy-downloaded on smoke style request
+# Downloads validated: HTTP status, content-type, size >500KB, GRIB magic bytes
 ```
 
 ## API Quick Reference
@@ -150,17 +149,16 @@ Auto-update uses slot-based concurrency (`run_download_pass_concurrent`):
 - Models download in parallel — slow RRFS can't block HRRR
 - HRRR fail-fast: if an FHR isn't published, prunes higher FHRs from same cycle
 - HRRR queue refreshes every 2s for newly published FHRs
-- **Byte-range .idx subsetting**: Downloads only needed GRIB records from wrfprs (~249MB vs 383MB) and wrfsfc (~13MB vs 136MB). Skips wrfnat (~663MB) entirely — lazy-downloaded on smoke request.
-- **Connection pooling**: `requests.Session` with HTTPAdapter pool reuses TCP+TLS connections (~2.4x faster handshakes)
+- Downloads full wrfprs (~383MB) + wrfsfc (~136MB) per HRRR FHR. Skips wrfnat (~663MB) entirely — lazy-downloaded on smoke request.
+- **Download validation**: HTTP status, content-type, file size >500KB, GRIB magic bytes. Atomic .partial→final rename.
 - Writes progress to `/tmp/auto_update_status.json` on every schedule/completion event (atomically via tmp+rename)
 - Self-restart wrapper with exponential backoff on crashes (2s → 30s max)
 
-**Per-FHR HRRR download**: 262MB in ~26s (was 1,180MB in ~170s = **78% less data, 6.5x faster**)
+**Per-FHR HRRR download**: ~519MB in ~80s (wrfprs + wrfsfc, skipping wrfnat saves 663MB/FHR)
 
 **Availability lag**: HRRR 50min, GFS 180min (3h), RRFS 0min (probe aggressively). Set in `MODEL_AVAILABILITY_LAG`.
 
 **NOMADS is the bottleneck**: ~6-7 MB/s per connection regardless of local bandwidth.
-With byte-range, effective throughput is much higher due to reduced data volume.
 
 ### Archive Downloads (dashboard `request_cycle`)
 - Triggered via `/api/request_cycle`

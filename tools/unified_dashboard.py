@@ -2203,9 +2203,6 @@ class CrossSectionManager:
                 temp_cmap=temp_cmap,
                 metadata=meta,
                 anomaly=anomaly,
-                marker=marker,
-                marker_label=marker_label,
-                markers=markers,
             )
             if png_bytes is None:
                 return None
@@ -10405,6 +10402,14 @@ def _png_to_webp(png_bytes: bytes, quality: int = 80) -> bytes:
 @app.route('/api/v1/map-overlay/frame')
 def api_v1_overlay_frame():
     """Get a single prerendered overlay frame. Cache-first, then render on-demand."""
+    try:
+        return _overlay_frame_inner()
+    except Exception as exc:
+        import traceback
+        logger.error(f"Overlay frame error: {exc}\n{traceback.format_exc()}")
+        return jsonify({'error': str(exc)}), 500
+
+def _overlay_frame_inner():
     model_name = request.args.get('model', 'hrrr')
     cycle = request.args.get('cycle', 'latest')
     fhr = int(request.args.get('fhr', 0))
@@ -10459,6 +10464,9 @@ def api_v1_overlay_frame():
             result = overlay_engine.render_png(fhr_data, field, level=int(level) if level else None, opacity=1.0)
     except Exception as exc:
         return jsonify({'error': str(exc)}), 500
+
+    if result is None:
+        return jsonify({'error': f'Surface fields not available for {cycle_key} F{fhr:02d} (cache may need re-extraction)'}), 404
 
     # Convert PNG → WebP for ~70-80% size reduction
     webp_data = _png_to_webp(result.data)

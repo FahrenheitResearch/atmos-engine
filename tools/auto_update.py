@@ -48,17 +48,20 @@ STATUS_FILE = Path(tempfile.gettempdir()) / "auto_update_status.json"
 SYNOPTIC_HOURS = {0, 6, 12, 18}
 
 # Per-model: which GRIB file patterns confirm a complete FHR download
+# NOTE: wrfnat excluded from HRRR — only needed for smoke style, lazy-downloaded on demand
 MODEL_REQUIRED_PATTERNS = {
-    'hrrr': ['*wrfprs*.grib2', '*wrfsfc*.grib2', '*wrfnat*.grib2'],
+    'hrrr': ['*wrfprs*.grib2', '*wrfsfc*.grib2'],
     'gfs':  ['*pgrb2.0p25*'],
     'rrfs': ['*prslev*.grib2'],
 }
 
 # Per-model: which file_types to request from the orchestrator
+# NOTE: wrfnat (native) excluded from HRRR — saves ~663MB/FHR (56% reduction)
+# Smoke style lazy-downloads wrfnat on first request via dashboard
 MODEL_FILE_TYPES = {
-    'hrrr': ['pressure', 'surface', 'native'],  # wrfprs, wrfsfc, wrfnat
-    'gfs':  ['pressure'],                        # pgrb2.0p25 (has surface data in it)
-    'rrfs': ['pressure'],                        # prslev (has surface data in it)
+    'hrrr': ['pressure', 'surface'],  # wrfprs (~383MB) + wrfsfc (~136MB) = ~519MB vs 1.18GB
+    'gfs':  ['pressure'],             # pgrb2.0p25 (has surface data in it)
+    'rrfs': ['pressure'],             # prslev (has surface data in it)
 }
 
 # Per-model: which FHRs to download
@@ -155,12 +158,23 @@ def get_downloaded_fhrs(model, date_str, hour, max_fhr=None):
 
     fhrs_to_check = get_model_fhrs(model, max_fhr)
     downloaded = []
+    min_grib_size = 500_000  # 500KB — valid GRIBs are always >1MB
     for fhr in fhrs_to_check:
         fhr_dir = run_dir / f"F{fhr:02d}"
         if not fhr_dir.exists():
             continue
-        # All required patterns must have at least one match
-        if all(list(fhr_dir.glob(p)) for p in patterns):
+        # All required patterns must have at least one match AND files must be large enough
+        all_ok = True
+        for p in patterns:
+            matches = list(fhr_dir.glob(p))
+            if not matches:
+                all_ok = False
+                break
+            # Check that all matched files are above minimum size
+            if any(f.stat().st_size < min_grib_size for f in matches):
+                all_ok = False
+                break
+        if all_ok:
             downloaded.append(fhr)
     return downloaded
 
@@ -228,31 +242,58 @@ def get_pending_work(model, max_hours=None):
     if max_hours is None:
         max_hours = MODEL_DEFAULT_MAX_FHR.get(model, 18)
 
-    # HRRR: 2 latest cycles (current + previous for base FHRs)
-    # GFS/RRFS: only latest cycle — no handoff
-    n_cycles = 2 if model == 'hrrr' else 1
+    # HRRR: 2 cycles (current + previous for base FHRs)
+    # GFS: 2 cycles (runs every 6h, 180min lag already covers availability)
+    # RRFS: 4 cycles — lag=0 means aggressive probing, but RRFS takes ~120min
+    #   to publish. At 4 hourly cycles we always reach back far enough to find
+    #   one that's actually available while still probing the newest immediately.
+    if model == 'rrfs':
+        n_cycles = 4
+    elif model == 'hrrr':
+        n_cycles = 2
+    else:
+        n_cycles = 2
     cycles = get_latest_cycles(model, count=n_cycles)
     if not cycles:
         return []
 
-    work = []
+    # Build per-cycle needed lists
+    per_cycle = []  # list of [(date_str, hour, fhr), ...]
     for date_str, hour in cycles:
         target_fhrs = get_model_fhrs(model, max_fhr=max_hours)
         downloaded = set(get_downloaded_fhrs(model, date_str, hour, max_fhr=max_hours))
-        needed = [f for f in target_fhrs if f not in downloaded]
-        for fhr in needed:
-            work.append((date_str, hour, fhr))
+        needed = [(date_str, hour, f) for f in target_fhrs if f not in downloaded]
+        if needed:
+            per_cycle.append(needed)
+
+    # Probe-then-focus ordering: interleave only F00 across cycles so parallel
+    # slots probe different cycles simultaneously (fail-fast finds available ones
+    # in ~1s). After probing, focus all slots on the newest available cycle first.
+    # Example: [02z-F00, 01z-F00, 00z-F00, 23z-F00, 01z-F01..F18, 00z-F01..F18, 23z-F01..F18]
+    # When 02z-F00 fails → prunes all 02z → both slots focus on 01z until done.
+    work = []
+    # Phase 1: probe — one F00 per cycle for parallel availability detection
+    for cycle_items in per_cycle:
+        if cycle_items:
+            work.append(cycle_items[0])
+    # Phase 2: focus — remaining FHRs grouped by cycle (newest first)
+    for cycle_items in per_cycle:
+        work.extend(cycle_items[1:])
 
     # Extended HRRR: F19-F48 for latest synoptic cycle (lower priority, appended after base)
     if model == 'hrrr':
         syn = get_latest_synoptic_cycle()
         if syn:
             syn_date, syn_hour = syn
-            existing = set(get_downloaded_fhrs(model, syn_date, syn_hour, max_fhr=48))
-            # Deduplicate: only add FHRs not already in work list
+            # Check extended FHRs directly on disk (get_downloaded_fhrs only knows
+            # about MODEL_FORECAST_HOURS which caps at F18 for HRRR base range)
+            run_dir = get_base_dir(model) / syn_date / f"{syn_hour:02d}z"
+            patterns = MODEL_REQUIRED_PATTERNS.get(model, ['*.grib2'])
             work_set = {(d, h, f) for d, h, f in work}
-            extended_needed = [f for f in range(19, 49) if f not in existing]
-            for fhr in extended_needed:
+            for fhr in range(19, 49):
+                fhr_dir = run_dir / f"F{fhr:02d}"
+                if fhr_dir.exists() and all(list(fhr_dir.glob(p)) for p in patterns):
+                    continue  # Already downloaded
                 if (syn_date, syn_hour, fhr) not in work_set:
                     work.append((syn_date, syn_hour, fhr))
 
@@ -280,10 +321,10 @@ def download_single_fhr(model, date_str, hour, fhr):
     )
 
 
-DISK_LIMIT_GB = int(os.environ.get('XSECT_DISK_LIMIT_GB', '100'))
+DISK_LIMIT_GB = int(os.environ.get('XSECT_DISK_LIMIT_GB', '500'))
 DISK_META_FILE = Path(__file__).parent.parent / 'data' / 'disk_meta.json'
 # Max date folders to keep per model (e.g. 2 means keep today + yesterday)
-MAX_DATE_FOLDERS = int(os.environ.get('XSECT_MAX_DATE_FOLDERS', '2'))
+MAX_DATE_FOLDERS = int(os.environ.get('XSECT_MAX_DATE_FOLDERS', '3'))
 
 def get_disk_usage_gb(model='hrrr'):
     """Get total disk usage of a model's data directory in GB."""
@@ -496,12 +537,55 @@ def run_download_pass_concurrent(work_queues, slot_limits, hrrr_max_fhr=None, re
         'rrfs': 2,
     }
     last_model_refresh = {m: 0.0 for m in slot_limits}
+    # Track consecutive all-fail refresh cycles per model. When a model's cycle
+    # isn't published yet, back off the refresh interval to avoid hammering NOMADS.
+    model_consecutive_fails = {m: 0 for m in slot_limits}
+    FAIL_BACKOFF_INTERVAL = 60  # seconds between retries when cycle isn't available
 
     # Prefer scheduling HRRR first, then others in name order.
     model_order = sorted(slot_limits.keys(), key=lambda m: (m != 'hrrr', m))
+    base_slot_limits = dict(slot_limits)  # Save original allocation
     total_workers = sum(max(0, slot_limits.get(m, 0)) for m in model_order)
     if total_workers <= 0:
         return 0
+
+    # ── HRRR-first dynamic slot rebalancing ──
+    # When HRRR has fresh work (first 6 FHRs of a new cycle), temporarily steal
+    # slots from RRFS/GFS to minimize HRRR first-arrival latency.
+    HRRR_PRIORITY_FHRS = 6  # Boost until this many FHRs are downloaded
+    hrrr_boost_active = False
+
+    def _rebalance_slots():
+        """Check if HRRR needs priority slots and adjust allocation."""
+        nonlocal hrrr_boost_active
+        hrrr_q = queues.get('hrrr')
+        if not hrrr_q:
+            if hrrr_boost_active:
+                # HRRR queue empty — restore normal slots
+                slot_limits.update(base_slot_limits)
+                hrrr_boost_active = False
+                logger.info(f"[SLOTS] HRRR queue empty — restored normal: {dict(slot_limits)}")
+            return
+
+        # Check if HRRR still has early FHRs (F00-F05) in queue
+        has_early = any(fhr < HRRR_PRIORITY_FHRS for _, _, fhr in hrrr_q)
+        if has_early and not hrrr_boost_active:
+            # Steal slots from RRFS/GFS for HRRR
+            stolen = 0
+            for donor in ('rrfs', 'gfs'):
+                give = max(0, base_slot_limits.get(donor, 0) - 1)  # Keep at least 1
+                if give > 0:
+                    slot_limits[donor] = base_slot_limits[donor] - give
+                    stolen += give
+            if stolen > 0:
+                slot_limits['hrrr'] = base_slot_limits.get('hrrr', 4) + stolen
+                hrrr_boost_active = True
+                logger.info(f"[SLOTS] HRRR priority boost! {dict(slot_limits)}")
+        elif not has_early and hrrr_boost_active:
+            # Early FHRs done — restore normal allocation
+            slot_limits.update(base_slot_limits)
+            hrrr_boost_active = False
+            logger.info(f"[SLOTS] HRRR early FHRs done — restored: {dict(slot_limits)}")
 
     # --- Per-model progress tracking for status file ---
     # Track cycle, totals, completions, in-flight FHRs, and last results per model
@@ -567,7 +651,11 @@ def run_download_pass_concurrent(work_queues, slot_limits, hrrr_max_fhr=None, re
                     and active_by_model.get(refresh_model, 0) == 0
                 ):
                     now = time.time()
-                    interval = model_refresh_interval.get(refresh_model, 120)
+                    # Use longer interval when cycle isn't available yet (all recent attempts failed)
+                    if model_consecutive_fails.get(refresh_model, 0) >= 2:
+                        interval = FAIL_BACKOFF_INTERVAL
+                    else:
+                        interval = model_refresh_interval.get(refresh_model, 120)
                     if now - last_model_refresh.get(refresh_model, 0) >= interval:
                         last_model_refresh[refresh_model] = now
                         mfhr = hrrr_max_fhr if refresh_model == 'hrrr' else None
@@ -588,6 +676,7 @@ def run_download_pass_concurrent(work_queues, slot_limits, hrrr_max_fhr=None, re
                                     "last_fail": None,
                                 }
 
+            _rebalance_slots()
             for model_name in model_order:
                 _schedule(model_name, pool)
 
@@ -614,6 +703,7 @@ def run_download_pass_concurrent(work_queues, slot_limits, hrrr_max_fhr=None, re
 
                 if ok:
                     total_new += 1
+                    model_consecutive_fails[model_name] = 0  # Reset backoff on success
                     logger.info(f"[{model_name.upper()}] F{fhr:02d} complete ({dur:.1f}s)")
                     if model_name in model_status:
                         model_status[model_name]["last_ok"] = f"F{fhr:02d}"
@@ -640,6 +730,20 @@ def run_download_pass_concurrent(work_queues, slot_limits, hrrr_max_fhr=None, re
                             if model_name in model_status:
                                 model_status[model_name]['total'] -= pruned
                         _drop_if_empty(model_name)
+                    # Track consecutive all-fail rounds for backoff.
+                    # If model has no remaining queue and no in-flight, the
+                    # cycle isn't available — back off on refresh.
+                    if (
+                        model_name not in queues
+                        and active_by_model.get(model_name, 0) <= 1  # this was the last one
+                    ):
+                        model_consecutive_fails[model_name] = \
+                            model_consecutive_fails.get(model_name, 0) + 1
+                        if model_consecutive_fails[model_name] >= 2:
+                            logger.info(
+                                f"[{model_name.upper()}] Cycle not available — "
+                                f"backing off refresh to {FAIL_BACKOFF_INTERVAL}s"
+                            )
 
             _update_in_flight()
             _flush_status()
@@ -660,12 +764,12 @@ def main():
     parser.add_argument("--max-hours", type=int, default=None,
                         help="Max forecast hours for HRRR (default: per-model)")
     parser.add_argument("--no-cleanup", action="store_true", help="Don't clean up old data")
-    parser.add_argument("--hrrr-slots", type=int, default=3,
-                        help="Concurrent HRRR FHR downloads (default: 3)")
-    parser.add_argument("--gfs-slots", type=int, default=1,
-                        help="Concurrent GFS FHR downloads (default: 1)")
-    parser.add_argument("--rrfs-slots", type=int, default=1,
-                        help="Concurrent RRFS FHR downloads (default: 1)")
+    parser.add_argument("--hrrr-slots", type=int, default=4,
+                        help="Concurrent HRRR FHR downloads (default: 4)")
+    parser.add_argument("--gfs-slots", type=int, default=2,
+                        help="Concurrent GFS FHR downloads (default: 2)")
+    parser.add_argument("--rrfs-slots", type=int, default=8,
+                        help="Concurrent RRFS FHR downloads (default: 2)")
     parser.add_argument("--idle-sleep-seconds", type=int, default=2,
                         help="Idle sleep when up-to-date (default: 2)")
     parser.add_argument("--between-pass-seconds", type=int, default=2,
@@ -777,4 +881,32 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # Self-restart wrapper: if main() crashes for any reason, restart immediately.
+    # This ensures auto_update never stays down — critical for being first to
+    # download new model runs.
+    MAX_RESTART_DELAY = 30  # seconds, cap for exponential backoff
+    restart_count = 0
+    while True:
+        try:
+            main()
+            break  # Clean exit (e.g., --once mode or SIGINT)
+        except KeyboardInterrupt:
+            logger.info("Interrupted by user — exiting")
+            break
+        except SystemExit:
+            break
+        except Exception:
+            restart_count += 1
+            delay = min(2 ** min(restart_count, 5), MAX_RESTART_DELAY)
+            logger.exception(
+                f"CRASH #{restart_count} — restarting in {delay}s"
+            )
+            try:
+                clear_status()
+            except Exception:
+                pass
+            time.sleep(delay)
+            # Reset the global running flag so main() loop works again
+            running = True
+            logger.info(f"=== AUTO-RESTART #{restart_count} ===")
+            continue

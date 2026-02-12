@@ -53,7 +53,7 @@ Terrain & Fuel Tools:
   - get_fire_climatology: Historical fire weather context for a station
 
 Usage:
-    python tools/mcp_server.py [--api-base http://localhost:5565]
+    python tools/mcp_server.py [--api-base http://127.0.0.1:5565]
 
 Configure in Claude Code's MCP settings (~/.claude/claude_code_config.json):
     {
@@ -61,7 +61,7 @@ Configure in Claude Code's MCP settings (~/.claude/claude_code_config.json):
         "wxsection": {
           "command": "python",
           "args": ["C:/Users/drew/hrrr-maps/tools/mcp_server.py"],
-          "env": {"WXSECTION_API_BASE": "http://localhost:5565", "GOOGLE_STREET_VIEW_KEY": "from .env"}
+          "env": {"WXSECTION_API_BASE": "http://127.0.0.1:5565", "GOOGLE_STREET_VIEW_KEY": "from .env"}
         }
       }
     }
@@ -81,7 +81,7 @@ from mcp.server.fastmcp import FastMCP
 # Add parent dir so we can import agent_tools
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-API_BASE = os.environ.get("WXSECTION_API_BASE", "http://localhost:5565")
+API_BASE = os.environ.get("WXSECTION_API_BASE", "http://127.0.0.1:5565")
 STREET_VIEW_KEY = os.environ.get("GOOGLE_STREET_VIEW_KEY", "")
 
 mcp = FastMCP(
@@ -1650,6 +1650,175 @@ def list_map_fields(model: str = "hrrr") -> str:
     """
     result = _api_get("/api/v1/map-overlay/fields", {"model": model})
     return json.dumps(result, indent=2)
+
+
+# ---------------------------------------------------------------------------
+# Oregon WFO Agent Swarm Tools (10 tools)
+# ---------------------------------------------------------------------------
+
+@mcp.tool()
+def list_oregon_zones() -> str:
+    """List all 7 Oregon WFO coverage zones with status.
+
+    Returns:
+        JSON list of zones with zone_id, name, town_count, transect_count.
+    """
+    from tools.agent_tools.data.oregon_zones import list_zones
+    from tools.agent_tools.wfo_swarm.scheduler import output_store
+
+    zones = list_zones()
+    # Attach run status to each zone
+    for z in zones:
+        status = output_store.get_status(z["zone_id"])
+        z["status"] = status.get("status", "not_run") if status else "not_run"
+        z["last_cycle"] = status.get("cycle", "") if status else ""
+    return json.dumps(zones, indent=2)
+
+
+@mcp.tool()
+def get_zone_config(zone_id: str) -> str:
+    """Get full configuration for an Oregon zone.
+
+    Args:
+        zone_id: Zone identifier (e.g. 'OR-CENTCAS', 'OR-GORGE').
+
+    Returns:
+        JSON with zone name, towns, stations, transect IDs, bounds.
+    """
+    from tools.agent_tools.data.oregon_zones import get_zone
+    z = get_zone(zone_id)
+    return json.dumps({
+        "zone_id": z.zone_id,
+        "name": z.name,
+        "description": z.description,
+        "towns": {t: list(c) for t, c in z.towns.items()},
+        "wfos": z.wfos,
+        "metar_stations": z.metar_stations,
+        "transect_ids": z.transect_ids,
+        "priority_transects": z.priority_transects,
+        "bounds": z.bounds,
+        "town_count": z.town_count,
+        "transect_count": z.transect_count,
+    }, indent=2)
+
+
+@mcp.tool()
+def get_zone_transects(zone_id: str) -> str:
+    """Get all cross-section transect presets for a zone with coordinates.
+
+    Args:
+        zone_id: Zone identifier (e.g. 'OR-CENTCAS').
+
+    Returns:
+        JSON dict of transect_id -> {start, end, label, description, length_km}.
+    """
+    from tools.agent_tools.data.oregon_transects import get_zone_transects
+    transects = get_zone_transects(zone_id)
+    return json.dumps(transects, indent=2)
+
+
+@mcp.tool()
+def get_zone_bulletin(zone_id: str) -> str:
+    """Get the latest fire weather forecast bulletin for a zone.
+
+    Args:
+        zone_id: Zone identifier (e.g. 'OR-CENTCAS').
+
+    Returns:
+        JSON bulletin with headline, risk_summary, town_forecasts, discussion.
+    """
+    from tools.agent_tools.wfo_swarm.scheduler import get_zone_bulletin as _get
+    bulletin = _get(zone_id)
+    if bulletin is None:
+        return json.dumps({"error": f"No bulletin available for {zone_id}. Run the swarm first."})
+    return json.dumps(bulletin, indent=2, default=str)
+
+
+@mcp.tool()
+def get_zone_town_forecast(zone_id: str, town: str) -> str:
+    """Get a specific town's fire weather forecast from the latest bulletin.
+
+    Args:
+        zone_id: Zone identifier (e.g. 'OR-CENTCAS').
+        town: Town name (e.g. 'Bend', 'Sisters'). Case-insensitive.
+
+    Returns:
+        JSON forecast with headline, text, risk_level, data_sources.
+    """
+    from tools.agent_tools.wfo_swarm.scheduler import get_zone_town_forecast as _get
+    forecast = _get(zone_id, town)
+    if forecast is None:
+        return json.dumps({"error": f"No forecast for '{town}' in {zone_id}."})
+    return json.dumps(forecast, indent=2, default=str)
+
+
+@mcp.tool()
+def get_zone_risk_ranking(zone_id: str) -> str:
+    """Get all towns ranked by fire risk for a zone.
+
+    Args:
+        zone_id: Zone identifier (e.g. 'OR-CENTCAS').
+
+    Returns:
+        JSON list of {town, score, level, factors} sorted by risk.
+    """
+    from tools.agent_tools.wfo_swarm.scheduler import get_zone_risk_ranking as _get
+    ranking = _get(zone_id)
+    if ranking is None:
+        return json.dumps({"error": f"No ranking available for {zone_id}."})
+    return json.dumps(ranking, indent=2, default=str)
+
+
+@mcp.tool()
+def get_zone_discussion(zone_id: str) -> str:
+    """Get the AFD-style zone meteorological discussion.
+
+    Args:
+        zone_id: Zone identifier (e.g. 'OR-CENTCAS').
+
+    Returns:
+        Plain text discussion (AFD format).
+    """
+    from tools.agent_tools.wfo_swarm.scheduler import get_zone_discussion as _get
+    discussion = _get(zone_id)
+    if discussion is None:
+        return json.dumps({"error": f"No discussion available for {zone_id}."})
+    return discussion
+
+
+@mcp.tool()
+def oregon_fire_scan() -> str:
+    """Quick fire weather scan across all 7 Oregon zones.
+
+    Returns highest risk level and top concern per zone.
+
+    Returns:
+        JSON dict of zone_id -> {headline, max_risk_level, top_concern}.
+    """
+    from tools.agent_tools.wfo_swarm.scheduler import oregon_fire_scan as _scan
+    return json.dumps(_scan(), indent=2, default=str)
+
+
+@mcp.tool()
+def oregon_state_bulletin() -> str:
+    """State-level aggregated fire weather bulletin for all Oregon zones.
+
+    Returns:
+        JSON with statewide max risk, per-zone summaries, top 20 towns.
+    """
+    from tools.agent_tools.wfo_swarm.scheduler import oregon_state_bulletin as _bulletin
+    return json.dumps(_bulletin(), indent=2, default=str)
+
+
+@mcp.tool()
+def get_swarm_status() -> str:
+    """Get the pipeline status for all Oregon zone swarms.
+
+    Returns:
+        JSON with per-zone status (running/complete/failed), last_cycle.
+    """
+    from tools.agent_tools.wfo_swarm.scheduler import get_swarm_status as _status
+    return json.dumps(_status(), indent=2, default=str)
 
 
 # ---------------------------------------------------------------------------

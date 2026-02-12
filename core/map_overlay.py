@@ -117,6 +117,10 @@ OVERLAY_FIELDS: Dict[str, FieldSpec] = {
                             'cool', -40, 50, derived_from=('t2m', 'u10m', 'v10m')),
     'heat_index': FieldSpec('heat_index', 'Heat Index', '\u00b0F', 'derived', None,
                             'YlOrRd', 70, 130, derived_from=('t2m', 'd2m')),
+    'hdw': FieldSpec('hdw', 'HDW (USFS)', '', 'derived', None,
+                     'YlOrRd', 0, 200, derived_from=('t2m', 'd2m', 'u10m', 'v10m')),
+    'hdw_paired': FieldSpec('hdw_paired', 'HDW (Paired)', '', 'derived', None,
+                            'YlOrRd', 0, 200, derived_from=('t2m', 'd2m', 'u10m', 'v10m')),
 }
 
 
@@ -157,6 +161,7 @@ class CompositeSpec:
     contours: list = None
     barbs: 'BarbSpec' = None
     level: int = None
+    hover_extra: list = None  # Extra field IDs to include in hover tooltip
 
 
 PRODUCT_PRESETS: Dict[str, CompositeSpec] = {
@@ -211,11 +216,11 @@ PRODUCT_PRESETS: Dict[str, CompositeSpec] = {
     ),
     'fire_weather': CompositeSpec(
         id='fire_weather',
-        name='Fire Weather',
-        description='Wind gust fill + RH contours + 10m wind barbs',
-        fill_field='gust', fill_cmap='plasma', fill_vmin=0, fill_vmax=80,
-        contours=[ContourSpec('rh_surface', interval=10, color='green', linewidth=0.8, label=True)],
-        barbs=BarbSpec('u10m', 'v10m', color='black'),
+        name='Fire Weather (HDW)',
+        description='Hot-Dry-Windy Index fill + 10m wind barbs',
+        fill_field='hdw', fill_cmap='YlOrRd', fill_vmin=0, fill_vmax=200,
+        barbs=BarbSpec('u10m', 'v10m', color='#333333'),
+        hover_extra=['hdw_paired', 't2m', 'rh_surface', 'wind_speed_10m'],
     ),
     'precip': CompositeSpec(
         id='precip',
@@ -374,6 +379,7 @@ class MapOverlayEngine:
         self.cache_dir = Path(cache_dir) if cache_dir else None
         self.grid = output_grid or CONUS_GRID
         self._proj_indices: Optional[np.ndarray] = None
+        self._proj_mask: Optional[np.ndarray] = None  # True = out-of-domain (too far from native grid)
         self._proj_lock = threading.Lock()
         self._is_regular_grid: Optional[bool] = None
         # For regular grids (GFS): lat/lon 1D arrays for direct indexing
@@ -407,14 +413,22 @@ class MapOverlayEngine:
             proj_path = None
             if self.cache_dir:
                 proj_path = Path(self.cache_dir) / self.model_name / '_projection_map.npy'
-                if proj_path.exists():
+                mask_path = Path(self.cache_dir) / self.model_name / '_projection_mask.npy'
+                if proj_path.exists() and mask_path.exists():
                     try:
                         self._proj_indices = np.load(proj_path)
+                        self._proj_mask = np.load(mask_path)
                         print(f"  MapOverlay [{self.model_name}]: loaded projection map from cache "
-                              f"({self._proj_indices.shape})")
+                              f"({self._proj_indices.shape}, {int(self._proj_mask.sum())} masked)")
                         return self._proj_indices
                     except Exception as e:
                         print(f"  MapOverlay [{self.model_name}]: failed to load cached projection map: {e}")
+                elif proj_path.exists():
+                    # Old cache without mask — rebuild
+                    try:
+                        proj_path.unlink()
+                    except Exception:
+                        pass
 
             # Build cKDTree from 2D lat/lon
             import time
@@ -441,22 +455,42 @@ class MapOverlayEngine:
             ox = np.cos(olat_r) * np.cos(olon_r)
             oy = np.cos(olat_r) * np.sin(olon_r)
             oz = np.sin(olat_r)
-            _, indices = tree.query(np.column_stack([ox, oy, oz]))
+            dists, indices = tree.query(np.column_stack([ox, oy, oz]))
 
             self._proj_indices = indices.astype(np.int32)
-            elapsed = time.time() - t0
-            print(f"  MapOverlay [{self.model_name}]: built projection map "
-                  f"{lat_2d.shape} -> {self.grid.shape} in {elapsed:.1f}s")
 
-            # Save to disk
+            # Build domain mask: points too far from native grid are out-of-domain.
+            # HRRR ~3km spacing ≈ 0.027° ≈ 0.00047 rad on unit sphere (Cartesian dist).
+            # Threshold at ~2.5× grid spacing to allow some edge tolerance.
+            # Cartesian distance on unit sphere for 0.07° ≈ 0.00122
+            DIST_THRESHOLD = 0.002  # ~0.11° — generous for HRRR 3km
+            self._proj_mask = dists.reshape(self.grid.shape) > DIST_THRESHOLD
+
+            elapsed = time.time() - t0
+            n_masked = int(self._proj_mask.sum())
+            print(f"  MapOverlay [{self.model_name}]: built projection map "
+                  f"{lat_2d.shape} -> {self.grid.shape} in {elapsed:.1f}s "
+                  f"({n_masked} out-of-domain pixels masked)")
+
+            # Save to disk (indices + mask)
             if proj_path:
                 try:
                     proj_path.parent.mkdir(parents=True, exist_ok=True)
                     np.save(proj_path, self._proj_indices)
+                    mask_path = proj_path.parent / '_projection_mask.npy'
+                    np.save(mask_path, self._proj_mask)
                 except Exception as e:
                     print(f"  MapOverlay: failed to cache projection map: {e}")
 
             return self._proj_indices
+
+    @staticmethod
+    def _get_field(fhr_data, name):
+        """Get a field from ForecastHourData, trying lazy surface load if needed."""
+        val = getattr(fhr_data, name, None)
+        if val is None and hasattr(fhr_data, 'load_surface_field'):
+            val = fhr_data.load_surface_field(name)
+        return val
 
     def _extract_field(self, fhr_data, field_spec: FieldSpec, level: int = None) -> Optional[np.ndarray]:
         """Extract a 2D field from ForecastHourData, handling derived fields and level selection."""
@@ -464,7 +498,7 @@ class MapOverlayEngine:
             # Derived field: compute from components
             components = []
             for comp_name in field_spec.derived_from:
-                arr = getattr(fhr_data, comp_name, None)
+                arr = self._get_field(fhr_data, comp_name)
                 if arr is None:
                     return None
                 if arr.ndim == 3 and level is not None:
@@ -502,13 +536,19 @@ class MapOverlayEngine:
                       - 0.05481717 * rh**2 + 0.00122874 * t_f**2 * rh
                       + 0.00085282 * t_f * rh**2 - 0.00000199 * t_f**2 * rh**2)
                 return np.where(t_f >= 80, hi, t_f)
+            # HDW (USFS): max(VPD) × max(wind) — separate maxima
+            if field_spec.id == 'hdw' and len(components) == 4:
+                return self._compute_hdw(fhr_data, components, paired=False)
+            # HDW (Paired): max(VPD × wind) — co-located at each level
+            if field_spec.id == 'hdw_paired' and len(components) == 4:
+                return self._compute_hdw(fhr_data, components, paired=True)
             # Fallback: 2-component wind speed
             if len(components) == 2:
                 return np.sqrt(components[0]**2 + components[1]**2)
             return None
 
         # Direct field
-        arr = getattr(fhr_data, field_spec.attr_name, None)
+        arr = self._get_field(fhr_data, field_spec.attr_name)
         if arr is None:
             return None
         arr = np.asarray(arr, dtype=np.float32)
@@ -522,6 +562,103 @@ class MapOverlayEngine:
             return None  # 3D field needs a level
 
         return arr
+
+    def _compute_hdw(self, fhr_data, surface_components, paired: bool = False) -> np.ndarray:
+        """Compute HDW in lowest ~50 hPa AGL (Srock et al.).
+
+        paired=False (default, USFS-style): max(VPD) × max(wind) — separate maxima.
+        paired=True: max(VPD × wind) — co-located maxima at each level.
+        Falls back to surface-only if 3D data isn't available.
+        """
+        t2m, d2m, u10m, v10m = surface_components
+
+        # Check for 3D pressure level data
+        plevs = getattr(fhr_data, 'pressure_levels', None)
+        t3d = getattr(fhr_data, 'temperature', None)    # (n_lev, ny, nx) K
+        td3d = getattr(fhr_data, 'dew_point', None)     # (n_lev, ny, nx) K
+        u3d = getattr(fhr_data, 'u_wind', None)          # (n_lev, ny, nx) m/s
+        v3d = getattr(fhr_data, 'v_wind', None)          # (n_lev, ny, nx) m/s
+        sp = getattr(fhr_data, 'surface_pressure', None)  # (ny, nx) hPa
+
+        has_3d = (plevs is not None and t3d is not None and td3d is not None
+                  and u3d is not None and v3d is not None and sp is not None
+                  and t3d.ndim == 3)
+
+        if not has_3d:
+            # Fallback: surface-only HDW (same for both modes)
+            t_c = t2m - 273.15
+            td_c = d2m - 273.15
+            es = 6.112 * np.exp(17.67 * t_c / (t_c + 243.5))
+            ea = 6.112 * np.exp(17.67 * td_c / (td_c + 243.5))
+            vpd = np.maximum(es - ea, 0)
+            ws = np.sqrt(u10m**2 + v10m**2)
+            return vpd * ws
+
+        DEPTH_HPA = 50.0
+        plevs = np.asarray(plevs, dtype=np.float32)
+        sp_2d = np.asarray(sp, dtype=np.float32)
+
+        # Find indices of levels that could be in the lowest 50 hPa for any point
+        min_sp = float(sp_2d.min())
+        candidate_mask = plevs >= (min_sp - DEPTH_HPA - 25)  # generous buffer
+        candidate_idx = np.where(candidate_mask)[0]
+
+        if len(candidate_idx) == 0:
+            t_c = t2m - 273.15
+            td_c = d2m - 273.15
+            es = 6.112 * np.exp(17.67 * t_c / (t_c + 243.5))
+            ea = 6.112 * np.exp(17.67 * td_c / (td_c + 243.5))
+            return np.maximum(es - ea, 0) * np.sqrt(u10m**2 + v10m**2)
+
+        # Initialize with surface values
+        t_c_sfc = np.asarray(t2m, dtype=np.float32) - 273.15
+        td_c_sfc = np.asarray(d2m, dtype=np.float32) - 273.15
+        es_sfc = 6.112 * np.exp(17.67 * t_c_sfc / (t_c_sfc + 243.5))
+        ea_sfc = 6.112 * np.exp(17.67 * td_c_sfc / (td_c_sfc + 243.5))
+        sfc_vpd = np.maximum(es_sfc - ea_sfc, 0)
+        sfc_ws = np.sqrt(np.asarray(u10m, dtype=np.float32)**2 +
+                         np.asarray(v10m, dtype=np.float32)**2)
+
+        if paired:
+            # Paired mode: track max(VPD × wind) at each level
+            max_product = sfc_vpd * sfc_ws
+        else:
+            # USFS mode: track separate maxima
+            max_vpd = sfc_vpd.copy()
+            max_ws = sfc_ws.copy()
+
+        # Scan candidate pressure levels
+        for li in candidate_idx:
+            plev = plevs[li]
+            # Mask: this level is below surface AND within 50 hPa of surface
+            valid = (plev <= sp_2d) & (plev >= sp_2d - DEPTH_HPA)
+
+            if not valid.any():
+                continue
+
+            t_lev = np.asarray(t3d[li], dtype=np.float32)
+            td_lev = np.asarray(td3d[li], dtype=np.float32)
+            u_lev = np.asarray(u3d[li], dtype=np.float32)
+            v_lev = np.asarray(v3d[li], dtype=np.float32)
+
+            t_c = t_lev - 273.15
+            td_c = td_lev - 273.15
+            es = 6.112 * np.exp(17.67 * t_c / (t_c + 243.5))
+            ea = 6.112 * np.exp(17.67 * td_c / (td_c + 243.5))
+            vpd_lev = np.maximum(es - ea, 0)
+            ws_lev = np.sqrt(u_lev**2 + v_lev**2)
+
+            if paired:
+                product_lev = vpd_lev * ws_lev
+                max_product = np.where(valid & (product_lev > max_product), product_lev, max_product)
+            else:
+                max_vpd = np.where(valid & (vpd_lev > max_vpd), vpd_lev, max_vpd)
+                max_ws = np.where(valid & (ws_lev > max_ws), ws_lev, max_ws)
+
+        if paired:
+            return max_product
+        else:
+            return max_vpd * max_ws
 
     def _level_index(self, fhr_data, level_hpa: int) -> Optional[int]:
         """Find the index of a pressure level in the data."""
@@ -556,6 +693,10 @@ class MapOverlayEngine:
         flat = field_2d.ravel()
         output = flat[indices].reshape(out_shape).astype(np.float32)
 
+        # Mask out-of-domain pixels (beyond native grid boundary)
+        if self._proj_mask is not None:
+            output[self._proj_mask] = np.nan
+
         bounds = {
             'south': self.grid.south, 'north': self.grid.north,
             'west': self.grid.west, 'east': self.grid.east,
@@ -568,13 +709,21 @@ class MapOverlayEngine:
 
     def _reproject_regular(self, field_2d: np.ndarray,
                            bbox: dict = None) -> Tuple[np.ndarray, dict]:
-        """For regular grids (GFS): subset directly by lat/lon index."""
+        """For regular grids (GFS): subset by lat/lon index, then bilinear
+        interpolation up to CONUS_GRID resolution for smooth rendering.
+
+        Without upscaling, GFS 0.25° produces a tiny ~129×301 pixel image
+        that looks blocky when stretched across CONUS, with jagged contours
+        and far too few wind barbs.
+        """
+        from scipy.ndimage import zoom as _ndimage_zoom
+
         lat_1d = self._reg_lat_1d
         lon_1d = self._reg_lon_1d
 
-        # Default: full domain
-        b = bbox or {'south': float(lat_1d.min()), 'north': float(lat_1d.max()),
-                     'west': float(lon_1d.min()), 'east': float(lon_1d.max())}
+        # Default: match CONUS_GRID bounds so the image aligns with the client overlay
+        b = bbox or {'south': self.grid.south, 'north': self.grid.north,
+                     'west': self.grid.west, 'east': self.grid.east}
 
         lat_mask = (lat_1d >= b['south']) & (lat_1d <= b['north'])
         lon_mask = (lon_1d >= b['west']) & (lon_1d <= b['east'])
@@ -600,6 +749,28 @@ class MapOverlayEngine:
             'south': float(actual_lats[0]), 'north': float(actual_lats[-1]),
             'west': float(lon_1d[lon_sl][0]), 'east': float(lon_1d[lon_sl][-1]),
         }
+
+        # Bilinear upscale to CONUS_GRID resolution (0.03°) if native grid
+        # is coarser. This makes GFS overlays smooth and ensures barb/contour
+        # density matches HRRR.
+        target_ny = max(1, round((b['north'] - b['south']) / self.grid.dlat))
+        target_nx = max(1, round((b['east'] - b['west']) / self.grid.dlon))
+
+        src_ny, src_nx = output.shape
+        if src_ny < target_ny or src_nx < target_nx:
+            zy = target_ny / src_ny
+            zx = target_nx / src_nx
+            nan_mask = ~np.isfinite(output)
+            if nan_mask.any():
+                # Fill NaN before zoom (bilinear propagates NaN), re-mask after
+                filled = output.copy()
+                filled[nan_mask] = 0
+                output = _ndimage_zoom(filled, (zy, zx), order=1).astype(np.float32)
+                mask_z = _ndimage_zoom(nan_mask.astype(np.float32), (zy, zx), order=0) > 0.5
+                output[mask_z] = np.nan
+            else:
+                output = _ndimage_zoom(output, (zy, zx), order=1).astype(np.float32)
+
         return output, bounds
 
     def _crop_to_bbox(self, output: np.ndarray, bounds: dict,
@@ -749,7 +920,7 @@ class MapOverlayEngine:
 
     def _extract_raw_field(self, fhr_data, attr_name: str, level: int = None) -> Optional[np.ndarray]:
         """Extract a raw field by attribute name (no transforms). Used for contour/barb data."""
-        arr = getattr(fhr_data, attr_name, None)
+        arr = self._get_field(fhr_data, attr_name)
         if arr is None:
             return None
         arr = np.asarray(arr, dtype=np.float32)
@@ -946,7 +1117,7 @@ class MapOverlayEngine:
         for fid, spec in OVERLAY_FIELDS.items():
             available = True
             if fhr_data is not None and spec.derived_from is None and spec.attr_name:
-                available = getattr(fhr_data, spec.attr_name, None) is not None
+                available = self._get_field(fhr_data, spec.attr_name) is not None
 
             result.append({
                 'id': fid,

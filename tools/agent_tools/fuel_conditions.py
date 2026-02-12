@@ -1091,7 +1091,7 @@ def assess_fuel_conditions(
     lat: float,
     lon: float,
     station_id: Optional[str] = None,
-    base_url: str = "http://localhost:5565",
+    base_url: str = "http://127.0.0.1:5565",
     days_back: int = 7,
 ) -> dict:
     """Full fuel condition assessment for a lat/lon point.

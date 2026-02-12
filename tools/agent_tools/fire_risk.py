@@ -460,7 +460,7 @@ class FireRiskAnalyzer:
             extended-range forecasts (F00-F384).
     """
 
-    def __init__(self, base_url: str = "http://localhost:5565", model: str = "hrrr"):
+    def __init__(self, base_url: str = "http://127.0.0.1:5565", model: str = "hrrr"):
         self.base_url = base_url
         self.model = model
         self.cs = CrossSectionTool(base_url=base_url, model=model)

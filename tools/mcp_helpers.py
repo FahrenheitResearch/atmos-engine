@@ -11,7 +11,7 @@ from urllib.request import urlopen, Request
 from urllib.error import URLError, HTTPError
 from urllib.parse import urlencode
 
-API_BASE = os.environ.get("WXSECTION_API_BASE", "http://localhost:5565")
+API_BASE = os.environ.get("WXSECTION_API_BASE", "http://127.0.0.1:5565")
 USER_AGENT = "wxsection-mcp/1.0"
 
 

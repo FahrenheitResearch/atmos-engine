@@ -75,6 +75,57 @@ TOWN_COORDS = {
     ("paradise", "ca"): (39.76, -121.62),
     ("malibu", "ca"): (34.03, -118.68),
     ("santa rosa", "ca"): (38.44, -122.71),
+    # Oregon — Columbia Gorge / North Central
+    ("hood river", "or"): (45.7054, -121.5215),
+    ("the dalles", "or"): (45.5946, -121.1787),
+    ("mosier", "or"): (45.6837, -121.3997),
+    ("maupin", "or"): (45.1754, -121.0795),
+    ("dufur", "or"): (45.4571, -121.1292),
+    ("grass valley", "or"): (45.3054, -120.7534),
+    # Oregon — Central Oregon Cascades
+    ("bend", "or"): (44.0582, -121.3153),
+    ("sisters", "or"): (44.2907, -121.5493),
+    ("camp sherman", "or"): (44.4640, -121.6510),
+    ("la pine", "or"): (43.6804, -121.5036),
+    ("sunriver", "or"): (43.8840, -121.4350),
+    ("redmond", "or"): (44.2726, -121.1739),
+    # Oregon — Cascade Crest Corridor
+    ("detroit", "or"): (44.7352, -122.1531),
+    ("gates", "or"): (44.7502, -122.4069),
+    ("blue river", "or"): (44.1626, -122.3398),
+    ("oakridge", "or"): (43.7465, -122.4610),
+    ("mckenzie bridge", "or"): (44.1826, -122.1260),
+    ("vida", "or"): (44.1196, -122.5136),
+    # Oregon — Southern Oregon / Rogue Valley
+    ("medford", "or"): (42.3265, -122.8756),
+    ("ashland", "or"): (42.1946, -122.7095),
+    ("talent", "or"): (42.2457, -122.7878),
+    ("phoenix", "or"): (42.2751, -122.8189),
+    ("grants pass", "or"): (42.4390, -123.3284),
+    ("jacksonville", "or"): (42.3134, -122.9668),
+    # Oregon — Klamath Basin / High Desert
+    ("klamath falls", "or"): (42.2249, -121.7817),
+    ("lakeview", "or"): (42.1888, -120.3455),
+    ("chiloquin", "or"): (42.5779, -121.8667),
+    ("bonanza", "or"): (42.1962, -121.4077),
+    ("bly", "or"): (42.3971, -120.9977),
+    ("paisley", "or"): (42.6912, -120.5427),
+    # Oregon — NE Oregon Blue Mountains
+    ("pendleton", "or"): (45.6721, -118.7886),
+    ("la grande", "or"): (45.3246, -118.0878),
+    ("baker city", "or"): (44.7749, -117.8344),
+    ("enterprise", "or"): (45.4268, -117.2788),
+    ("joseph", "or"): (45.3543, -117.2296),
+    ("john day", "or"): (44.4160, -118.9530),
+    ("canyon city", "or"): (44.3907, -118.9498),
+    ("prairie city", "or"): (44.4571, -118.7124),
+    # Oregon — Coast Range / Willamette Valley Interface
+    ("sweet home", "or"): (44.3968, -122.7351),
+    ("roseburg", "or"): (43.2165, -123.3417),
+    ("florence", "or"): (43.9826, -124.0998),
+    ("cottage grove", "or"): (43.7976, -123.0595),
+    ("drain", "or"): (43.6590, -123.3184),
+    ("myrtle creek", "or"): (42.9957, -123.2917),
 }
 
 # State abbreviation to full name mapping for drought API
@@ -450,7 +501,7 @@ def investigate_location(
     lat: float,
     lon: float,
     name: Optional[str] = None,
-    base_url: str = "http://localhost:5565",
+    base_url: str = "http://127.0.0.1:5565",
 ) -> dict:
     """Comprehensive fire weather investigation for a specific location.
 
@@ -585,7 +636,7 @@ def investigate_location(
 def investigate_town(
     town_name: str,
     state: str,
-    base_url: str = "http://localhost:5565",
+    base_url: str = "http://127.0.0.1:5565",
 ) -> dict:
     """Investigate fire weather conditions for a named town.
 
@@ -659,7 +710,7 @@ def _geocode_nws(town_name: str, state: str) -> tuple:
 
 def batch_investigate(
     locations: list,
-    base_url: str = "http://localhost:5565",
+    base_url: str = "http://127.0.0.1:5565",
 ) -> list[dict]:
     """Investigate multiple locations sequentially.
 

@@ -304,7 +304,7 @@ def fire_report_checklist(
     lat: float,
     lon: float,
     city_name: Optional[str] = None,
-    base_url: str = "http://localhost:5565",
+    base_url: str = "http://127.0.0.1:5565",
 ) -> dict:
     """Return the mandatory verification checklist for a fire weather report.
 
@@ -629,7 +629,7 @@ def validate_report_claims(
     claims: list[dict],
     lat: float,
     lon: float,
-    base_url: str = "http://localhost:5565",
+    base_url: str = "http://127.0.0.1:5565",
 ) -> dict:
     """Validate a list of specific claims from a fire weather report.
 

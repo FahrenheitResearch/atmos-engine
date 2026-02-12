@@ -2,7 +2,7 @@
 =======================================================
 
 Comprehensive terrain, evacuation, fire behavior, infrastructure, and demographic
-data for 47 fire-vulnerable cities across Oregon, Washington, Idaho, and Montana.
+data for 76 fire-vulnerable cities across Oregon, Washington, Idaho, and Montana.
 Profiles derived from CWPP documents, InciWeb records, NWCG incident reports,
 state forestry data, and post-fire assessments.
 
@@ -13,22 +13,51 @@ Usage:
         PNW_CLIMATOLOGY,
     )
 
-Cities covered (47 entries across 4 states):
-    OREGON (14 cities):
+Cities covered (76 entries across 4 states):
+    OREGON (43 cities):
+        Baker City
         Bend
         Blue River
+        Bly
+        Bonanza
         Camp Sherman
+        Canyon City
+        Chiloquin
+        Cottage Grove
         Detroit
+        Drain
+        Dufur
+        Enterprise
+        Florence
         Gates
+        Grants Pass
+        Grass Valley
+        Hood River
+        Jacksonville
+        John Day
+        Joseph
         Klamath Falls
+        La Grande
         La Pine
+        Lakeview
+        Maupin
+        McKenzie Bridge
         Medford Ashland
+        Mosier
+        Myrtle Creek
         Oakridge
+        Paisley
+        Pendleton
         Phoenix
+        Prairie City
+        Redmond
+        Roseburg
         Sisters
         Sunriver
+        Sweet Home
         Talent
         The Dalles
+        Vida
     WASHINGTON (12 cities):
         Chelan
         Cle Elum
@@ -1860,6 +1889,1009 @@ PNW_TERRAIN_PROFILES = {
                 "Flagstone Senior Living; Orchard View Estates. Mid-Columbia Medical Center "
                 "limited capacity. Long transport times to major trauma centers."
             ),
+        },
+    },
+
+    # =========================================================================
+    # 15. HOOD RIVER, OR — Columbia Gorge Wind Corridor Town
+    # =========================================================================
+    "hood_river_or": {
+        "center": [45.7054, -121.5215],
+        "terrain_notes": (
+            "Hood River sits on the south bank of the Columbia River at the heart of "
+            "the Columbia River Gorge. The Gorge is the only sea-level passage through "
+            "the Cascade Range, creating a massive natural wind tunnel. Elevation ranges "
+            "from 60 ft at the river to 4,000+ ft on the upper valley slopes toward "
+            "Mt. Hood. The town is Oregon's premier windsurfing/kiteboarding destination "
+            "because of its persistent strong winds. During east wind events (typically "
+            "fall/winter), winds can exceed 60 mph through the Gorge, creating extreme "
+            "fire weather. The upper Hood River Valley transitions into orchards and "
+            "then dense conifer forest approaching Mt. Hood."
+        ),
+        "key_features": [
+            {"name": "Columbia River Gorge", "bearing": "E-W", "type": "river_canyon",
+             "notes": "Gap wind corridor; sustained winds 30-60 mph common during east events"},
+            {"name": "Hood River Valley", "bearing": "S", "type": "valley",
+             "notes": "Orchards transition to forest; funnels east winds toward Mt. Hood"},
+            {"name": "Mt. Hood Foothills", "bearing": "S-SW", "type": "mountain",
+             "notes": "Dense conifer forest; recreation access via OR-35"},
+        ],
+        "elevation_range_ft": [60, 4200],
+        "wui_exposure": "high",
+        "historical_fires": [
+            {"name": "Eagle Creek Fire", "year": 2017, "acres": 50000,
+             "details": "Major Gorge fire 15 miles west; closed I-84 for weeks, heavy smoke impact."},
+            {"name": "Dollar Lake Fire", "year": 2011, "acres": 6200,
+             "details": "Lightning-caused fire on Mt. Hood NF; threatened upper valley communities."},
+        ],
+        "evacuation_routes": [
+            {"route": "I-84 East", "direction": "E", "lanes": 4,
+             "bottleneck": "Gorge narrows at Mosier, rockfall zones",
+             "risk": "Gorge fires can close I-84 in both directions"},
+            {"route": "I-84 West", "direction": "W", "lanes": 4,
+             "bottleneck": "Tunnel and viaduct sections west of town",
+             "risk": "Primary Portland corridor; fire or slide closure strands town"},
+            {"route": "OR-35 South", "direction": "S", "lanes": 2,
+             "bottleneck": "Mountain highway to Mt. Hood; seasonal closures",
+             "risk": "Only southern escape; through forest fire-prone terrain"},
+        ],
+        "fire_spread_characteristics": {
+            "primary_wind_regime": "Strong westerlies in summer, extreme easterlies in fall/winter",
+            "critical_corridors": ["Gorge gap wind corridor", "Hood River Valley drainage"],
+            "rate_of_spread_potential": "Extreme in grass during Gorge wind events; 200+ chains/hr",
+            "spotting_distance": "1-2 miles in Gorge wind events",
+        },
+    },
+
+    # =========================================================================
+    # 16. MOSIER, OR — Small Gorge Community
+    # =========================================================================
+    "mosier_or": {
+        "center": [45.6837, -121.3997],
+        "terrain_notes": (
+            "Mosier is a small unincorporated community (pop ~500) between Hood River "
+            "and The Dalles in the dry eastern Columbia Gorge. Surrounded by grass and "
+            "oak savanna on steep slopes rising from the river. The Mosier Creek Fire "
+            "(2020) during Labor Day east winds forced Level 3 evacuations."
+        ),
+        "key_features": [
+            {"name": "Mosier Creek Canyon", "bearing": "S", "type": "drainage",
+             "notes": "Steep canyon with grass and oak; fire pathway into town"},
+            {"name": "Rowena Crest", "bearing": "W", "type": "cliff",
+             "notes": "Dramatic Gorge cliffs with east wind acceleration zone"},
+        ],
+        "elevation_range_ft": [100, 1500],
+        "wui_exposure": "extreme",
+        "historical_fires": [
+            {"name": "Mosier Creek Fire", "year": 2020, "acres": 200,
+             "details": "Labor Day east wind event; Level 3 evacuations for entire community."},
+        ],
+        "evacuation_routes": [
+            {"route": "I-84 East/West", "direction": "E-W", "lanes": 4,
+             "bottleneck": "Single access point from town to interstate",
+             "risk": "Grass fire can cut access road to I-84"},
+        ],
+        "fire_spread_characteristics": {
+            "primary_wind_regime": "Gorge gap winds; extreme east events",
+            "critical_corridors": ["Mosier Creek drainage", "Gorge cliffs"],
+            "rate_of_spread_potential": "Very high in grass; 200+ chains/hr",
+            "spotting_distance": "0.5-1 mile in east wind events",
+        },
+    },
+
+    # =========================================================================
+    # 17. MAUPIN, OR — Deschutes Canyon Grassland
+    # =========================================================================
+    "maupin_or": {
+        "center": [45.1754, -121.0795],
+        "terrain_notes": (
+            "Maupin (pop ~430) sits in the Deschutes River canyon surrounded by "
+            "grass and juniper rangeland. Hot, dry summers with frequent grass fires. "
+            "The Deschutes River canyon creates terrain-channeled winds. Limited fire "
+            "suppression resources in this remote area."
+        ),
+        "key_features": [
+            {"name": "Deschutes River Canyon", "bearing": "N-S through town", "type": "river_canyon",
+             "notes": "Deep canyon channels wind; rafting/recreation brings fire risk"},
+            {"name": "White River Canyon", "bearing": "W", "type": "side_canyon",
+             "notes": "Tributary canyon connecting to wheat/grasslands"},
+        ],
+        "elevation_range_ft": [1000, 2500],
+        "wui_exposure": "high",
+        "historical_fires": [
+            {"name": "Multiple grass fires", "year": 2018, "acres": 5000,
+             "details": "Recurring large grass fires in surrounding rangeland during summer."},
+        ],
+        "evacuation_routes": [
+            {"route": "US-197 North", "direction": "N", "lanes": 2,
+             "bottleneck": "Canyon road; limited passing",
+             "risk": "Grass fire can close highway corridor"},
+            {"route": "US-197 South", "direction": "S", "lanes": 2,
+             "bottleneck": "Climbs out of canyon through grassland",
+             "risk": "Same highway, grass fire risk"},
+        ],
+        "fire_spread_characteristics": {
+            "primary_wind_regime": "Canyon-channeled winds; thermal upslope afternoon",
+            "critical_corridors": ["Deschutes canyon N-S", "White River side canyon"],
+            "rate_of_spread_potential": "Extreme in grass; 300+ chains/hr in wind events",
+            "spotting_distance": "0.5-1 mile in grass",
+        },
+    },
+
+    # =========================================================================
+    # 18. DUFUR, OR — Wheat Belt / Gorge Transition
+    # =========================================================================
+    "dufur_or": {
+        "center": [45.4571, -121.1292],
+        "terrain_notes": (
+            "Dufur (pop ~600) is a small wheat-belt town south of The Dalles on the "
+            "dry side of the Cascades. Surrounded by continuous grass and wheat fields "
+            "that create fast-moving fire potential. Elevation 1,300 ft on rolling terrain."
+        ),
+        "key_features": [
+            {"name": "Tygh Ridge", "bearing": "W", "type": "ridge",
+             "notes": "Elevation break between Gorge and interior; wind acceleration"},
+        ],
+        "elevation_range_ft": [1200, 2000],
+        "wui_exposure": "moderate",
+        "historical_fires": [
+            {"name": "Dufur area grass fires", "year": 2018, "acres": 3000,
+             "details": "Recurring large grass fires in surrounding wheat and rangeland."},
+        ],
+        "evacuation_routes": [
+            {"route": "US-197 North/South", "direction": "N-S", "lanes": 2,
+             "bottleneck": "Two-lane highway through grass/wheat", "risk": "Grass fire risk"},
+        ],
+        "fire_spread_characteristics": {
+            "primary_wind_regime": "Gorge-influenced NW winds; dry continental air mass",
+            "critical_corridors": ["US-197 grass corridor", "Tygh Ridge wind acceleration"],
+            "rate_of_spread_potential": "Very high in wheat stubble; 200-400 chains/hr",
+            "spotting_distance": "0.5-1 mile",
+        },
+    },
+
+    # =========================================================================
+    # 19. REDMOND, OR — High Desert Airport Town
+    # =========================================================================
+    "redmond_or": {
+        "center": [44.2726, -121.1739],
+        "terrain_notes": (
+            "Redmond (pop ~35K) sits on the high desert east of the Cascades at 3,077 ft. "
+            "Surrounded by juniper woodland and sagebrush steppe. Less WUI exposure than "
+            "Bend but juniper fires can spread rapidly in wind events. Roberts Field airport "
+            "serves as fire tanker base for Central Oregon."
+        ),
+        "key_features": [
+            {"name": "Juniper Butte", "bearing": "E", "type": "butte",
+             "notes": "Volcanic butte; juniper fuel surrounds city on east and north"},
+            {"name": "Deschutes River Canyon (Cline Falls)", "bearing": "W", "type": "river_canyon",
+             "notes": "Deep canyon between Redmond and Bend; fire barrier/corridor"},
+        ],
+        "elevation_range_ft": [2900, 3400],
+        "wui_exposure": "moderate",
+        "historical_fires": [
+            {"name": "Juniper Hills fires", "year": 2020, "acres": 500,
+             "details": "East wind-driven juniper fire near city limits."},
+        ],
+        "evacuation_routes": [
+            {"route": "US-97 North/South", "direction": "N-S", "lanes": 4,
+             "bottleneck": "Primary corridor shared with Bend", "risk": "Juniper fire can approach highway"},
+            {"route": "US-126 East", "direction": "E", "lanes": 2,
+             "bottleneck": "Two-lane through juniper", "risk": "Open terrain east of city"},
+        ],
+        "fire_spread_characteristics": {
+            "primary_wind_regime": "SW thermal winds in summer; east winds in fall",
+            "critical_corridors": ["US-97 juniper belt", "US-126 east corridor"],
+            "rate_of_spread_potential": "Moderate to high in juniper; 50-100 chains/hr",
+            "spotting_distance": "0.25-0.5 mile",
+        },
+    },
+
+    # =========================================================================
+    # 20. MCKENZIE BRIDGE, OR — Deep Canyon Community
+    # =========================================================================
+    "mckenzie_bridge_or": {
+        "center": [44.1826, -122.1260],
+        "terrain_notes": (
+            "McKenzie Bridge is a tiny community (pop ~200) deep in the McKenzie River "
+            "canyon surrounded by Willamette National Forest. The Holiday Farm Fire (2020) "
+            "started near McKenzie Bridge and ran 30+ miles down-canyon in a single night "
+            "during east winds. One of Oregon's most fire-vulnerable communities with "
+            "essentially one road in/out (OR-126)."
+        ),
+        "key_features": [
+            {"name": "McKenzie River Canyon", "bearing": "E-W", "type": "river_canyon",
+             "notes": "Narrow canyon acts as wind tunnel during east wind events"},
+            {"name": "Clear Lake (headwaters)", "bearing": "E", "type": "lake",
+             "notes": "Ancient lava flow dammed river; old-growth forest surrounding"},
+        ],
+        "elevation_range_ft": [1400, 2200],
+        "wui_exposure": "extreme",
+        "historical_fires": [
+            {"name": "Holiday Farm Fire", "year": 2020, "acres": 173393,
+             "details": "Started near McKenzie Bridge during Labor Day east winds. Ran 30+ miles "
+                        "down canyon overnight, destroying Blue River and Vida. One of most destructive "
+                        "Oregon fires in modern history. 431 homes destroyed."},
+        ],
+        "evacuation_routes": [
+            {"route": "OR-126 West (toward Eugene)", "direction": "W", "lanes": 2,
+             "bottleneck": "Single road through canyon; fire blocked this during Holiday Farm",
+             "risk": "EXTREME — canyon fire can trap residents; no alternative route"},
+            {"route": "OR-126 East (toward Sisters)", "direction": "E", "lanes": 2,
+             "bottleneck": "Mountain pass road; seasonal closures",
+             "risk": "High — through continuous national forest"},
+        ],
+        "fire_spread_characteristics": {
+            "primary_wind_regime": "Canyon-channeled east winds during offshore events; 40-60 mph",
+            "critical_corridors": ["McKenzie River canyon (the Holiday Farm path)"],
+            "rate_of_spread_potential": "Extreme; Holiday Farm covered 30+ miles in 12 hours",
+            "spotting_distance": "1-3 miles in east wind canyon events",
+        },
+    },
+
+    # =========================================================================
+    # 21. VIDA, OR — McKenzie River Community (2020 Destroyed)
+    # =========================================================================
+    "vida_or": {
+        "center": [44.1196, -122.5136],
+        "terrain_notes": (
+            "Vida is a small community along the McKenzie River west of Blue River. "
+            "Largely destroyed by the Holiday Farm Fire in September 2020. Rebuilding "
+            "is underway but the community remains extremely vulnerable to canyon fires "
+            "driven by east winds. Dense Douglas-fir and western hemlock forest."
+        ),
+        "key_features": [
+            {"name": "McKenzie River", "bearing": "E-W", "type": "river",
+             "notes": "River corridor provides some firebreak but canyon walls channel wind"},
+        ],
+        "elevation_range_ft": [700, 1200],
+        "wui_exposure": "extreme",
+        "historical_fires": [
+            {"name": "Holiday Farm Fire", "year": 2020, "acres": 173393,
+             "details": "Vida largely destroyed; fire arrived from upcanyon during east wind event."},
+        ],
+        "evacuation_routes": [
+            {"route": "OR-126 West (toward Springfield)", "direction": "W", "lanes": 2,
+             "bottleneck": "Canyon road; only escape route west",
+             "risk": "Canyon fire can cut this road, trapping residents"},
+        ],
+        "fire_spread_characteristics": {
+            "primary_wind_regime": "East wind canyon events",
+            "critical_corridors": ["McKenzie River canyon"],
+            "rate_of_spread_potential": "Extreme during east wind events",
+            "spotting_distance": "1-2 miles in canyon",
+        },
+    },
+
+    # =========================================================================
+    # 22. GRANTS PASS, OR — Rogue Valley Gateway
+    # =========================================================================
+    "grants_pass_or": {
+        "center": [42.4390, -123.3284],
+        "terrain_notes": (
+            "Grants Pass (pop ~40K) is located in the Rogue Valley at the confluence "
+            "of the Rogue River and the Illinois River drainage. Surrounded by Coast "
+            "Range foothills with mixed oak-conifer forest. Hot, dry summers with "
+            "triple-digit temperatures. Less directly threatened than Medford by the "
+            "Almeda corridor but faces its own WUI challenges from the Applegate Valley "
+            "and Coast Range to the west."
+        ),
+        "key_features": [
+            {"name": "Rogue River", "bearing": "W through city", "type": "river",
+             "notes": "River corridor provides partial firebreak but also recreation fire risk"},
+            {"name": "Applegate Valley", "bearing": "SW", "type": "valley",
+             "notes": "Wine country with oak woodland fuels; fire approach from SW"},
+        ],
+        "elevation_range_ft": [900, 1800],
+        "wui_exposure": "high",
+        "historical_fires": [
+            {"name": "Chetco Bar Fire", "year": 2017, "acres": 191125,
+             "details": "Massive fire to the SW; smoke impacts significant. Kalmiopsis Wilderness."},
+        ],
+        "evacuation_routes": [
+            {"route": "I-5 North (to Roseburg)", "direction": "N", "lanes": 4,
+             "bottleneck": "Canyon narrows between Grants Pass and Wolf Creek",
+             "risk": "I-5 canyon section vulnerable to hillside fires"},
+            {"route": "I-5 South (to Medford)", "direction": "S", "lanes": 4,
+             "bottleneck": "Rogue River canyon section", "risk": "Primary corridor to Medford"},
+            {"route": "US-199 South (Redwood Hwy)", "direction": "SW", "lanes": 2,
+             "bottleneck": "Narrow mountain highway through heavy forest",
+             "risk": "Illinois Valley fires can close this route"},
+        ],
+        "fire_spread_characteristics": {
+            "primary_wind_regime": "Thermal low draws NW winds through Rogue Valley; hot and dry",
+            "critical_corridors": ["Applegate Valley approach", "I-5 canyon to north"],
+            "rate_of_spread_potential": "High in grass/oak; 100-200 chains/hr",
+            "spotting_distance": "0.5-1 mile",
+        },
+    },
+
+    # =========================================================================
+    # 23. JACKSONVILLE, OR — Historic Gold Rush Town in Oak Woodland
+    # =========================================================================
+    "jacksonville_or": {
+        "center": [42.3134, -122.9668],
+        "terrain_notes": (
+            "Jacksonville (pop ~3,000) is a historic gold rush town west of Medford "
+            "surrounded by oak woodland and mixed conifer forest in the Applegate "
+            "Valley foothills. Many historic wooden structures. WUI interface on "
+            "all sides except east."
+        ),
+        "key_features": [
+            {"name": "Applegate Valley", "bearing": "SW", "type": "valley",
+             "notes": "Fire approach corridor from SW through oak and grass"},
+        ],
+        "elevation_range_ft": [1500, 2500],
+        "wui_exposure": "high",
+        "historical_fires": [],
+        "evacuation_routes": [
+            {"route": "OR-238 East (to Medford)", "direction": "E", "lanes": 2,
+             "bottleneck": "Two-lane; primary escape to Medford", "risk": "Grass fire on valley floor"},
+        ],
+        "fire_spread_characteristics": {
+            "primary_wind_regime": "Thermal draws from Applegate Valley",
+            "critical_corridors": ["Applegate foothills approach"],
+            "rate_of_spread_potential": "High in grass/oak; 100-150 chains/hr",
+            "spotting_distance": "0.5 mile",
+        },
+    },
+
+    # =========================================================================
+    # 24. LAKEVIEW, OR — Remote High Desert
+    # =========================================================================
+    "lakeview_or": {
+        "center": [42.1888, -120.3455],
+        "terrain_notes": (
+            "Lakeview (pop ~2,300) is the most remote and isolated city in Oregon, "
+            "seat of Lake County. Sits at 4,800 ft on the high desert east of the "
+            "Cascades. Surrounded by sagebrush steppe and juniper woodland. Extremely "
+            "low humidity in summer with frequent dry lightning storms. Limited fire "
+            "suppression resources."
+        ),
+        "key_features": [
+            {"name": "Warner Mountains", "bearing": "E", "type": "mountain",
+             "notes": "Juniper and ponderosa forest; lightning-caused fires common"},
+            {"name": "Abert Rim", "bearing": "N", "type": "escarpment",
+             "notes": "2,000-ft fault scarp; largest exposed fault in North America"},
+        ],
+        "elevation_range_ft": [4700, 6000],
+        "wui_exposure": "moderate",
+        "historical_fires": [
+            {"name": "Barry Point Fire", "year": 2014, "acres": 55000,
+             "details": "Large rangeland fire in Lake County; threatened Lakeview area ranches."},
+        ],
+        "evacuation_routes": [
+            {"route": "US-395 North", "direction": "N", "lanes": 2,
+             "bottleneck": "200 miles to next significant city (Bend via Burns)",
+             "risk": "Extremely remote; help is hours away"},
+            {"route": "US-395 South (to NV)", "direction": "S", "lanes": 2,
+             "bottleneck": "Remote desert highway", "risk": "Limited services"},
+        ],
+        "fire_spread_characteristics": {
+            "primary_wind_regime": "Afternoon thermals; dry thunderstorm downbursts",
+            "critical_corridors": ["Warner Mountain front", "Goose Lake basin"],
+            "rate_of_spread_potential": "High in sagebrush/grass; 100-300 chains/hr",
+            "spotting_distance": "0.5-1 mile in sagebrush",
+        },
+    },
+
+    # =========================================================================
+    # 25. CHILOQUIN, OR — Klamath Basin / Sprague River
+    # =========================================================================
+    "chiloquin_or": {
+        "center": [42.5779, -121.8667],
+        "terrain_notes": (
+            "Chiloquin (pop ~700) sits at the confluence of the Williamson and Sprague "
+            "Rivers north of Klamath Falls. Klamath Tribes headquarters. The Bootleg "
+            "Fire (2021, 413K acres) burned to the north and east. Mixed ponderosa "
+            "pine and juniper with grass understory."
+        ),
+        "key_features": [
+            {"name": "Sprague River Valley", "bearing": "E", "type": "river_valley",
+             "notes": "Bootleg Fire area; lightning-prone terrain"},
+        ],
+        "elevation_range_ft": [4200, 5000],
+        "wui_exposure": "high",
+        "historical_fires": [
+            {"name": "Bootleg Fire", "year": 2021, "acres": 413765,
+             "details": "Largest US fire of 2021; burned within miles of Chiloquin. Generated pyrocumulonimbus."},
+        ],
+        "evacuation_routes": [
+            {"route": "US-97 North/South", "direction": "N-S", "lanes": 2,
+             "bottleneck": "Two-lane highway through timber/grass",
+             "risk": "Fire can close highway to Klamath Falls and north"},
+        ],
+        "fire_spread_characteristics": {
+            "primary_wind_regime": "Afternoon thermals; dry lightning common",
+            "critical_corridors": ["Sprague River valley to Bootleg area"],
+            "rate_of_spread_potential": "High; Bootleg Fire grew 40K+ acres per day at peak",
+            "spotting_distance": "1-2 miles; Bootleg generated 40K+ ft pyrocu",
+        },
+    },
+
+    # =========================================================================
+    # 26. BONANZA, OR — High Desert Grassland
+    # =========================================================================
+    "bonanza_or": {
+        "center": [42.1962, -121.4077],
+        "terrain_notes": (
+            "Bonanza (pop ~400) is a small ranching community east of Klamath Falls "
+            "in the Langell Valley. Surrounded by grass and sagebrush with scattered "
+            "juniper. Continental climate with extreme temperature swings and very low "
+            "summer humidity."
+        ),
+        "key_features": [
+            {"name": "Langell Valley", "bearing": "surrounding", "type": "valley",
+             "notes": "Grass and sage rangeland; fast-moving fire terrain"},
+        ],
+        "elevation_range_ft": [4100, 4800],
+        "wui_exposure": "moderate",
+        "historical_fires": [],
+        "evacuation_routes": [
+            {"route": "OR-70 West (to Klamath Falls)", "direction": "W", "lanes": 2,
+             "bottleneck": "Two-lane through grass/sage", "risk": "Grass fire can close road"},
+        ],
+        "fire_spread_characteristics": {
+            "primary_wind_regime": "Afternoon thermals; occasional strong NW winds",
+            "critical_corridors": ["Langell Valley grassland"],
+            "rate_of_spread_potential": "Very high in grass; 200-400 chains/hr",
+            "spotting_distance": "0.5 mile",
+        },
+    },
+
+    # =========================================================================
+    # 27. BLY, OR — Bootleg Fire Gateway
+    # =========================================================================
+    "bly_or": {
+        "center": [42.3971, -120.9977],
+        "terrain_notes": (
+            "Bly (pop ~300) is a tiny community in the Sprague River valley, directly "
+            "in the Bootleg Fire zone. The 2021 fire started nearby. Surrounded by "
+            "ponderosa pine, juniper, and grass. Extremely remote with limited resources."
+        ),
+        "key_features": [
+            {"name": "Sycan Marsh", "bearing": "N", "type": "marsh",
+             "notes": "Large wetland that provides seasonal fire barrier"},
+        ],
+        "elevation_range_ft": [4300, 5200],
+        "wui_exposure": "high",
+        "historical_fires": [
+            {"name": "Bootleg Fire", "year": 2021, "acres": 413765,
+             "details": "Fire started near Bly; Level 3 evacuations for entire community."},
+        ],
+        "evacuation_routes": [
+            {"route": "OR-140 West", "direction": "W", "lanes": 2,
+             "bottleneck": "Remote two-lane highway", "risk": "Single route to Klamath Falls"},
+        ],
+        "fire_spread_characteristics": {
+            "primary_wind_regime": "Dry lightning; afternoon thermals in mountain terrain",
+            "critical_corridors": ["Sprague River valley (Bootleg corridor)"],
+            "rate_of_spread_potential": "Extreme; Bootleg conditions",
+            "spotting_distance": "1-3 miles with pyrocu development",
+        },
+    },
+
+    # =========================================================================
+    # 28. PAISLEY, OR — Summer Lake / Chewaucan Valley
+    # =========================================================================
+    "paisley_or": {
+        "center": [42.6912, -120.5427],
+        "terrain_notes": (
+            "Paisley (pop ~250) sits in the Chewaucan River valley near Summer Lake "
+            "in the high desert of Lake County. Surrounded by sagebrush, grass, and "
+            "juniper. Winter Ridge to the west rises 3,000+ ft. Extremely remote."
+        ),
+        "key_features": [
+            {"name": "Winter Ridge", "bearing": "W", "type": "escarpment",
+             "notes": "3,000 ft escarpment creating wind acceleration over valley"},
+            {"name": "Summer Lake", "bearing": "N", "type": "playa",
+             "notes": "Alkali playa; natural firebreak when dry"},
+        ],
+        "elevation_range_ft": [4300, 5000],
+        "wui_exposure": "moderate",
+        "historical_fires": [],
+        "evacuation_routes": [
+            {"route": "OR-31 North/South", "direction": "N-S", "lanes": 2,
+             "bottleneck": "Remote highway; 70 miles to Lakeview, 90 to La Pine",
+             "risk": "Extreme remoteness; help hours away"},
+        ],
+        "fire_spread_characteristics": {
+            "primary_wind_regime": "Downslope from Winter Ridge; dry lightning",
+            "critical_corridors": ["Chewaucan Valley grass corridor"],
+            "rate_of_spread_potential": "Very high in grass/sage",
+            "spotting_distance": "0.5 mile",
+        },
+    },
+
+    # =========================================================================
+    # 29. PENDLETON, OR — Columbia Plateau / Blue Mountains Gateway
+    # =========================================================================
+    "pendleton_or": {
+        "center": [45.6721, -118.7886],
+        "terrain_notes": (
+            "Pendleton (pop ~17K) sits in the Umatilla River valley at the northern "
+            "edge of the Blue Mountains. Wheat and rangeland surround the city. "
+            "Summer temperatures regularly exceed 100F. The Blue Mountains to the "
+            "south have extensive timber susceptible to lightning fires."
+        ),
+        "key_features": [
+            {"name": "Blue Mountains (south)", "bearing": "S", "type": "mountain_range",
+             "notes": "Timber and mixed forest; lightning fire risk"},
+            {"name": "Umatilla River Valley", "bearing": "E-W", "type": "river_valley",
+             "notes": "Wheat and grass; fast fire spread potential"},
+        ],
+        "elevation_range_ft": [1000, 2500],
+        "wui_exposure": "moderate",
+        "historical_fires": [
+            {"name": "Range fires", "year": 2020, "acres": 10000,
+             "details": "Multiple large rangeland fires during 2020 east wind event."},
+        ],
+        "evacuation_routes": [
+            {"route": "I-84 East/West", "direction": "E-W", "lanes": 4,
+             "bottleneck": "Blue Mountain passes to east (Cabbage Hill)",
+             "risk": "Grass fire can approach highway corridors"},
+            {"route": "US-395 South", "direction": "S", "lanes": 2,
+             "bottleneck": "Climbs into Blue Mountains", "risk": "Forest fire risk"},
+        ],
+        "fire_spread_characteristics": {
+            "primary_wind_regime": "NW winds through Columbia Basin; Blue Mt thermals",
+            "critical_corridors": ["Umatilla Valley grass corridor", "Blue Mountain front"],
+            "rate_of_spread_potential": "Very high in grass/wheat; 200+ chains/hr",
+            "spotting_distance": "0.5-1 mile in grass",
+        },
+    },
+
+    # =========================================================================
+    # 30. LA GRANDE, OR — Grande Ronde Valley
+    # =========================================================================
+    "la_grande_or": {
+        "center": [45.3246, -118.0878],
+        "terrain_notes": (
+            "La Grande (pop ~13K) sits in the Grande Ronde Valley surrounded by Blue "
+            "Mountains on all sides. Valley floor at 2,788 ft. Mt. Emily (6,000+ ft) "
+            "looms to the north with dense timber. Continental climate with hot, dry "
+            "summers. University town (Eastern Oregon University)."
+        ),
+        "key_features": [
+            {"name": "Mt. Emily", "bearing": "N", "type": "mountain",
+             "notes": "6,000 ft; dense timber above city; fire approach from north"},
+            {"name": "Grande Ronde River", "bearing": "through valley", "type": "river",
+             "notes": "Valley floor agriculture transitioning to forest on slopes"},
+        ],
+        "elevation_range_ft": [2700, 4000],
+        "wui_exposure": "high",
+        "historical_fires": [
+            {"name": "Elbow Creek Fire", "year": 2007, "acres": 48000,
+             "details": "Major Blue Mountain fire that threatened La Grande area communities."},
+        ],
+        "evacuation_routes": [
+            {"route": "I-84 West (Cabbage Hill)", "direction": "W", "lanes": 4,
+             "bottleneck": "Steep mountain grades; Blue Mountain pass",
+             "risk": "Forest fire on pass can close I-84"},
+            {"route": "I-84 East (toward Baker City)", "direction": "E", "lanes": 4,
+             "bottleneck": "Ladd Canyon section", "risk": "Canyon fire approach"},
+            {"route": "OR-82 East (to Wallowa)", "direction": "E", "lanes": 2,
+             "bottleneck": "Mountain highway; remote", "risk": "Forest fire risk"},
+        ],
+        "fire_spread_characteristics": {
+            "primary_wind_regime": "Valley thermal circulation; afternoon NW winds",
+            "critical_corridors": ["Mt. Emily front", "Grande Ronde River valley"],
+            "rate_of_spread_potential": "High in grass/timber interface; 50-100 chains/hr",
+            "spotting_distance": "0.5-1 mile from timber",
+        },
+    },
+
+    # =========================================================================
+    # 31. BAKER CITY, OR — Elkhorn Mountains
+    # =========================================================================
+    "baker_city_or": {
+        "center": [44.7749, -117.8344],
+        "terrain_notes": (
+            "Baker City (pop ~10K) sits in the Baker Valley at 3,450 ft between the "
+            "Elkhorn Mountains (9,000+ ft) to the west and the Wallowa-Whitman NF. "
+            "Historic gold mining town. Surrounded by grass, sage, and juniper with "
+            "conifer forest on mountain slopes. Continental climate."
+        ),
+        "key_features": [
+            {"name": "Elkhorn Mountains", "bearing": "W", "type": "mountain_range",
+             "notes": "9,000+ ft peaks with dense timber; fire risk from west"},
+        ],
+        "elevation_range_ft": [3400, 5000],
+        "wui_exposure": "moderate",
+        "historical_fires": [],
+        "evacuation_routes": [
+            {"route": "I-84 South/North", "direction": "N-S", "lanes": 4,
+             "bottleneck": "Mountain passes both directions", "risk": "Canyon and forest fire risk"},
+        ],
+        "fire_spread_characteristics": {
+            "primary_wind_regime": "Mountain valley winds; dry lightning common",
+            "critical_corridors": ["Elkhorn Mountain front", "Baker Valley grassland"],
+            "rate_of_spread_potential": "Moderate to high; grass and sage",
+            "spotting_distance": "0.5 mile",
+        },
+    },
+
+    # =========================================================================
+    # 32. ENTERPRISE, OR — Wallowa County Seat
+    # =========================================================================
+    "enterprise_or": {
+        "center": [45.4268, -117.2788],
+        "terrain_notes": (
+            "Enterprise (pop ~2,000) is the county seat of Wallowa County, gateway to "
+            "the Wallowa Mountains and Eagle Cap Wilderness. Sits at 3,757 ft in a "
+            "valley with ponderosa pine and mixed conifer approaching from all sides. "
+            "One of Oregon's most remote towns."
+        ),
+        "key_features": [
+            {"name": "Wallowa Mountains", "bearing": "S", "type": "mountain_range",
+             "notes": "Steepest mountains in Oregon; backcountry lightning fires"},
+        ],
+        "elevation_range_ft": [3700, 5000],
+        "wui_exposure": "high",
+        "historical_fires": [],
+        "evacuation_routes": [
+            {"route": "OR-82 West (to La Grande)", "direction": "W", "lanes": 2,
+             "bottleneck": "Minam Canyon; narrow mountain road",
+             "risk": "Only highway to outside world; forest fire closes it"},
+            {"route": "OR-3 North (to Lewiston, ID)", "direction": "N", "lanes": 2,
+             "bottleneck": "Remote mountain highway", "risk": "Limited alternative"},
+        ],
+        "fire_spread_characteristics": {
+            "primary_wind_regime": "Mountain valley winds; dry lightning frequent",
+            "critical_corridors": ["Wallowa Mountain front", "Minam Canyon"],
+            "rate_of_spread_potential": "Moderate in mixed forest; high in grass",
+            "spotting_distance": "0.5-1 mile",
+        },
+    },
+
+    # =========================================================================
+    # 33. JOSEPH, OR — Wallowa Lake Gateway
+    # =========================================================================
+    "joseph_or": {
+        "center": [45.3543, -117.2296],
+        "terrain_notes": (
+            "Joseph (pop ~1,100) is at the foot of Wallowa Lake and the Wallowa "
+            "Mountains. Tourist destination with art galleries and mountain recreation. "
+            "Dead-end road — the highway ends at Wallowa Lake. Dense forest surrounds "
+            "the community on three sides."
+        ),
+        "key_features": [
+            {"name": "Wallowa Lake", "bearing": "S", "type": "lake",
+             "notes": "Glacial lake; dead-end road beyond it"},
+        ],
+        "elevation_range_ft": [4100, 5000],
+        "wui_exposure": "high",
+        "historical_fires": [],
+        "evacuation_routes": [
+            {"route": "OR-82 North (to Enterprise)", "direction": "N", "lanes": 2,
+             "bottleneck": "Only route out; 6 miles to Enterprise",
+             "risk": "Dead-end community; fire between Joseph and Enterprise traps residents"},
+        ],
+        "fire_spread_characteristics": {
+            "primary_wind_regime": "Mountain drainage winds; dry lightning",
+            "critical_corridors": ["Wallowa Lake corridor (dead-end)"],
+            "rate_of_spread_potential": "Moderate in mixed forest",
+            "spotting_distance": "0.5 mile",
+        },
+    },
+
+    # =========================================================================
+    # 34. JOHN DAY, OR — Central Blue Mountains
+    # =========================================================================
+    "john_day_or": {
+        "center": [44.4160, -118.9530],
+        "terrain_notes": (
+            "John Day (pop ~1,700) sits in the John Day River valley surrounded by "
+            "Blue Mountain foothills. Juniper and ponderosa at lower elevations, mixed "
+            "conifer above. Remote — 4+ hours from any major city. Limited fire "
+            "suppression resources."
+        ),
+        "key_features": [
+            {"name": "Strawberry Mountain (9,038 ft)", "bearing": "S", "type": "peak",
+             "notes": "Highest point in Blue Mountains; wilderness area with fire risk"},
+        ],
+        "elevation_range_ft": [3000, 4500],
+        "wui_exposure": "moderate",
+        "historical_fires": [
+            {"name": "Canyon Creek Complex", "year": 2015, "acres": 110000,
+             "details": "Massive fire in Blue Mountains near John Day; largest Oregon fire of 2015."},
+        ],
+        "evacuation_routes": [
+            {"route": "US-26 East/West", "direction": "E-W", "lanes": 2,
+             "bottleneck": "Mountain highway; remote", "risk": "Fire can close in either direction"},
+            {"route": "US-395 North/South", "direction": "N-S", "lanes": 2,
+             "bottleneck": "Remote highway", "risk": "Limited alternative routes"},
+        ],
+        "fire_spread_characteristics": {
+            "primary_wind_regime": "Mountain valley thermals; dry lightning frequent",
+            "critical_corridors": ["John Day River valley", "Canyon Creek corridor"],
+            "rate_of_spread_potential": "High; Canyon Creek Complex grew rapidly",
+            "spotting_distance": "0.5-1 mile in timber",
+        },
+    },
+
+    # =========================================================================
+    # 35. SWEET HOME, OR — South Santiam Canyon Mouth
+    # =========================================================================
+    "sweet_home_or": {
+        "center": [44.3968, -122.7351],
+        "terrain_notes": (
+            "Sweet Home (pop ~10K) sits at the mouth of the South Santiam canyon where "
+            "it opens into the Willamette Valley. During east wind events, the canyon "
+            "accelerates winds from the Cascades into town. Forest surrounds the city "
+            "on the east and south. Green Peter and Foster reservoirs upstream."
+        ),
+        "key_features": [
+            {"name": "South Santiam Canyon", "bearing": "E", "type": "river_canyon",
+             "notes": "Wind acceleration corridor during east events; fire pathway into town"},
+            {"name": "Green Peter Reservoir", "bearing": "E", "type": "reservoir",
+             "notes": "Canyon narrows above reservoir; limited road access"},
+        ],
+        "elevation_range_ft": [500, 1500],
+        "wui_exposure": "high",
+        "historical_fires": [
+            {"name": "Lionshead Fire", "year": 2020, "acres": 204000,
+             "details": "Major Cascade fire during Labor Day east winds; smoke and evacuation impact."},
+        ],
+        "evacuation_routes": [
+            {"route": "US-20 West (to Albany)", "direction": "W", "lanes": 2,
+             "bottleneck": "Two-lane highway to Willamette Valley", "risk": "Primary escape route"},
+            {"route": "US-20 East (toward Santiam Pass)", "direction": "E", "lanes": 2,
+             "bottleneck": "Canyon road through continuous forest", "risk": "Forest fire risk"},
+        ],
+        "fire_spread_characteristics": {
+            "primary_wind_regime": "East wind acceleration through Santiam canyon; foehn-type warming",
+            "critical_corridors": ["South Santiam canyon mouth"],
+            "rate_of_spread_potential": "High during east wind events",
+            "spotting_distance": "0.5-1 mile",
+        },
+    },
+
+    # =========================================================================
+    # 36. ROSEBURG, OR — Umpqua Valley
+    # =========================================================================
+    "roseburg_or": {
+        "center": [43.2165, -123.3417],
+        "terrain_notes": (
+            "Roseburg (pop ~24K) sits in the Umpqua Valley, one of Oregon's drier "
+            "west-side valleys. Surrounded by mixed oak-conifer forest on surrounding "
+            "hills. Hotter and drier than the Willamette Valley due to terrain sheltering. "
+            "I-5 corridor city with timber industry heritage."
+        ),
+        "key_features": [
+            {"name": "South Umpqua River", "bearing": "through city", "type": "river",
+             "notes": "River valley floor; residential along floodplain"},
+            {"name": "Cow Creek Canyon", "bearing": "S", "type": "canyon",
+             "notes": "Canyon corridor connecting to Rogue Valley; hot air transport"},
+        ],
+        "elevation_range_ft": [400, 1500],
+        "wui_exposure": "moderate",
+        "historical_fires": [
+            {"name": "Douglas Complex", "year": 2013, "acres": 48000,
+             "details": "Multiple fires near Roseburg during lightning event."},
+        ],
+        "evacuation_routes": [
+            {"route": "I-5 North (to Eugene)", "direction": "N", "lanes": 4,
+             "bottleneck": "Hills section north of Roseburg", "risk": "Fire can approach I-5"},
+            {"route": "I-5 South (to Grants Pass)", "direction": "S", "lanes": 4,
+             "bottleneck": "Canyon Creek pass section", "risk": "Canyon fire risk"},
+        ],
+        "fire_spread_characteristics": {
+            "primary_wind_regime": "Thermal draws from Rogue Valley through Cow Creek; NW valley winds",
+            "critical_corridors": ["Cow Creek canyon", "I-5 corridor"],
+            "rate_of_spread_potential": "Moderate to high in grass/oak",
+            "spotting_distance": "0.5 mile",
+        },
+    },
+
+    # =========================================================================
+    # 37. FLORENCE, OR — Coast / Siuslaw River
+    # =========================================================================
+    "florence_or": {
+        "center": [43.9826, -124.0998],
+        "terrain_notes": (
+            "Florence (pop ~9K) sits at the mouth of the Siuslaw River on the Oregon "
+            "coast. Normally moderated by marine layer, but during east wind events the "
+            "marine layer retreats and hot, dry air from the interior flows over the "
+            "Coast Range. Shore pine and coastal forest fuels. The Tillamook Burns "
+            "(1930s-50s) demonstrate that Oregon coast forests can burn catastrophically."
+        ),
+        "key_features": [
+            {"name": "Siuslaw River", "bearing": "E", "type": "river",
+             "notes": "Corridor from interior through Coast Range to ocean"},
+            {"name": "Oregon Dunes", "bearing": "S", "type": "dunes",
+             "notes": "Sand dunes provide natural firebreak south of town"},
+        ],
+        "elevation_range_ft": [0, 500],
+        "wui_exposure": "low",
+        "historical_fires": [],
+        "evacuation_routes": [
+            {"route": "US-101 North/South", "direction": "N-S", "lanes": 2,
+             "bottleneck": "Coastal highway; bridges over rivers", "risk": "Limited capacity"},
+            {"route": "OR-126 East (to Eugene)", "direction": "E", "lanes": 2,
+             "bottleneck": "Coast Range highway through forest", "risk": "Forest fire during east wind"},
+        ],
+        "fire_spread_characteristics": {
+            "primary_wind_regime": "Normally marine; east wind events bring dry interior air",
+            "critical_corridors": ["Siuslaw River corridor (east wind path)"],
+            "rate_of_spread_potential": "Low normally; extreme during east wind events in slash/timber",
+            "spotting_distance": "0.5-1 mile in east wind events",
+        },
+    },
+
+    # =========================================================================
+    # 38. COTTAGE GROVE, OR — South Willamette / Coast Range Interface
+    # =========================================================================
+    "cottage_grove_or": {
+        "center": [43.7976, -123.0595],
+        "terrain_notes": (
+            "Cottage Grove (pop ~11K) sits at the south end of the Willamette Valley "
+            "where it narrows into the Coast Range foothills. Row River corridor to "
+            "the east. Timber industry town with mixed conifer forest surrounding on "
+            "three sides. I-5 corridor."
+        ),
+        "key_features": [
+            {"name": "Row River", "bearing": "E", "type": "river",
+             "notes": "Canyon corridor into Cascade foothills; timber land"},
+        ],
+        "elevation_range_ft": [600, 1500],
+        "wui_exposure": "moderate",
+        "historical_fires": [],
+        "evacuation_routes": [
+            {"route": "I-5 North (to Eugene)", "direction": "N", "lanes": 4,
+             "bottleneck": "20 miles to Eugene", "risk": "Good capacity"},
+            {"route": "I-5 South (to Roseburg)", "direction": "S", "lanes": 4,
+             "bottleneck": "Mountain pass section", "risk": "Forest fire risk on pass"},
+        ],
+        "fire_spread_characteristics": {
+            "primary_wind_regime": "Valley winds; east wind events affect canyon corridors",
+            "critical_corridors": ["Row River canyon", "I-5 corridor"],
+            "rate_of_spread_potential": "Moderate in timber/grass interface",
+            "spotting_distance": "0.25-0.5 mile",
+        },
+    },
+
+    # =========================================================================
+    # 39. DRAIN, OR — Umpqua Valley North
+    # =========================================================================
+    "drain_or": {
+        "center": [43.6590, -123.3184],
+        "terrain_notes": (
+            "Drain (pop ~1,200) is a small community in the Umpqua Valley between "
+            "Cottage Grove and Roseburg. Coast Range foothills with timber and grass. "
+            "I-5 corridor."
+        ),
+        "key_features": [],
+        "elevation_range_ft": [300, 1000],
+        "wui_exposure": "low",
+        "historical_fires": [],
+        "evacuation_routes": [
+            {"route": "I-5 North/South", "direction": "N-S", "lanes": 4,
+             "bottleneck": "Good access", "risk": "Low"},
+        ],
+        "fire_spread_characteristics": {
+            "primary_wind_regime": "Valley winds",
+            "critical_corridors": ["I-5 corridor margins"],
+            "rate_of_spread_potential": "Moderate in grass/brush",
+            "spotting_distance": "0.25 mile",
+        },
+    },
+
+    # =========================================================================
+    # 40. MYRTLE CREEK, OR — Southern Umpqua Valley
+    # =========================================================================
+    "myrtle_creek_or": {
+        "center": [42.9957, -123.2917],
+        "terrain_notes": (
+            "Myrtle Creek (pop ~3,500) sits in the South Umpqua Valley between "
+            "Roseburg and Canyonville. Surrounded by oak woodland and mixed conifer "
+            "on surrounding hills. Hotter than Roseburg. Fire risk from grass and "
+            "oak during summer."
+        ),
+        "key_features": [
+            {"name": "South Umpqua River", "bearing": "through town", "type": "river",
+             "notes": "Valley floor corridor"},
+        ],
+        "elevation_range_ft": [600, 1500],
+        "wui_exposure": "moderate",
+        "historical_fires": [],
+        "evacuation_routes": [
+            {"route": "I-5 North/South", "direction": "N-S", "lanes": 4,
+             "bottleneck": "Canyon narrows south of town", "risk": "Canyon fire risk"},
+        ],
+        "fire_spread_characteristics": {
+            "primary_wind_regime": "Valley thermals; Cow Creek draws hot air from south",
+            "critical_corridors": ["South Umpqua corridor", "I-5 canyon"],
+            "rate_of_spread_potential": "Moderate to high in grass/oak",
+            "spotting_distance": "0.5 mile",
+        },
+    },
+
+    # =========================================================================
+    # 41. GRASS VALLEY, OR — Sherman County Wheat Belt
+    # =========================================================================
+    "grass_valley_or": {
+        "center": [45.3054, -120.7534],
+        "terrain_notes": (
+            "Grass Valley (pop ~160) is a tiny wheat-belt community in Sherman County. "
+            "Surrounded by continuous dryland wheat and grass. No forest. Fires here "
+            "are wind-driven grass fires that spread at extreme rates. Very remote."
+        ),
+        "key_features": [],
+        "elevation_range_ft": [2000, 2800],
+        "wui_exposure": "low",
+        "historical_fires": [],
+        "evacuation_routes": [
+            {"route": "OR-97 North/South", "direction": "N-S", "lanes": 2,
+             "bottleneck": "Two-lane through wheat", "risk": "Grass fire can cross road"},
+        ],
+        "fire_spread_characteristics": {
+            "primary_wind_regime": "Strong W-NW winds; Columbia Basin influence",
+            "critical_corridors": ["Open wheat/grassland — fire can approach from any direction"],
+            "rate_of_spread_potential": "Extreme in wheat stubble; 400+ chains/hr",
+            "spotting_distance": "0.5-1 mile",
+        },
+    },
+
+    # =========================================================================
+    # 42. CANYON CITY, OR — John Day Gold Belt
+    # =========================================================================
+    "canyon_city_or": {
+        "center": [44.3907, -118.9498],
+        "terrain_notes": (
+            "Canyon City (pop ~700) is adjacent to John Day in the Blue Mountains. "
+            "Historic gold mining town at the mouth of Canyon Creek. Dense timber on "
+            "surrounding slopes. The Canyon Creek Complex (2015) burned 110,000 acres "
+            "nearby."
+        ),
+        "key_features": [
+            {"name": "Canyon Creek", "bearing": "S", "type": "drainage",
+             "notes": "Fire corridor into Blue Mountain timber"},
+        ],
+        "elevation_range_ft": [3100, 4500],
+        "wui_exposure": "moderate",
+        "historical_fires": [
+            {"name": "Canyon Creek Complex", "year": 2015, "acres": 110000,
+             "details": "Largest Oregon fire of 2015; burned in Blue Mountains near Canyon City."},
+        ],
+        "evacuation_routes": [
+            {"route": "US-395 North/South", "direction": "N-S", "lanes": 2,
+             "bottleneck": "Remote highway", "risk": "Fire can close in either direction"},
+        ],
+        "fire_spread_characteristics": {
+            "primary_wind_regime": "Canyon thermals; dry lightning",
+            "critical_corridors": ["Canyon Creek drainage"],
+            "rate_of_spread_potential": "High in mixed fuel",
+            "spotting_distance": "0.5-1 mile",
+        },
+    },
+
+    # =========================================================================
+    # 43. PRAIRIE CITY, OR — Southern Blue Mountains
+    # =========================================================================
+    "prairie_city_or": {
+        "center": [44.4571, -118.7124],
+        "terrain_notes": (
+            "Prairie City (pop ~900) is east of John Day in the Blue Mountains. "
+            "Near Strawberry Mountain Wilderness. Surrounded by ponderosa pine and "
+            "mixed conifer at mountain valley interface."
+        ),
+        "key_features": [
+            {"name": "Strawberry Mountain", "bearing": "S", "type": "peak",
+             "notes": "9,038 ft; wilderness with lightning fire risk"},
+        ],
+        "elevation_range_ft": [3500, 5000],
+        "wui_exposure": "moderate",
+        "historical_fires": [],
+        "evacuation_routes": [
+            {"route": "US-26 West (to John Day)", "direction": "W", "lanes": 2,
+             "bottleneck": "Mountain highway", "risk": "Forest fire risk"},
+        ],
+        "fire_spread_characteristics": {
+            "primary_wind_regime": "Mountain thermals; dry lightning frequent",
+            "critical_corridors": ["Strawberry Mountain front"],
+            "rate_of_spread_potential": "Moderate in mixed forest",
+            "spotting_distance": "0.5 mile",
         },
     },
 
@@ -5705,6 +6737,103 @@ PNW_IGNITION_SOURCES = {
             },
         ],
     },
+    "hood_river_or": {
+        "lat": 45.71,
+        "lon": -121.52,
+        "radius_km": 40,
+        "primary": [
+            {"source": "Human-caused (recreation)", "risk": "HIGH",
+             "detail": "Heavy recreation traffic; windsurfing/kiteboarding visitors. Eagle Creek 2017 was fireworks."},
+            {"source": "Railroad (BNSF)", "risk": "MODERATE",
+             "detail": "Rail lines along Columbia River through Gorge. Brake sparks in dry grass."},
+            {"source": "I-84 vehicle ignitions", "risk": "MODERATE",
+             "detail": "Major interstate through narrow Gorge corridor."},
+        ],
+        "corridors": [
+            {"name": "I-84 / Columbia Gorge", "direction": "E-W", "risk": "Primary corridor; vehicle and human ignitions"},
+            {"name": "OR-35 (Mt. Hood)", "direction": "S", "risk": "Mountain road through forest"},
+        ],
+    },
+    "grants_pass_or": {
+        "lat": 42.44,
+        "lon": -123.33,
+        "radius_km": 50,
+        "primary": [
+            {"source": "Human-caused (arson / debris burning)", "risk": "HIGH",
+             "detail": "Rogue Valley has high human-caused ignition rate. Rural debris burning escapes."},
+            {"source": "I-5 vehicle ignitions", "risk": "MODERATE",
+             "detail": "Interstate through valley with dry grass and brush shoulders."},
+            {"source": "Lightning", "risk": "MODERATE",
+             "detail": "Coast Range and Siskiyou thunderstorms in summer."},
+        ],
+        "corridors": [
+            {"name": "I-5", "direction": "N-S", "risk": "Primary valley corridor"},
+            {"name": "US-199 (Illinois Valley)", "direction": "SW", "risk": "Forest road to California"},
+        ],
+    },
+    "pendleton_or": {
+        "lat": 45.67,
+        "lon": -118.79,
+        "radius_km": 50,
+        "primary": [
+            {"source": "Agricultural equipment / combines", "risk": "HIGH",
+             "detail": "Wheat harvest fires from combine sparks and equipment in dry stubble."},
+            {"source": "Lightning", "risk": "MODERATE",
+             "detail": "Blue Mountain thunderstorms drift north into wheat country."},
+            {"source": "I-84 vehicle ignitions", "risk": "MODERATE",
+             "detail": "Interstate through grass and wheat terrain."},
+        ],
+        "corridors": [
+            {"name": "I-84", "direction": "E-W", "risk": "Cabbage Hill grass fires along highway"},
+            {"name": "US-395 South", "direction": "S", "risk": "Blue Mountain forest corridor"},
+        ],
+    },
+    "john_day_or": {
+        "lat": 44.42,
+        "lon": -118.95,
+        "radius_km": 60,
+        "primary": [
+            {"source": "Lightning (dry thunderstorms)", "risk": "HIGH",
+             "detail": "Blue Mountains receive extensive dry lightning in summer. Canyon Creek Complex (2015) was lightning."},
+            {"source": "Human-caused (recreation / campfires)", "risk": "MODERATE",
+             "detail": "Backcountry camping and OHV use. Remote terrain delays detection."},
+        ],
+        "corridors": [
+            {"name": "Canyon Creek", "direction": "S", "risk": "Drainage corridor into Blue Mountain timber"},
+            {"name": "US-26", "direction": "E-W", "risk": "Mountain highway through mixed fuel"},
+        ],
+    },
+    "roseburg_or": {
+        "lat": 43.22,
+        "lon": -123.34,
+        "radius_km": 50,
+        "primary": [
+            {"source": "Human-caused (debris burning / arson)", "risk": "HIGH",
+             "detail": "Rural residential areas with debris burning. History of arson-caused fires."},
+            {"source": "Lightning", "risk": "MODERATE",
+             "detail": "Coast Range and Cascade foothills lightning events."},
+            {"source": "I-5 vehicle ignitions", "risk": "MODERATE",
+             "detail": "Interstate through valley with grass and brush."},
+        ],
+        "corridors": [
+            {"name": "I-5", "direction": "N-S", "risk": "Canyon sections with brush fires"},
+            {"name": "Cow Creek / OR-227", "direction": "S", "risk": "Canyon road toward Rogue Valley"},
+        ],
+    },
+    "sweet_home_or": {
+        "lat": 44.40,
+        "lon": -122.74,
+        "radius_km": 40,
+        "primary": [
+            {"source": "Lightning", "risk": "HIGH",
+             "detail": "Cascade foothills and S. Santiam canyon receive dry lightning in late summer."},
+            {"source": "Human-caused (recreation / timber)", "risk": "MODERATE",
+             "detail": "Green Peter/Foster reservoir recreation; timber operations."},
+        ],
+        "corridors": [
+            {"name": "S. Santiam Canyon (US-20)", "direction": "E", "risk": "Canyon fire corridor from Cascades"},
+        ],
+    },
     "chelan_wa": {
         "lat": 47.84,
         "lon": -120.02,
@@ -6252,6 +7381,54 @@ PNW_CLIMATOLOGY = {
             10: {"normal_high_f": 63, "normal_low_f": 41, "rh_typical_min": 22, "rh_extreme_min": 10, "rh_low_days_per_month": 2, "dp_typical_low_f": 28, "dp_extreme_low_f": 10, "gust_typical_max_kt": 34, "gust_extreme_kt": 55, "gust_sig_threshold_kt": 40},
         },
     },
+    "KPDT": {
+        "name": "Pendleton, OR (Eastern Oregon Regional)",
+        "elevation_ft": 1496,
+        "region": "NE Oregon / Columbia Plateau",
+        "months": {
+            6: {"normal_high_f": 80, "normal_low_f": 52, "rh_typical_min": 16, "rh_extreme_min": 6, "rh_low_days_per_month": 5, "dp_typical_low_f": 32, "dp_extreme_low_f": 15, "gust_typical_max_kt": 28, "gust_extreme_kt": 46, "gust_sig_threshold_kt": 34},
+            7: {"normal_high_f": 90, "normal_low_f": 58, "rh_typical_min": 10, "rh_extreme_min": 4, "rh_low_days_per_month": 10, "dp_typical_low_f": 28, "dp_extreme_low_f": 8, "gust_typical_max_kt": 26, "gust_extreme_kt": 42, "gust_sig_threshold_kt": 32},
+            8: {"normal_high_f": 89, "normal_low_f": 57, "rh_typical_min": 10, "rh_extreme_min": 4, "rh_low_days_per_month": 12, "dp_typical_low_f": 28, "dp_extreme_low_f": 8, "gust_typical_max_kt": 25, "gust_extreme_kt": 40, "gust_sig_threshold_kt": 30},
+            9: {"normal_high_f": 78, "normal_low_f": 48, "rh_typical_min": 14, "rh_extreme_min": 6, "rh_low_days_per_month": 6, "dp_typical_low_f": 28, "dp_extreme_low_f": 10, "gust_typical_max_kt": 28, "gust_extreme_kt": 44, "gust_sig_threshold_kt": 34},
+            10: {"normal_high_f": 63, "normal_low_f": 39, "rh_typical_min": 22, "rh_extreme_min": 10, "rh_low_days_per_month": 2, "dp_typical_low_f": 26, "dp_extreme_low_f": 8, "gust_typical_max_kt": 30, "gust_extreme_kt": 48, "gust_sig_threshold_kt": 36},
+        },
+    },
+    "KLGD": {
+        "name": "La Grande, OR (Union County)",
+        "elevation_ft": 2717,
+        "region": "NE Oregon / Grande Ronde Valley",
+        "months": {
+            6: {"normal_high_f": 76, "normal_low_f": 45, "rh_typical_min": 16, "rh_extreme_min": 7, "rh_low_days_per_month": 4, "dp_typical_low_f": 28, "dp_extreme_low_f": 12, "gust_typical_max_kt": 24, "gust_extreme_kt": 38, "gust_sig_threshold_kt": 28},
+            7: {"normal_high_f": 86, "normal_low_f": 50, "rh_typical_min": 10, "rh_extreme_min": 4, "rh_low_days_per_month": 10, "dp_typical_low_f": 24, "dp_extreme_low_f": 5, "gust_typical_max_kt": 22, "gust_extreme_kt": 36, "gust_sig_threshold_kt": 26},
+            8: {"normal_high_f": 85, "normal_low_f": 49, "rh_typical_min": 10, "rh_extreme_min": 4, "rh_low_days_per_month": 12, "dp_typical_low_f": 24, "dp_extreme_low_f": 5, "gust_typical_max_kt": 22, "gust_extreme_kt": 35, "gust_sig_threshold_kt": 26},
+            9: {"normal_high_f": 75, "normal_low_f": 41, "rh_typical_min": 14, "rh_extreme_min": 6, "rh_low_days_per_month": 6, "dp_typical_low_f": 25, "dp_extreme_low_f": 8, "gust_typical_max_kt": 24, "gust_extreme_kt": 38, "gust_sig_threshold_kt": 28},
+            10: {"normal_high_f": 60, "normal_low_f": 32, "rh_typical_min": 20, "rh_extreme_min": 10, "rh_low_days_per_month": 2, "dp_typical_low_f": 22, "dp_extreme_low_f": 5, "gust_typical_max_kt": 26, "gust_extreme_kt": 40, "gust_sig_threshold_kt": 30},
+        },
+    },
+    "KBKE": {
+        "name": "Baker City, OR (Baker City Municipal)",
+        "elevation_ft": 3373,
+        "region": "NE Oregon / Elkhorn Mountains",
+        "months": {
+            6: {"normal_high_f": 75, "normal_low_f": 43, "rh_typical_min": 15, "rh_extreme_min": 6, "rh_low_days_per_month": 5, "dp_typical_low_f": 26, "dp_extreme_low_f": 10, "gust_typical_max_kt": 24, "gust_extreme_kt": 38, "gust_sig_threshold_kt": 28},
+            7: {"normal_high_f": 85, "normal_low_f": 48, "rh_typical_min": 9, "rh_extreme_min": 3, "rh_low_days_per_month": 12, "dp_typical_low_f": 22, "dp_extreme_low_f": 2, "gust_typical_max_kt": 22, "gust_extreme_kt": 36, "gust_sig_threshold_kt": 26},
+            8: {"normal_high_f": 84, "normal_low_f": 46, "rh_typical_min": 9, "rh_extreme_min": 3, "rh_low_days_per_month": 14, "dp_typical_low_f": 22, "dp_extreme_low_f": 2, "gust_typical_max_kt": 22, "gust_extreme_kt": 35, "gust_sig_threshold_kt": 26},
+            9: {"normal_high_f": 74, "normal_low_f": 38, "rh_typical_min": 13, "rh_extreme_min": 5, "rh_low_days_per_month": 7, "dp_typical_low_f": 24, "dp_extreme_low_f": 5, "gust_typical_max_kt": 24, "gust_extreme_kt": 38, "gust_sig_threshold_kt": 28},
+            10: {"normal_high_f": 59, "normal_low_f": 29, "rh_typical_min": 18, "rh_extreme_min": 8, "rh_low_days_per_month": 3, "dp_typical_low_f": 20, "dp_extreme_low_f": 2, "gust_typical_max_kt": 26, "gust_extreme_kt": 40, "gust_sig_threshold_kt": 30},
+        },
+    },
+    "KLKV": {
+        "name": "Lakeview, OR (Lake County Airport)",
+        "elevation_ft": 4733,
+        "region": "SE Oregon High Desert",
+        "months": {
+            6: {"normal_high_f": 73, "normal_low_f": 38, "rh_typical_min": 12, "rh_extreme_min": 4, "rh_low_days_per_month": 6, "dp_typical_low_f": 18, "dp_extreme_low_f": 0, "gust_typical_max_kt": 26, "gust_extreme_kt": 42, "gust_sig_threshold_kt": 32},
+            7: {"normal_high_f": 83, "normal_low_f": 42, "rh_typical_min": 8, "rh_extreme_min": 3, "rh_low_days_per_month": 14, "dp_typical_low_f": 14, "dp_extreme_low_f": -4, "gust_typical_max_kt": 24, "gust_extreme_kt": 40, "gust_sig_threshold_kt": 30},
+            8: {"normal_high_f": 82, "normal_low_f": 41, "rh_typical_min": 8, "rh_extreme_min": 3, "rh_low_days_per_month": 16, "dp_typical_low_f": 14, "dp_extreme_low_f": -4, "gust_typical_max_kt": 22, "gust_extreme_kt": 38, "gust_sig_threshold_kt": 28},
+            9: {"normal_high_f": 74, "normal_low_f": 34, "rh_typical_min": 11, "rh_extreme_min": 4, "rh_low_days_per_month": 8, "dp_typical_low_f": 16, "dp_extreme_low_f": -2, "gust_typical_max_kt": 24, "gust_extreme_kt": 40, "gust_sig_threshold_kt": 30},
+            10: {"normal_high_f": 60, "normal_low_f": 26, "rh_typical_min": 16, "rh_extreme_min": 7, "rh_low_days_per_month": 3, "dp_typical_low_f": 16, "dp_extreme_low_f": 0, "gust_typical_max_kt": 26, "gust_extreme_kt": 42, "gust_sig_threshold_kt": 32},
+        },
+    },
     "KEAT": {
         "name": "Wenatchee, WA (Pangborn Memorial) -- also serves Chelan",
         "elevation_ft": 1249,
@@ -6344,6 +7521,37 @@ PNW_CLIMATOLOGY = {
 # =============================================================================
 
 PNW_STATION_CITY_MAP = {
+    # Oregon — new WFO swarm cities
+    "baker_city_or": "KBKE",
+    "bly_or": "KLMT",
+    "bonanza_or": "KLMT",
+    "canyon_city_or": "KRDM",  # nearest ASOS
+    "chiloquin_or": "KLMT",
+    "cottage_grove_or": "KEUG",
+    "drain_or": "KEUG",
+    "dufur_or": "KDLS",
+    "enterprise_or": "KLGD",
+    "florence_or": "KEUG",
+    "grass_valley_or": "KDLS",
+    "grants_pass_or": "KMFR",
+    "hood_river_or": "KDLS",
+    "jacksonville_or": "KMFR",
+    "john_day_or": "KRDM",  # nearest ASOS
+    "joseph_or": "KLGD",
+    "la_grande_or": "KLGD",
+    "lakeview_or": "KLKV",
+    "maupin_or": "KDLS",
+    "mckenzie_bridge_or": "KEUG",
+    "mosier_or": "KDLS",
+    "myrtle_creek_or": "KMFR",
+    "paisley_or": "KLKV",
+    "pendleton_or": "KPDT",
+    "prairie_city_or": "KRDM",  # nearest ASOS
+    "redmond_or": "KRDM",
+    "roseburg_or": "KRBG",
+    "sweet_home_or": "KEUG",
+    "vida_or": "KEUG",
+    # Oregon — existing
     "blue_river_or": "KEUG",
     "camp_sherman_or": "KRDM",
     "cascade_id": "KDIJ",

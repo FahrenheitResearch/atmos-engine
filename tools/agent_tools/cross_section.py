@@ -179,7 +179,7 @@ class CrossSectionData:
 class CrossSectionTool:
     """Tool for generating cross-sections and extracting data."""
 
-    def __init__(self, base_url: str = "http://localhost:5565", model: str = "hrrr"):
+    def __init__(self, base_url: str = "http://127.0.0.1:5565", model: str = "hrrr"):
         self.base_url = base_url.rstrip("/")
         self.model = model
 

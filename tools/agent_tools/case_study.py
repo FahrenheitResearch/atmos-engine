@@ -125,7 +125,7 @@ class CaseStudy:
         event_name: str,
         cycle: str,
         output_dir: str,
-        base_url: str = "http://localhost:5565",
+        base_url: str = "http://127.0.0.1:5565",
     ):
         """Initialize a case study.
 
@@ -165,7 +165,7 @@ class CaseStudy:
         cls,
         cycle_key: str,
         output_dir: str,
-        base_url: str = "http://localhost:5565",
+        base_url: str = "http://127.0.0.1:5565",
     ) -> "CaseStudy":
         """Create a CaseStudy from a curated event in the API.
 
@@ -793,7 +793,7 @@ def compare_events_batch(
     transect: dict,
     products: list[str],
     fhr: int,
-    base_url: str = "http://localhost:5565",
+    base_url: str = "http://127.0.0.1:5565",
 ) -> dict:
     """Compare the same transect across multiple events.
 
