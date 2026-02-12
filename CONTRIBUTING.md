@@ -2,7 +2,7 @@
 
 ## What This Is
 
-wxsection.com is a near-instant atmospheric cross-section tool for HRRR, GFS, and RRFS weather models. Users draw a line on a map and get a vertical cross-section in ~0.5s. It also generates map overlays, animated GIFs, multi-panel comparisons, and serves as the foundation for an AI agent swarm system designed for hyper-local fire weather surveillance.
+wxsection.com is a near-instant atmospheric cross-section tool supporting 6 NWP models (HRRR, GFS, RRFS, NAM, RAP, NAM-Nest). Users draw a line on a map and get a vertical cross-section in ~0.5s. It also generates map overlays, animated GIFs, multi-panel comparisons, and serves as the foundation for an AI agent swarm system designed for hyper-local fire weather surveillance.
 
 The platform is **agent-native**: everything the web UI can do is also available via a free REST API and MCP tool servers at feature parity. The long-term vision is thousands of AI agents running every HRRR cycle, each forensically evaluating atmospheric conditions for specific towns and terrain features — so no community is too small to get personalized severe weather surveillance.
 
@@ -14,7 +14,7 @@ core/cross_section_interactive.py   Rendering engine (matplotlib, 0.5s warm rend
 core/map_overlay.py             Map overlay composites (fill + contours + wind barbs) (~1,133 lines)
 tools/auto_update.py            GRIB download daemon (slot-based concurrent) (~913 lines)
 smart_hrrr/orchestrator.py      Parallel download with multi-layer validation (~311 lines)
-model_config.py                 Model registry (HRRR/GFS/RRFS metadata, grids, URLs) (~246 lines)
+model_config.py                 Model registry (6 models: HRRR/GFS/RRFS/NAM/RAP/NAM-Nest) (~320 lines)
 tools/agent_tools/              Agent research platform (12 modules + 8 data files, ~57,500 lines)
 tools/agent_tools/wfo_swarm/    Oregon WFO agent swarm pilot (7 zones, 154 agents, ~3,900 lines)
 tools/mcp_server.py             MCP server — private (52 tools, stdio)
@@ -42,11 +42,14 @@ NOMADS/AWS → auto_update.py (slot-based download) → outputs/model/date/cycle
 
 ### Models
 
-| Model | Resolution | FHRs | Update | Cache/FHR |
-|-------|-----------|------|--------|-----------|
-| HRRR | 3km | F00-F48 (synoptic), F00-F18 (hourly) | Every hour | ~700MB mmap |
-| GFS | 0.25deg (CONUS subset) | F00-F384 (6h intervals) | Every 6h | ~50MB mmap |
-| RRFS | 3km | F00-F18 | Every hour | ~700MB mmap |
+| Model | Resolution | FHRs | Update | Notes |
+|-------|-----------|------|--------|-------|
+| HRRR | 3km | F00-F48 (synoptic), F00-F18 (hourly) | Every hour | Primary model, full field set |
+| GFS | 0.25deg | F00-F384 (6h intervals) | Every 6h | CONUS subset, ~50MB/FHR |
+| RRFS | 3km | F00-F18 (F00-F60 synoptic) | Every hour | HRRR successor (experimental) |
+| NAM | 12km | F00-F84 | 00/06/12/18z | Wind styles disabled (missing v-wind) |
+| RAP | 13km | F00-F21 (F00-F51 extended) | Every hour | Wind styles disabled (missing v-wind) |
+| NAM-Nest | 3km | F00-F60 | 00/06/12/18z | Full field set, 926MB/FHR |
 
 ### Products
 
