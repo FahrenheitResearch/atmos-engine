@@ -187,6 +187,79 @@ class ModelRegistry:
             domain='global'
         )
         
+        # NAM 12km CONUS Configuration
+        # NOTE: awphys has t/u/r/w/gh/surface fields but missing v-wind and q on isobaric levels.
+        # bgrd3d (441MB) has all fields but is very large. Using awphys for now.
+        models['nam'] = ModelConfig(
+            name='nam',
+            full_name='North American Mesoscale',
+            resolution='12km',
+            file_types={
+                'pressure': 'awphys',  # Has most fields (t, u, r, w, gh) but no v-wind or q
+                'surface': 'awphys',   # Same file has surface diagnostics
+            },
+            filename_pattern='nam.t{hour:02d}z.{file_type}{forecast_hour:02d}.tm00.grib2',
+            download_sources=[
+                'https://nomads.ncep.noaa.gov/pub/data/nccf/com/nam/prod/nam.{date}/{filename}',
+                'https://noaa-nam-pds.s3.amazonaws.com/nam.{date}/{filename}',
+            ],
+            forecast_cycles=[0, 6, 12, 18],
+            max_forecast_hours={
+                0: 84, 6: 84, 12: 84, 18: 84
+            },
+            grid_type='lambert_conformal',
+            domain='conus'
+        )
+
+        # RAP 13km CONUS Configuration
+        # NOTE: wrfprs has all fields but uses non-standard grid (ncep_32769) that eccodes can't decode.
+        # awp130pgrb uses standard Lambert grid. Missing v-wind and q, but most products work.
+        models['rap'] = ModelConfig(
+            name='rap',
+            full_name='Rapid Refresh',
+            resolution='13km',
+            file_types={
+                'pressure': 'awp130pgrb',  # Standard Lambert grid, has t/u/r/w/gh (no v-wind or q)
+                'surface': 'awp130pgrb',   # Surface data in same file
+            },
+            filename_pattern='rap.t{hour:02d}z.{file_type}f{forecast_hour:02d}.grib2',
+            download_sources=[
+                'https://nomads.ncep.noaa.gov/pub/data/nccf/com/rap/prod/rap.{date}/{filename}',
+                'https://noaa-rap-pds.s3.amazonaws.com/rap.{date}/{filename}',
+            ],
+            forecast_cycles=list(range(24)),  # Every hour
+            max_forecast_hours={
+                # Extended cycles (03, 09, 15, 21) go to 51h
+                3: 51, 9: 51, 15: 51, 21: 51,
+                # All other hours go to 21h
+                **{h: 21 for h in range(24) if h not in [3, 9, 15, 21]}
+            },
+            grid_type='lambert_conformal',
+            domain='conus'
+        )
+
+        # NAM Nest 3km CONUS Configuration
+        models['nam_nest'] = ModelConfig(
+            name='nam_nest',
+            full_name='NAM CONUS Nest',
+            resolution='3km',
+            file_types={
+                'pressure': 'conusnest.hiresf',  # Pressure + surface combined
+                'surface': 'conusnest.hiresf',
+            },
+            filename_pattern='nam.t{hour:02d}z.{file_type}{forecast_hour:02d}.tm00.grib2',
+            download_sources=[
+                'https://nomads.ncep.noaa.gov/pub/data/nccf/com/nam/prod/nam.{date}/{filename}',
+                'https://noaa-nam-pds.s3.amazonaws.com/nam.{date}/{filename}',
+            ],
+            forecast_cycles=[0, 6, 12, 18],
+            max_forecast_hours={
+                0: 60, 6: 60, 12: 60, 18: 60
+            },
+            grid_type='lambert_conformal',
+            domain='conus'
+        )
+
         return models
     
     def get_model(self, model_name: str) -> Optional[ModelConfig]:

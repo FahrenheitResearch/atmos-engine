@@ -9,14 +9,14 @@ The platform is **agent-native**: everything the web UI can do is also available
 ## Architecture Overview
 
 ```
-tools/unified_dashboard.py      Flask server + Mapbox GL JS frontend + 60+ API endpoints
-core/cross_section_interactive.py   Rendering engine (matplotlib, 0.5s warm renders)
-core/map_overlay.py             Map overlay composites (fill + contours + wind barbs)
-tools/auto_update.py            GRIB download daemon (slot-based concurrent)
-smart_hrrr/orchestrator.py      Parallel download with multi-layer validation
-model_config.py                 Model registry (HRRR/GFS/RRFS metadata, grids, URLs)
-tools/agent_tools/              Agent research platform (12 modules, ~29K lines)
-tools/agent_tools/wfo_swarm/    Oregon WFO agent swarm pilot (7 zones, 154 agents)
+tools/unified_dashboard.py      Flask server + Mapbox GL JS frontend + 57 API endpoints (~11,400 lines)
+core/cross_section_interactive.py   Rendering engine (matplotlib, 0.5s warm renders) (~3,435 lines)
+core/map_overlay.py             Map overlay composites (fill + contours + wind barbs) (~1,133 lines)
+tools/auto_update.py            GRIB download daemon (slot-based concurrent) (~913 lines)
+smart_hrrr/orchestrator.py      Parallel download with multi-layer validation (~311 lines)
+model_config.py                 Model registry (HRRR/GFS/RRFS metadata, grids, URLs) (~246 lines)
+tools/agent_tools/              Agent research platform (12 modules + 8 data files, ~57,500 lines)
+tools/agent_tools/wfo_swarm/    Oregon WFO agent swarm pilot (7 zones, 154 agents, ~3,900 lines)
 tools/mcp_server.py             MCP server — private (52 tools, stdio)
 tools/mcp_public.py             MCP server — public (53 tools, SSE, API key auth)
 ```

@@ -54,6 +54,9 @@ MODEL_REQUIRED_PATTERNS = {
     'hrrr': ['*wrfprs*.grib2', '*wrfsfc*.grib2'],
     'gfs':  ['*pgrb2.0p25*'],
     'rrfs': ['*prslev*.grib2'],
+    'nam':  ['*awphys*.grib2'],
+    'rap':  ['*awp130pgrb*.grib2'],
+    'nam_nest': ['*conusnest.hiresf*.grib2'],
 }
 
 # Per-model: which file_types to request from the orchestrator
@@ -63,6 +66,9 @@ MODEL_FILE_TYPES = {
     'hrrr': ['pressure', 'surface'],  # wrfprs (~383MB) + wrfsfc (~136MB) = ~519MB vs 1.18GB
     'gfs':  ['pressure'],             # pgrb2.0p25 (has surface data in it)
     'rrfs': ['pressure'],             # prslev (has surface data in it)
+    'nam':  ['pressure'],             # awphys (combined pressure + surface, missing v-wind)
+    'rap':  ['pressure'],             # awp130pgrb (combined pressure + surface)
+    'nam_nest': ['pressure'],         # conusnest.hiresf (combined file)
 }
 
 # Per-model: which FHRs to download
@@ -70,11 +76,17 @@ MODEL_FORECAST_HOURS = {
     'hrrr': list(range(19)),                          # F00-F18 every hour (synoptic extends to F48)
     'gfs':  list(range(0, 121, 3)) + list(range(126, 385, 6)),  # F00-F120 every 3h, F126-F384 every 6h
     'rrfs': list(range(19)),                          # F00-F18 every hour
+    'nam':  list(range(37)) + list(range(39, 85, 3)),  # F00-F36 hourly, F39-F84 3-hourly
+    'rap':  list(range(22)),                          # F00-F21 every hour (extended cycles go further)
+    'nam_nest': list(range(61)),                      # F00-F60 every hour
 }
 MODEL_DEFAULT_MAX_FHR = {
     'hrrr': 18,
     'gfs':  384,
     'rrfs': 18,
+    'nam':  84,
+    'rap':  21,
+    'nam_nest': 60,
 }
 
 # Per-model: data availability lag (minutes after init time)
@@ -82,6 +94,9 @@ MODEL_AVAILABILITY_LAG = {
     'hrrr': int(os.environ.get('XSECT_LAG_HRRR_MIN', '50')),
     'gfs':  int(os.environ.get('XSECT_LAG_GFS_MIN', '180')),   # GFS starts later
     'rrfs': int(os.environ.get('XSECT_LAG_RRFS_MIN', '0')),    # Probe latest RRFS cycle aggressively
+    'nam':  int(os.environ.get('XSECT_LAG_NAM_MIN', '90')),    # NAM available ~90min after init
+    'rap':  int(os.environ.get('XSECT_LAG_RAP_MIN', '50')),    # RAP similar to HRRR
+    'nam_nest': int(os.environ.get('XSECT_LAG_NAM_NEST_MIN', '105')),  # NAM Nest slightly later
 }
 
 

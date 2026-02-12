@@ -2,7 +2,7 @@
 """
 HRRR Cross-Section Dashboard
 
-Interactive cross-section visualization on a Leaflet map.
+Interactive cross-section visualization on a Mapbox GL JS map.
 Draw a line on the map to generate vertical cross-sections.
 
 Usage:
@@ -838,17 +838,26 @@ MODEL_PRS_PATTERNS = {
     'hrrr': '*wrfprs*.grib2',
     'rrfs': '*prslev*.grib2',
     'gfs':  '*pgrb2.0p25*',  # GFS files have no .grib2 extension
+    'nam':  '*awphys*.grib2',
+    'rap':  '*awp130pgrb*.grib2',
+    'nam_nest': '*conusnest.hiresf*.grib2',
 }
 MODEL_SFC_PATTERNS = {
     'hrrr': '*wrfsfc*.grib2',
     'rrfs': '*prslev*.grib2',   # RRFS: surface in same prslev file
     'gfs':  '*pgrb2.0p25*',    # GFS: surface in same pgrb2 file (no .grib2 ext)
+    'nam':  '*awphys*.grib2',   # NAM: same file for surface
+    'rap':  '*awp130pgrb*.grib2',   # RAP: same file for surface
+    'nam_nest': '*conusnest.hiresf*.grib2',  # NAM Nest: combined file
 }
 MODEL_NEEDS_SEPARATE_SFC = {'hrrr'}  # Only HRRR has separate wrfsfc
 MODEL_FORECAST_HOURS = {
     'hrrr': list(range(19)),                # F00-F18 (base; synoptic cycles extend to F48)
     'gfs':  list(range(0, 385, 6)),         # F00-F384 every 6 hours
     'rrfs': list(range(19)),                # F00-F18
+    'nam':  list(range(37)) + list(range(39, 85, 3)),  # F00-F36 hourly, F39-F84 3-hourly
+    'rap':  list(range(22)),                # F00-F21 (base; extended cycles go further)
+    'nam_nest': list(range(61)),            # F00-F60 hourly
 }
 SYNOPTIC_HOURS = {0, 6, 12, 18}
 
@@ -856,23 +865,33 @@ def get_max_fhr_for_cycle(model_name: str, cycle_hour: int) -> int:
     """Return max forecast hour for a given model+cycle. HRRR synoptic cycles go to 48."""
     if model_name == 'hrrr' and cycle_hour in SYNOPTIC_HOURS:
         return 48
+    if model_name == 'rap' and cycle_hour in {3, 9, 15, 21}:
+        return 51  # RAP extended cycles
     base = MODEL_FORECAST_HOURS.get(model_name, list(range(19)))
     return base[-1] if base else 18
 
 def get_model_fhr_list(model_name: str, cycle_hour: int = None) -> list:
-    """Return the actual FHR list for a model+cycle (handles sparse GFS FHRs)."""
+    """Return the actual FHR list for a model+cycle (handles sparse GFS/NAM FHRs)."""
     if model_name == 'hrrr' and cycle_hour is not None and cycle_hour in SYNOPTIC_HOURS:
         return list(range(49))  # F00-F48 every hour
+    if model_name == 'rap' and cycle_hour is not None and cycle_hour in {3, 9, 15, 21}:
+        return list(range(52))  # F00-F51 every hour (extended)
     return MODEL_FORECAST_HOURS.get(model_name, list(range(19)))
 MODEL_MIN_LEVELS = {
     'hrrr': 40,
     'gfs':  20,  # GFS has ~34 pressure levels
     'rrfs': 40,
+    'nam':  30,  # NAM has ~40 pressure levels
+    'rap':  30,  # RAP has ~37 pressure levels
+    'nam_nest': 40,  # NAM Nest has full level set
 }
 MODEL_EXCLUDED_STYLES = {
     'gfs': {'smoke'},       # GFS has no PM2.5/smoke
     'rrfs': {'smoke'},      # RRFS has no smoke either
     'hrrr': set(),          # HRRR supports all styles
+    'nam': {'smoke', 'wind_speed', 'shear', 'moisture_transport', 'fire_wx'},  # NAM awphys missing v-wind
+    'rap': {'smoke', 'wind_speed', 'shear', 'moisture_transport', 'fire_wx'},  # RAP awp130 missing v-wind
+    'nam_nest': {'smoke'},  # NAM Nest has no smoke
 }
 
 # ── Lazy wrfnat download for smoke style ──
@@ -1032,7 +1051,7 @@ class CrossSectionManager:
         if self.model_name == 'hrrr':
             sfc = Path(prs_file).parent / Path(prs_file).name.replace('wrfprs', 'wrfsfc')
             return str(sfc) if sfc.exists() else prs_file
-        # GFS/RRFS: surface data is in the same pressure file
+        # GFS/RRFS/NAM/RAP/NAM-Nest: surface data is in the same pressure file
         return prs_file
 
     def _nat_file_from_prs(self, prs_file: str):
@@ -2359,6 +2378,9 @@ MODEL_MEM_BUDGETS = {
     'hrrr': (58000, 56000),
     'gfs':  (8000, 7500),
     'rrfs': (8000, 7500),
+    'nam':  (8000, 7500),     # NAM 12km — smaller grid than HRRR
+    'rap':  (8000, 7500),     # RAP 13km — similar to NAM
+    'nam_nest': (16000, 15000),  # NAM Nest 3km — similar to HRRR but fewer levels
 }
 
 
