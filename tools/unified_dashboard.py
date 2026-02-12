@@ -2572,6 +2572,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             --region-southwest: #ef4444;
             --region-plains: #eab308;
             --region-southeast: #a855f7;
+            /* HUD badge colors */
+            --hud-model: rgba(14,165,233,0.9);
+            --hud-dark: rgba(0,0,0,0.7);
+            --hud-overlay: rgba(139,92,246,0.85);
+            /* Status colors */
+            --anomaly: #FF6D00;
         }
         body {
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -2853,7 +2859,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .toggle-btn:not(:last-child) { border-right: 1px solid var(--border); }
         .toggle-btn:hover { color: var(--text); }
         .toggle-btn.active { background: var(--accent); color: #000; }
-        .toggle-btn.anomaly-active { background: #FF6D00; color: #fff; font-weight: bold; }
+        .toggle-btn.anomaly-active { background: var(--anomaly); color: #fff; font-weight: bold; }
 
         button {
             background: var(--card);
@@ -2865,6 +2871,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             font-size: 13px;
         }
         button:hover { background: var(--accent); color: #000; }
+        button:focus-visible, select:focus-visible, .toggle-btn:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
         button:disabled, .toggle-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
@@ -3247,6 +3257,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
         .xsect-panel-body img { max-width: 100%; max-height: 100%; border-radius: var(--radius-sm); }
 
+        #compare-btn.active { background: var(--accent); color: #000; }
+        #compare-diff-btn.active { background: var(--warning); color: #000; }
+        #compare-btn, #compare-diff-btn {
+            transition: background var(--transition-fast), color var(--transition-fast);
+        }
         /* Compare & multi-panel controls inside bottom panel */
         #compare-controls {
             display: none; align-items: center; gap: 8px; padding: 0 16px 8px;
@@ -4537,11 +4552,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             <div id="map-toast"></div>
             <!-- Map Overlay Colorbar Legend -->
             <!-- Map HUD: model + cycle + product indicator -->
-            <div id="map-hud" style="position:absolute;top:10px;left:10px;z-index:1000;display:flex;gap:6px;align-items:center;pointer-events:none;">
-                <span id="hud-model" style="background:rgba(14,165,233,0.9);color:#000;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;letter-spacing:0.5px;"></span>
-                <span id="hud-cycle" style="background:rgba(0,0,0,0.7);color:#ccc;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;"></span>
-                <span id="hud-fhr" style="background:rgba(0,0,0,0.7);color:var(--warning);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;"></span>
-                <span id="hud-overlay" style="display:none;background:rgba(139,92,246,0.85);color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;cursor:pointer;" title="Map overlay active (O to toggle)"></span>
+            <div id="map-hud" style="position:absolute;top:10px;left:10px;z-index:var(--z-map-hud);display:flex;gap:6px;align-items:center;pointer-events:none;">
+                <span id="hud-model" style="background:var(--hud-model);color:#000;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;letter-spacing:0.5px;"></span>
+                <span id="hud-cycle" style="background:var(--hud-dark);color:#ccc;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;"></span>
+                <span id="hud-fhr" style="background:var(--hud-dark);color:var(--warning);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;"></span>
+                <span id="hud-overlay" style="display:none;background:var(--hud-overlay);color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;cursor:pointer;" title="Map overlay active (O to toggle)"></span>
             </div>
             <div id="map-attribution" style="position:absolute;bottom:4px;left:52px;z-index:500;font-size:9px;color:rgba(148,163,184,0.6);pointer-events:none;letter-spacing:0.3px;">wxsection.com &middot; NOAA NWP Data</div>
             <div id="map-coords" style="position:absolute;bottom:4px;right:8px;z-index:500;font-size:10px;color:rgba(148,163,184,0.7);pointer-events:none;font-family:'SF Mono',Consolas,monospace;letter-spacing:0.3px;"></div>
@@ -4565,10 +4580,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
             <!-- Bottom Slide-Up Panel -->
             <div id="bottom-panel" class="collapsed">
-                <div id="bottom-peek" style="position:absolute;top:0;left:0;right:0;height:48px;overflow:hidden;pointer-events:none;opacity:0;transition:opacity 0.3s;z-index:0;">
+                <div id="bottom-peek" style="position:absolute;top:0;left:0;right:0;height:48px;overflow:hidden;pointer-events:none;opacity:0;transition:opacity var(--transition-slow);z-index:0;">
                     <img id="peek-img" style="width:100%;height:auto;object-fit:cover;object-position:center 60%;opacity:0.15;filter:blur(1px);">
                 </div>
-                <div id="bottom-handle">
+                <div id="bottom-handle" role="separator" aria-label="Resize cross-section panel" aria-orientation="horizontal">
                     <div class="drag-indicator"><span></span><span></span><span></span></div>
                     <div id="bottom-status">
                         <span id="bottom-model-label">Cross-Section</span>
@@ -4577,8 +4592,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <span id="loaded-count" style="font-size:9px;color:var(--muted);opacity:0.7;"></span>
                     </div>
                     <div id="bottom-actions">
-                        <button class="bottom-action-btn" id="bottom-expand-btn" title="Expand">&#9650;</button>
-                        <button class="bottom-action-btn" id="bottom-collapse-btn" title="Collapse" style="display:none;">&#9660;</button>
+                        <button class="bottom-action-btn" id="bottom-expand-btn" title="Expand" aria-label="Expand cross-section panel">&#9650;</button>
+                        <button class="bottom-action-btn" id="bottom-collapse-btn" title="Collapse" style="display:none;" aria-label="Collapse cross-section panel">&#9660;</button>
                     </div>
                 </div>
                 <div id="bottom-body">
@@ -5985,8 +6000,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         }, 350);
                     }
                     const _cb = document.getElementById('overlay-colorbar');
-                    _cb.style.opacity = '0';
-                    setTimeout(() => { _cb.style.display = 'none'; _cb.style.opacity = '1'; }, 200);
+                    if (_cb) {
+                        _cb.style.transition = 'opacity var(--transition-default) ease-out';
+                        _cb.style.opacity = '0';
+                        setTimeout(() => { _cb.style.display = 'none'; _cb.style.opacity = ''; _cb.style.transition = ''; }, 250);
+                    }
                 }
             }
 
@@ -8010,16 +8028,14 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     mpControls.classList.remove('visible');
                     document.body.classList.remove('layout-multipanel');
                 }
-                btn.style.background = 'var(--accent)';
-                btn.style.color = '#000';
+                btn.classList.add('active');
                 controls.classList.add('visible');
                 panels.classList.add('compare-active');
                 panelCompare.style.display = '';
                 populateCompareCycleDropdown();
                 updateCompareLabels();
             } else {
-                btn.style.background = '';
-                btn.style.color = '';
+                btn.classList.remove('active');
                 controls.classList.remove('visible');
                 panels.classList.remove('compare-active');
                 panelCompare.style.display = 'none';
@@ -8029,7 +8045,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 // Reset diff mode and divider
                 diffActive = false;
                 const diffBtn = document.getElementById('compare-diff-btn');
-                if (diffBtn) { diffBtn.classList.remove('active'); diffBtn.style.background = ''; diffBtn.style.color = ''; }
+                if (diffBtn) { diffBtn.classList.remove('active'); }
                 document.getElementById('panel-diff').style.display = 'none';
                 document.getElementById('compare-divider').style.left = '50%';
                 document.getElementById('panel-primary').style.flex = ''; document.getElementById('panel-primary').style.width = '';
@@ -8227,8 +8243,6 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         document.getElementById('compare-diff-btn').addEventListener('click', function() {
             diffActive = !diffActive;
             this.classList.toggle('active', diffActive);
-            this.style.background = diffActive ? '#f59e0b' : '';
-            this.style.color = diffActive ? '#000' : '';
             document.getElementById('panel-diff').style.display = diffActive ? '' : 'none';
             if (diffActive) computeDiff();
         });
