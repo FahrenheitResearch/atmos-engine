@@ -2711,19 +2711,40 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             border: 1px solid var(--border); transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
         .hero-preview:hover { transform: scale(1.01); box-shadow: 0 6px 24px rgba(0,0,0,0.5); }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
         .landing { text-align: center; padding: 24px; max-width: 460px; }
-        .landing-title { font-size: 22px; font-weight: 700; color: var(--accent); margin-bottom: 4px; letter-spacing: -0.5px; }
+        .landing > * { animation: fadeInUp 0.4s ease both; }
+        .landing > :nth-child(1) { animation-delay: 0s; }
+        .landing > :nth-child(2) { animation-delay: 0.06s; }
+        .landing > :nth-child(3) { animation-delay: 0.12s; }
+        .landing > :nth-child(4) { animation-delay: 0.18s; }
+        .landing > :nth-child(5) { animation-delay: 0.24s; }
+        .landing > :nth-child(6) { animation-delay: 0.3s; }
+        .landing > :nth-child(7) { animation-delay: 0.36s; }
+        .landing > :nth-child(8) { animation-delay: 0.42s; }
+        .landing > :nth-child(9) { animation-delay: 0.48s; }
+        .landing > :nth-child(10) { animation-delay: 0.54s; }
+        .landing-title {
+            font-size: 24px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--accent), #06d6a0);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
         .landing-subtitle { font-size: 11px; color: var(--muted); margin-bottom: 16px; letter-spacing: 0.5px; text-transform: uppercase; }
         .landing-steps { display: flex; gap: 16px; justify-content: center; margin-bottom: 18px; font-size: 12px; color: var(--text); }
         .landing-step { text-align: center; }
         .landing-step-num {
-            width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--bg);
+            width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: var(--bg);
             display: inline-flex; align-items: center; justify-content: center;
-            font-weight: 700; font-size: 13px; margin-bottom: 4px;
+            font-weight: 700; font-size: 14px; margin-bottom: 4px;
+            box-shadow: 0 0 12px rgba(77,166,255,0.3);
         }
         .landing-arrow { color: var(--muted); align-self: center; font-size: 16px; margin-top: -16px; }
         .landing-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; font-size: 10px; color: var(--muted); text-align: center; }
-        .landing-stat { background: var(--card); border-radius: 6px; padding: 8px 6px; }
+        .landing-stat { background: var(--card); border-radius: 8px; padding: 10px 8px; border: 1px solid var(--border); }
         .landing-stat-num { font-size: 18px; font-weight: 700; color: var(--accent); }
         .landing-stat-label { font-weight: 600; color: var(--text); font-size: 11px; }
         .landing-stat-sub { margin-top: 2px; }
@@ -2761,7 +2782,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .api-links a:hover { text-decoration: underline; }
         .cycle-age { font-size: 10px; color: var(--muted); white-space: nowrap; min-width: 40px; text-align: right; transition: color var(--transition-default); }
         .slider-label { font-size: 11px; color: var(--muted); min-width: 110px; text-align: center; white-space: nowrap; }
-        .frame-counter { font-size: 10px; color: var(--muted); min-width: 50px; text-align: center; display: none; }
+        .frame-counter { font-size: 10px; color: var(--muted); min-width: 50px; text-align: center; font-family: 'SF Mono', Consolas, monospace; letter-spacing: 0.3px; }
         .context-hint { padding: 0 16px 3px; font-size: 9px; color: var(--muted); opacity: 0.6; text-align: center; display: none; }
         .playback-btn { padding: 3px 6px; font-size: 12px; min-width: 28px; }
         .play-btn { padding: 3px 8px; font-size: 14px; min-width: 32px; }
@@ -2774,7 +2795,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
         .dismiss-btn:hover { color: var(--text); }
         .cmap-wrap { position: relative; margin: -2px 0 4px; }
-        .cmap-preview { height: 4px; border-radius: 2px; }
+        .cmap-preview { height: 6px; border-radius: 3px; }
         .cmap-range { display: flex; justify-content: space-between; font-size: 9px; color: var(--muted); margin-top: 1px; }
         .preset-toggle {
             cursor: pointer; display: flex; align-items: center; gap: 4px;
@@ -3027,14 +3048,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .chip.loaded:active, .chip.active:active { opacity: 0.7; }
         .chip.prerendered { position: relative; }
         .chip.prerendered::after {
-            content: '';
+            content: '\26A1';
             position: absolute;
-            top: 2px;
-            right: 2px;
-            width: 4px;
-            height: 4px;
-            border-radius: 50%;
-            background: #22c55e;
+            top: -3px;
+            right: -2px;
+            font-size: 8px;
+            line-height: 1;
         }
         .chip.extended {
             border-style: dashed;
@@ -3171,6 +3190,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             cursor: not-allowed;
             pointer-events: none;
         }
+        .btn-primary {
+            background: var(--accent); color: #000; font-weight: 600;
+            box-shadow: 0 1px 4px rgba(77,166,255,0.25);
+        }
+        .btn-primary:hover { filter: brightness(1.1); box-shadow: 0 2px 8px rgba(77,166,255,0.35); }
         .btn-sm { padding: 3px 8px; font-size: 12px; }
         .btn-xs { padding: 2px 6px; font-size: 11px; }
         .input-xs {
@@ -3402,13 +3426,18 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         #xsect-img.zoomed.panning { cursor: grabbing; }
         .zoom-controls {
             position: absolute; top: 8px; right: 8px; z-index: 2;
-            display: none; flex-direction: column; gap: 2px;
+            display: flex; flex-direction: column; gap: 2px;
+            opacity: 0; transition: opacity var(--transition-default) ease;
+            pointer-events: none;
         }
+        .zoom-controls.visible { opacity: 0.5; pointer-events: auto; }
+        .zoom-controls.visible:hover { opacity: 1; }
+        .zoom-controls.active { opacity: 1; pointer-events: auto; }
         .zoom-controls button {
-            width: 28px; height: 28px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+            width: 30px; height: 30px; border-radius: var(--radius-sm); border: 1px solid var(--border);
             background: rgba(30,30,30,0.85); color: var(--text); font-size: 14px;
             cursor: pointer; display: flex; align-items: center; justify-content: center;
-            backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px); transition: background var(--transition-fast);
         }
         .zoom-controls button:hover { background: var(--card); }
         #xsect-meta {
@@ -3608,9 +3637,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             border-radius: 3px; outline: none;
         }
         #fhr-slider::-webkit-slider-thumb {
-            -webkit-appearance: none; width: 16px; height: 16px;
+            -webkit-appearance: none; width: 20px; height: 20px;
             background: var(--accent); border-radius: 50%; cursor: pointer;
-            box-shadow: 0 0 4px rgba(77,166,255,0.4);
+            box-shadow: 0 0 6px rgba(77,166,255,0.4);
             transition: transform var(--transition-fast) ease, box-shadow var(--transition-fast) ease;
         }
         #fhr-slider::-webkit-slider-thumb:hover {
@@ -4926,7 +4955,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                             <option value="500">2x</option>
                             <option value="250">4x</option>
                         </select>
-                        <button id="prerender-btn" class="playback-btn" title="Pre-render all FHR frames for instant playback" aria-label="Pre-render frames" style="font-size:11px;">Pre-render</button>
+                        <button id="prerender-btn" class="playback-btn btn-primary" title="Pre-render all FHR frames for instant playback" aria-label="Pre-render frames" style="font-size:11px;">Pre-render</button>
                     </div>
                     <div id="context-hint" class="context-hint"></div>
                     <!-- Compare controls -->
@@ -4982,7 +5011,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                                     <button id="zoom-out-btn" title="Zoom out">&minus;</button>
                                     <button id="zoom-reset-btn" title="Reset zoom" style="font-size:10px;">1:1</button>
                                 </div>
-                                <div class="zoom-controls" id="xsect-actions" style="display:none;top:8px;left:8px;right:auto;">
+                                <div class="zoom-controls" id="xsect-actions" style="top:8px;left:8px;right:auto;">
                                     <button id="xsect-download-btn" title="Download cross-section PNG" style="font-size:12px;">&#8681;</button>
                                 </div>
                                 <div id="instructions" class="landing">
@@ -7975,6 +8004,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             slider.value = idx >= 0 ? idx : 0;
             slider.dataset.fhrMap = JSON.stringify(sorted);
             document.getElementById('slider-label').textContent = activeFhr != null ? fhrWithLocalTime(activeFhr) : '';
+            const counter = document.getElementById('frame-counter');
+            if (counter && sorted.length > 1) {
+                const idx = sorted.indexOf(activeFhr);
+                counter.textContent = `${(idx >= 0 ? idx : 0) + 1}/${sorted.length}`;
+            }
             updateFhrTicks(sorted);
             updateSliderFill();
         }
@@ -8014,6 +8048,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             document.getElementById('slider-label').textContent = fhrWithLocalTime(fhr);
             activeFhr = fhr;
             updateChipStates();
+            const fhrCounter = document.getElementById('frame-counter');
+            if (fhrCounter && fhrMap.length > 1) fhrCounter.textContent = `${parseInt(this.value) + 1}/${fhrMap.length}`;
 
             // Use prerendered frame if available
             if (prerenderedFrames[fhr]) {
@@ -8100,8 +8136,6 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             playBtn.innerHTML = '&#9646;&#9646;';
             playBtn.title = 'Pause (Space)';
             playBtn.classList.add('playing');
-            const counter = document.getElementById('frame-counter');
-            if (counter) counter.style.display = '';
             const speed = parseInt(document.getElementById('play-speed').value);
             const slider = document.getElementById('fhr-slider');
             const total = parseInt(slider.max) + 1;
@@ -8125,8 +8159,6 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             playBtn.innerHTML = '&#9654;';
             playBtn.title = 'Auto-play (Space)';
             playBtn.classList.remove('playing');
-            const counter = document.getElementById('frame-counter');
-            if (counter) counter.style.display = 'none';
             if (playInterval) {
                 clearInterval(playInterval);
                 playInterval = null;
@@ -8237,7 +8269,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             xsApplyTransform();
             const img = document.getElementById('xsect-img');
             if (img) { img.classList.remove('zoomed', 'panning'); }
-            document.getElementById('zoom-controls').style.display = 'none';
+            document.getElementById('zoom-controls').classList.remove('active');
         }
 
         function xsApplyTransform() {
@@ -8247,12 +8279,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 img.style.transform = '';
                 img.style.transformOrigin = '';
                 img.classList.remove('zoomed');
-                document.getElementById('zoom-controls').style.display = 'none';
+                document.getElementById('zoom-controls').classList.remove('active');
             } else {
                 img.style.transform = `scale(${xsZoom}) translate(${xsPanX}px, ${xsPanY}px)`;
                 img.style.transformOrigin = 'center center';
                 img.classList.add('zoomed');
-                document.getElementById('zoom-controls').style.display = 'flex';
+                document.getElementById('zoom-controls').classList.add('active');
             }
         }
 
@@ -9535,6 +9567,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 img.alt = `${style} cross-section F${String(activeFhr).padStart(2,'0')}`;
                 img.onload = () => {
                     img.classList.add('loaded');
+                    // Show zoom controls at low opacity
+                    document.getElementById('zoom-controls').classList.add('visible');
+                    document.getElementById('xsect-actions').classList.add('visible');
                     // Update peek image for collapsed panel
                     const peekImg = document.getElementById('peek-img');
                     if (peekImg) peekImg.src = img.src;
