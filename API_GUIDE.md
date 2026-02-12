@@ -293,15 +293,18 @@ All products include terrain shading, wind barbs, theta contours, and the 0C fre
 |-------|-----------|--------|--------|----------------|
 | **HRRR** | 3km | CONUS | Hourly (24/day) | F00-F18 (F00-F48 for 00/06/12/18z) |
 | **GFS** | 0.25deg | Global | 4x/day (00/06/12/18z) | F00-F48 |
-| **RRFS** | 3km | CONUS | Hourly (24/day) | F00-F18 |
+| **RRFS** | 3km | CONUS | 00-12z hourly, 15/18/21z | F00-F18 (F00-F60 hourly + F63-F84 3h for 00/06/12/18z) |
+| **NAM** | 12km | CONUS | 4x/day (00/06/12/18z) | F00-F36 hourly, F39-F84 3-hourly |
+| **RAP** | 13km | CONUS | Hourly (24/day) | F00-F21 (F00-F51 extended) |
+| **NAM-Nest** | 3km | CONUS | 4x/day (00/06/12/18z) | F00-F60 hourly |
 
 - **Vertical:** 40 pressure levels, 1000 hPa to 50 hPa
 - Typically 12+ recent cycles available per model
 
 ## Rate Limits
 
-- 60 requests per minute per IP
-- Burst: 10 requests per second
+- 240 requests per minute per IP
+- Burst: 40 requests per second
 - Max 4 concurrent renders server-wide
 - If you get a `503`, wait a few seconds and retry
 

@@ -303,11 +303,14 @@ def get_pending_work(model, max_hours=None):
         syn = get_latest_synoptic_cycle()
         if syn:
             syn_date, syn_hour = syn
-            max_ext = 49 if model == 'hrrr' else 85  # HRRR F48, RRFS F84
+            if model == 'hrrr':
+                ext_fhrs = list(range(19, 49))  # F19-F48 hourly
+            else:  # rrfs
+                ext_fhrs = list(range(19, 61)) + list(range(63, 85, 3))  # F19-F60 hourly, F63-F84 3-hourly
             run_dir = get_base_dir(model) / syn_date / f"{syn_hour:02d}z"
             patterns = MODEL_REQUIRED_PATTERNS.get(model, ['*.grib2'])
             work_set = {(d, h, f) for d, h, f in work}
-            for fhr in range(19, max_ext):
+            for fhr in ext_fhrs:
                 fhr_dir = run_dir / f"F{fhr:02d}"
                 if fhr_dir.exists() and all(list(fhr_dir.glob(p)) for p in patterns):
                     continue  # Already downloaded
@@ -505,15 +508,19 @@ def run_update_cycle_for_model(model, max_hours=None):
         except Exception as e:
             logger.warning(f"[{model.upper()}] Failed to update {date_str}/{hour:02d}z: {e}")
 
-    # Extended synoptic FHRs: HRRR F19-F48, RRFS F19-F84
+    # Extended synoptic FHRs: HRRR F19-F48, RRFS F19-F60 hourly + F63-F84 3-hourly
     if model in ('hrrr', 'rrfs'):
         max_ext_fhr = 48 if model == 'hrrr' else 84
+        if model == 'hrrr':
+            ext_fhr_list = list(range(19, 49))
+        else:  # rrfs: F19-F60 hourly, F63-F84 3-hourly
+            ext_fhr_list = list(range(19, 61)) + list(range(63, 85, 3))
         syn = get_latest_synoptic_cycle()
         if syn:
             syn_date, syn_hour = syn
             try:
                 existing = get_downloaded_fhrs(model, syn_date, syn_hour, max_fhr=max_ext_fhr)
-                extended_needed = [f for f in range(19, max_ext_fhr + 1) if f not in existing]
+                extended_needed = [f for f in ext_fhr_list if f not in existing]
                 if extended_needed:
                     logger.info(f"[{model.upper()}] Extended: {syn_date}/{syn_hour:02d}z needs "
                                 f"F{extended_needed[0]:02d}-F{extended_needed[-1]:02d}")

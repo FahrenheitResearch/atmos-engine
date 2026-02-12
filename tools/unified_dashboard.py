@@ -905,7 +905,7 @@ def get_model_fhr_list(model_name: str, cycle_hour: int = None) -> list:
     if model_name == 'hrrr' and cycle_hour is not None and cycle_hour in SYNOPTIC_HOURS:
         return list(range(49))  # F00-F48 every hour
     if model_name == 'rrfs' and cycle_hour is not None and cycle_hour in SYNOPTIC_HOURS:
-        return list(range(85))  # F00-F84 every hour
+        return list(range(61)) + list(range(63, 85, 3))  # F00-F60 hourly, F63-F84 3-hourly
     if model_name == 'rap' and cycle_hour is not None and cycle_hour in {3, 9, 15, 21}:
         return list(range(52))  # F00-F51 every hour (extended)
     return MODEL_FORECAST_HOURS.get(model_name, list(range(19)))
