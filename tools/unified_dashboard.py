@@ -3968,11 +3968,16 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <div class="xsect-panel" id="panel-primary">
                             <div class="xsect-panel-label" id="panel-primary-label"></div>
                             <div class="xsect-panel-body" id="xsect-container">
-                                <div id="instructions" style="text-align:center;padding:20px;">
-                                    <div style="font-size:20px;font-weight:700;color:var(--accent);margin-bottom:8px;letter-spacing:-0.5px;">wxsection</div>
-                                    <div style="font-size:13px;color:var(--muted);line-height:1.6;">
-                                        Click two points on the map to draw a cross-section line.<br>
-                                        Use <b style="color:var(--text);">Quick Analysis</b> presets for instant workflow setup.
+                                <div id="instructions" style="text-align:center;padding:24px;max-width:380px;">
+                                    <div style="font-size:22px;font-weight:700;color:var(--accent);margin-bottom:6px;letter-spacing:-0.5px;">wxsection</div>
+                                    <div style="font-size:11px;color:var(--muted);margin-bottom:12px;letter-spacing:0.5px;text-transform:uppercase;">Real-Time Atmospheric Cross-Sections</div>
+                                    <div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:12px;">
+                                        Click two points on the map to see a vertical slice through the atmosphere.
+                                    </div>
+                                    <div style="font-size:11px;color:var(--muted);line-height:1.7;">
+                                        <b style="color:var(--text);">6 models</b> &middot; HRRR 3km, GFS, RRFS, NAM, RAP, NAM-Nest<br>
+                                        <b style="color:var(--text);">20 products</b> &middot; Temperature, wind, fire weather, moisture, dynamics<br>
+                                        <b style="color:var(--text);">Keyboard</b> &middot; Left/Right: FHR, Space: play, ?: help
                                     </div>
                                 </div>
                             </div>
@@ -5324,12 +5329,21 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             { name: 'Portland \u2192 Mt Hood', config: { start_lat: 45.50, start_lon: -122.65, end_lat: 45.37, end_lon: -121.70 }},
         ];
         const CONUS_PRESETS = [
+            // Mountain Terrain
             { name: 'Front Range (Denver)', config: { start_lat: 39.7, start_lon: -105.5, end_lat: 39.7, end_lon: -104.0 }},
-            { name: 'Great Plains Dryline', config: { start_lat: 35.0, start_lon: -101.0, end_lat: 35.0, end_lon: -97.0 }},
-            { name: 'Appalachian Crest', config: { start_lat: 37.5, start_lon: -81.5, end_lat: 37.5, end_lon: -78.5 }},
-            { name: 'Gulf Coast Sea Breeze', config: { start_lat: 29.5, start_lon: -95.5, end_lat: 30.5, end_lon: -95.5 }},
-            { name: 'Great Lakes Effect', config: { start_lat: 43.0, start_lon: -80.0, end_lat: 43.0, end_lon: -76.0 }},
             { name: 'Wasatch Front', config: { start_lat: 40.75, start_lon: -112.2, end_lat: 40.75, end_lon: -111.0 }},
+            { name: 'Sierra Nevada Crest', config: { start_lat: 37.0, start_lon: -121.0, end_lat: 37.0, end_lon: -118.0 }},
+            { name: 'Appalachian Crest', config: { start_lat: 37.5, start_lon: -81.5, end_lat: 37.5, end_lon: -78.5 }},
+            // Severe Weather
+            { name: 'Great Plains Dryline', config: { start_lat: 35.0, start_lon: -101.0, end_lat: 35.0, end_lon: -97.0 }},
+            { name: 'Tornado Alley N-S', config: { start_lat: 38.0, start_lon: -97.5, end_lat: 33.0, end_lon: -97.5 }},
+            { name: 'Gulf Coast Sea Breeze', config: { start_lat: 29.5, start_lon: -95.5, end_lat: 30.5, end_lon: -95.5 }},
+            // Great Lakes & Northeast
+            { name: 'Great Lakes Effect', config: { start_lat: 43.0, start_lon: -80.0, end_lat: 43.0, end_lon: -76.0 }},
+            { name: 'NYC \u2192 Boston Corridor', config: { start_lat: 40.71, start_lon: -74.01, end_lat: 42.36, end_lon: -71.06 }},
+            // Cross-CONUS
+            { name: 'Denver \u2192 Chicago', config: { start_lat: 39.74, start_lon: -104.99, end_lat: 41.88, end_lon: -87.63 }},
+            { name: 'Seattle \u2192 Boise', config: { start_lat: 47.61, start_lon: -122.33, end_lat: 43.62, end_lon: -116.21 }},
         ];
 
         async function loadFavorites() {
