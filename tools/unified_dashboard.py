@@ -3883,6 +3883,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <button id="load-all-btn" style="padding:3px 8px;font-size:12px;" aria-label="Load all forecast hours">Load All</button>
                         <button id="gif-btn" style="padding:3px 8px;font-size:12px;" title="Generate animated GIF of cross-section loop" aria-label="Generate GIF">GIF</button>
                         <button id="compare-btn" style="padding:3px 8px;font-size:12px;" title="Compare two cycles side-by-side (C)" aria-label="Compare cycles">Compare</button>
+                        <button id="all-models-btn" style="padding:3px 8px;font-size:12px;" title="Compare this transect across all 6 models" aria-label="Compare all models">All Models</button>
                         <button id="share-btn" style="padding:3px 8px;font-size:12px;" title="Copy shareable link to clipboard" aria-label="Share link">Share</button>
                         <button id="save-btn" style="padding:3px 8px;font-size:12px;" title="Download cross-section as PNG" aria-label="Save image">Save</button>
                         <button id="help-btn" style="padding:3px 8px;font-size:12px;" title="Keyboard shortcuts and guide (?)" aria-label="Open guide">Guide</button>
@@ -3935,12 +3936,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             <div class="tab-content" id="tab-events">
                 <div id="event-list-view">
                     <input type="text" id="event-search" placeholder="Search events..." aria-label="Search events" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 12px;font-size:13px;margin-bottom:8px;">
+                    <div id="event-cat-pills" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;"></div>
                     <div class="ctrl-row" style="margin-bottom:8px;">
-                        <label style="font-size:11px;">Filter:</label>
-                        <select id="event-category-filter" aria-label="Event category filter" style="font-size:11px;min-width:80px;">
+                        <select id="event-category-filter" aria-label="Event category filter" style="font-size:11px;min-width:80px;display:none;">
                             <option value="">All Categories</option>
                         </select>
-                        <label><input type="checkbox" id="event-coords-only" style="margin-right:4px;">With coords</label>
+                        <label style="font-size:10px;"><input type="checkbox" id="event-coords-only" style="margin-right:4px;">With coordinates only</label>
                     </div>
                     <div id="event-list" style="flex:1;overflow-y:auto;"></div>
                 </div>
@@ -7090,6 +7091,20 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             });
         });
 
+        // "All Models" one-click compare
+        document.getElementById('all-models-btn').addEventListener('click', () => {
+            if (!startMarker || !endMarker) { showToast('Draw a cross-section first', 'warning'); return; }
+            if (activeFhr === null) { showToast('Select a forecast hour first', 'warning'); return; }
+            // Activate multi-panel model mode
+            mpModeSelect.value = 'model';
+            mpModeSelect.dispatchEvent(new Event('change'));
+            // Select all models
+            setTimeout(() => {
+                document.querySelectorAll('#mp-model-checkboxes .mp-chip').forEach(c => c.classList.add('selected'));
+                generateMultiPanel();
+            }, 50);
+        });
+
         async function generateMultiPanel() {
             if (!startMarker || !endMarker || !multiPanelMode) return;
             if (activeFhr === null) return;
@@ -8603,17 +8618,56 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             container.innerHTML = html || '<div style="color:var(--muted);text-align:center;padding:20px;">No events found</div>';
         }
 
-        // Populate category filter dropdown
+        // Populate category filter pills + dropdown
         function populateEventCategories() {
             const sel = document.getElementById('event-category-filter');
+            const pillsEl = document.getElementById('event-cat-pills');
             if (!sel) return;
             const cats = {};
             allEvents.forEach(e => { cats[e.category] = (cats[e.category] || 0) + 1; });
+            const catColors = {
+                'fire-ca': '#f97316', 'fire-pnw': '#22c55e', 'fire-co': '#3b82f6',
+                'fire-sw': '#ef4444', 'hurricane': '#06b6d4', 'tornado': '#a855f7',
+                'derecho': '#eab308', 'hail': '#d946ef', 'ar': '#0ea5e9',
+                'winter': '#94a3b8', 'other': '#64748b',
+            };
+            // Add "All" pill
+            if (pillsEl) {
+                pillsEl.innerHTML = '';
+                const allPill = document.createElement('span');
+                allPill.className = 'event-cat-pill active';
+                allPill.dataset.cat = '';
+                allPill.textContent = `All (${allEvents.length})`;
+                allPill.style.cssText = 'padding:2px 8px;border-radius:10px;font-size:10px;cursor:pointer;border:1px solid var(--accent);color:var(--accent);background:rgba(14,165,233,0.15);';
+                allPill.onclick = () => selectEventCatPill('');
+                pillsEl.appendChild(allPill);
+                Object.keys(cats).sort().forEach(cat => {
+                    const color = catColors[cat] || '#64748b';
+                    const pill = document.createElement('span');
+                    pill.className = 'event-cat-pill';
+                    pill.dataset.cat = cat;
+                    pill.textContent = `${cat} (${cats[cat]})`;
+                    pill.style.cssText = `padding:2px 8px;border-radius:10px;font-size:10px;cursor:pointer;border:1px solid ${color};color:${color};opacity:0.7;transition:all 0.1s;`;
+                    pill.onclick = () => selectEventCatPill(cat);
+                    pillsEl.appendChild(pill);
+                });
+            }
+            // Hidden select fallback
             Object.keys(cats).sort().forEach(cat => {
                 const opt = document.createElement('option');
                 opt.value = cat;
                 opt.textContent = `${cat} (${cats[cat]})`;
                 sel.appendChild(opt);
+            });
+        }
+        function selectEventCatPill(cat) {
+            const sel = document.getElementById('event-category-filter');
+            if (sel) { sel.value = cat; sel.dispatchEvent(new Event('change')); }
+            document.querySelectorAll('.event-cat-pill').forEach(p => {
+                const isActive = p.dataset.cat === cat;
+                p.classList.toggle('active', isActive);
+                p.style.opacity = isActive ? '1' : '0.7';
+                p.style.background = isActive ? `rgba(${p.dataset.cat === '' ? '14,165,233' : '255,255,255'},0.15)` : 'transparent';
             });
         }
 
