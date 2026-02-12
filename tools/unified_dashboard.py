@@ -4226,12 +4226,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
         // Workflow presets
         const WORKFLOWS = {
-            fire_weather: { style: 'wind_speed', overlay: 'fire_weather', y_top: '700' },
-            severe: { style: 'composite', overlay: 'severe_weather', y_top: '100' },
-            upper_air: { style: 'temperature', overlay: 'upper_500', y_top: '100' },
-            moisture: { style: 'relative_humidity', overlay: 'moisture', y_top: '300' },
-            jet_stream: { style: 'wind_speed', overlay: 'upper_250', y_top: '100' },
-            surface: { style: 'temperature', overlay: 'surface_analysis', y_top: '500' },
+            fire_weather: { style: 'fire_wx', fallback: 'vpd', overlay: 'fire_weather', y_top: '700' },
+            severe: { style: 'theta_e', overlay: 'severe_weather', y_top: '100' },
+            upper_air: { style: 'temp', overlay: 'upper_500', y_top: '100' },
+            moisture: { style: 'rh', overlay: 'moisture', y_top: '300' },
+            jet_stream: { style: 'wind_speed', fallback: 'temp', overlay: 'upper_250', y_top: '100' },
+            surface: { style: 'temp', overlay: 'surface_analysis', y_top: '500' },
             model_compare: { action: 'multi_model' },
             time_series: { action: 'multi_temporal' },
         };
@@ -4250,10 +4250,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     if (sel) { sel.value = 'temporal'; sel.dispatchEvent(new Event('change')); }
                     return;
                 }
-                // Set style
+                // Set style (skip if excluded for current model)
                 const styleSelect = document.getElementById('style-select');
-                if (styleSelect.querySelector('option[value="' + wf.style + '"]')) {
-                    styleSelect.value = wf.style;
+                const excluded = modelExcludedStyles[currentModel] || new Set();
+                const targetStyle = excluded.has(wf.style) ? (wf.fallback || 'temp') : wf.style;
+                const opt = styleSelect.querySelector('option[value="' + targetStyle + '"]');
+                if (opt && opt.style.display !== 'none') {
+                    styleSelect.value = targetStyle;
                     styleSelect.dispatchEvent(new Event('change'));
                 }
                 // Set y_top
