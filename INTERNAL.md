@@ -19,7 +19,7 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 | `core/map_overlay.py` | ~1,133 | Map overlay rendering. Reprojection (KDTree for curvilinear, bilinear for GFS), composite assembly (fill + contours + barbs), PNG/binary output |
 | `model_config.py` | ~320 | Model registry. 6 models (HRRR/GFS/RRFS/NAM/RAP/NAM-Nest) metadata, grid specs, download URLs, forecast hour lists |
 
-### Server + UI (1 file, ~14,656 lines)
+### Server + UI (1 file, ~14,757 lines)
 
 | File | Lines | What It Does |
 |------|-------|-------------|
@@ -37,7 +37,7 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
   - Frontend JS (~3,900 lines): model pills (partial/loaded indicators), FHR slider with tick marks + progress fill, FHR hover thumbnails, hero cross-section loader, smart product suggestions, visual product picker with category filter chips + text search, keyboard shortcuts (22 bindings), URL state (y_axis + overlay deep-link), user prefs, local timezone, GIF, events with emoji category pills + timeline canvas (hover tooltips), cities, transect preset library (18 in 4 categories + 36 in presets dropdown), quick-start loading (glow animation), guide modal (icons + fade transitions), recent transects, all-models compare (draggable divider), draw-mode feedback, distance/bearing label, XS hover readout + zoom/pan, playback prefetch (chip glow), comparison diff view with badge labels, context menu (fade-in animation), measurement tool, map coords readout, CONUS mini-map, geocoder search, image download export, overlay HUD badge, model-colored HUD, product strip hover states, settings API section
 - Lines 11130: Flask routes start — `/` serves HTML, `/og-preview.png` serves branded preview
 - Lines 11130-14370: All API route handlers (58 endpoints + og-preview)
-- Lines 14510-14656: Startup — argument parsing, preload, rescan thread, server launch
+- Lines 14610-14757: Startup — argument parsing, preload, rescan thread, server launch
 
 ### Download System (2 files, ~1,240 lines)
 
@@ -404,8 +404,14 @@ The map HUD model badge uses per-model colors: HRRR=cyan (#0ea5e9), GFS=purple (
 
 ### CSS Design System Variables
 Custom properties for consistent design:
-- `--transition-fast: 0.12s`, `--transition-default: 0.2s`, `--transition-slow: 0.35s`
-- `--surface: #253347`, `--surface-alt: #2d3f56` (mid-tone panel backgrounds)
+- **Transitions**: `--transition-fast: 0.12s`, `--transition-default: 0.2s`, `--transition-slow: 0.35s`
+- **Surfaces**: `--surface: #253347`, `--surface-alt: #2d3f56` (mid-tone panel backgrounds)
+- **Border radius**: `--radius-sm/md/lg/pill` (4/6/8/12px)
+- **Box shadow**: `--shadow-sm/md/lg/xl` (4 elevation levels)
+- **Z-index layers**: 18 named layers (`--z-base` through `--z-modal-top`) replacing scattered magic numbers
+- **Operation colors**: `--op-preload/autoload/download/prerender/autoupdate` for progress bars
+- **Region colors**: `--region-california/pnw/colorado/southwest/plains/southeast` for city chips
+- **Danger**: `--danger-light: #f87171` for error text/borders (used via `var(--danger-light)` everywhere)
 - Shared `MODEL_COLORS` JS constant for per-model coloring
 
 ### Settings Panel API Section
@@ -422,9 +428,6 @@ Inactive product pills in the quick-switch strip highlight on hover (background 
 
 ### Control Section Hover Accent
 Control sections (.ctrl-section) get a subtle left border accent in translucent cyan on hover, providing visual feedback for which section the user is interacting with.
-
-### CSS Design System Tokens (Extended)
-Root variables now include `--radius-sm/md/lg/pill` (4/6/8/12px), `--shadow-sm/md/lg/xl`, and `--danger-light` (#f87171). Border-radius and box-shadow in CSS classes use these variables instead of hardcoded values. Transitions reference `--transition-fast/default/slow`.
 
 ### Dynamic Page Title
 Browser tab title updates to show current state: "HRRR 20260212_06z F03 | wxsection.com". Updated every 500ms via `updateHUD()`.
@@ -465,6 +468,33 @@ Intermediate breakpoint at 769-1024px (tablet landscape): narrower sidebar panel
 
 ### GIF Progress Feedback
 GIF button shows frame count during generation ("GIF 18f..."). Success toast includes frame count: "GIF saved (18 frames, 2.1 MB, 8.3s)".
+
+### Modal Backdrop Blur
+All modals (explainer, archive request, run request) use `backdrop-filter: blur(4px)` for depth-of-field effect behind the modal overlay.
+
+### Mapbox Controls Dark Theme
+Zoom/compass controls restyled with dark translucent background, blur backdrop, accent-hover, and inverted icons to match the dark UI theme. Focus-visible ring on keyboard navigation.
+
+### Button Disabled States
+Global `button:disabled` and `.toggle-btn:disabled` styles: 50% opacity, not-allowed cursor, pointer-events disabled. Applied consistently across all UI buttons.
+
+### FHR Chip Loading Spinner
+FHR chips in `.loading` state show a spinning border `::after` pseudo-element (8px circle, 0.6s rotation). Provides visual feedback during the ~15s load operation.
+
+### Error Panel Helper
+Reusable `showErrorPanel(container, message, retryAction)` function renders consistent error displays with optional retry button. Replaces 7 identical inline error patterns.
+
+### Empty State Guidance
+Empty search/filter results show secondary hint text: "Try a different term or clear the region filter" (cities), "Try removing category or date filters" (events).
+
+### List Item Hover Elevation
+City-item and event-item rows gain subtle `box-shadow: var(--shadow-sm)` on hover for depth affordance alongside existing background/border-color changes.
+
+### Colorbar Fade Transition
+Overlay colorbar fades out with 200ms opacity transition instead of instant `display:none`. Uses CSS transition property on the inline style.
+
+### Global Scrollbar Styling
+All scrollable containers use `scrollbar-width: thin; scrollbar-color: var(--border) transparent` (Firefox) and `::-webkit-scrollbar` styles (6px width, dark thumb with hover brightening).
 
 ## API Endpoint Count
 
