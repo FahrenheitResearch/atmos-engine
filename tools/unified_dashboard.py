@@ -8338,15 +8338,24 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const tempCmap = document.getElementById('temp-cmap-select')?.value || 'standard';
             const anomaly = anomalyMode ? 1 : 0;
             const poiParams = buildMarkersParam();
+
+            // Multi-panel comparison mode: fetch via /api/v1/comparison (may be cached from prerender)
+            const cmpParams = getComparisonParams();
+
             // Fetch in parallel batches of 4
             for (let i = 0; i < uncached.length; i += 4) {
                 const batch = uncached.slice(i, i + 4);
                 await Promise.all(batch.map(async fhr => {
                     try {
-                        const url = `/api/xsect?start_lat=${s.lat}&start_lon=${s.lng}` +
-                            `&end_lat=${e_m.lat}&end_lon=${e_m.lng}&cycle=${currentCycle}&fhr=${fhr}&style=${style}` +
-                            `&y_axis=${yAxis}&vscale=${vscale}&y_top=${ytop}&units=${units}&temp_cmap=${tempCmap}` +
-                            `&anomaly=${anomaly}${modelParam()}${poiParams}`;
+                        let url;
+                        if (cmpParams) {
+                            url = buildComparisonFetchUrl(fhr, cmpParams);
+                        } else {
+                            url = `/api/xsect?start_lat=${s.lat}&start_lon=${s.lng}` +
+                                `&end_lat=${e_m.lat}&end_lon=${e_m.lng}&cycle=${currentCycle}&fhr=${fhr}&style=${style}` +
+                                `&y_axis=${yAxis}&vscale=${vscale}&y_top=${ytop}&units=${units}&temp_cmap=${tempCmap}` +
+                                `&anomaly=${anomaly}${modelParam()}${poiParams}`;
+                        }
                         const res = await fetch(url);
                         if (res.ok) {
                             const blob = await res.blob();
@@ -8401,6 +8410,49 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             prerenderedFrames = {};
         }
 
+        // Helper: get current multi-panel comparison params for prerender/fetch
+        function getComparisonParams() {
+            if (!multiPanelMode || multiPanelMode === 'temporal') return null;
+            const params = { mode: multiPanelMode };
+            if (multiPanelMode === 'product') {
+                const chips = document.querySelectorAll('#mp-product-checkboxes .mp-chip.selected');
+                params.products = Array.from(chips).map(c => c.dataset.value);
+                if (params.products.length < 2) return null;
+            } else if (multiPanelMode === 'model') {
+                const chips = document.querySelectorAll('#mp-model-checkboxes .mp-chip.selected');
+                params.models = Array.from(chips).map(c => c.dataset.value);
+                if (params.models.length < 2) return null;
+            } else if (multiPanelMode === 'cycle') {
+                const mpCycle = document.getElementById('mp-cycle-select').value;
+                if (!mpCycle) return null;
+                params.cycles = [currentCycle, mpCycle];
+                params.cycle_match = multiPanelCycleMatch;
+            }
+            return params;
+        }
+
+        // Helper: build comparison fetch URL for a specific FHR
+        function buildComparisonFetchUrl(fhr, cmpParams) {
+            const s = startMarker.getLatLng();
+            const e_m = endMarker.getLatLng();
+            const style = document.getElementById('style-select').value;
+            const ytop = document.getElementById('ytop-select').value;
+            const units = document.getElementById('units-select').value;
+            const tempCmap = document.getElementById('temp-cmap-select')?.value || 'standard';
+            const poiParams = buildMarkersParam();
+            let url = `/api/v1/comparison?mode=${cmpParams.mode}` +
+                `&start_lat=${s.lat}&start_lon=${s.lng}` +
+                `&end_lat=${e_m.lat}&end_lon=${e_m.lng}` +
+                `&cycle=${currentCycle}&fhr=${fhr}` +
+                `&product=${style}&model=${currentModel}` +
+                `&y_axis=${currentYAxis}&y_top=${ytop}&units=${units}` +
+                `&temp_cmap=${tempCmap}${poiParams}`;
+            if (cmpParams.mode === 'product') url += `&products=${cmpParams.products.join(',')}`;
+            else if (cmpParams.mode === 'model') url += `&models=${cmpParams.models.join(',')}`;
+            else if (cmpParams.mode === 'cycle') url += `&cycles=${cmpParams.cycles.join(',')}&cycle_match=${cmpParams.cycle_match}`;
+            return url;
+        }
+
         document.getElementById('prerender-btn').addEventListener('click', async () => {
             if (!startMarker || !endMarker || !currentCycle) return;
 
@@ -8411,6 +8463,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const start = startMarker.getLatLng();
             const end = endMarker.getLatLng();
             const sorted = [...selectedFhrs].sort((a, b) => a - b);
+
+            // Detect multi-panel comparison mode
+            const cmpParams = getComparisonParams();
 
             const body = {
                 frames: sorted.map(fhr => ({cycle: currentCycle, fhr})),
@@ -8427,6 +8482,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             };
             const _mkrs = buildMarkersBody();
             if (_mkrs) body.markers = _mkrs;
+
+            // Add comparison params if in multi-panel mode
+            if (cmpParams) body.comparison = cmpParams;
 
             try {
                 const res = await fetch('/api/prerender', {
@@ -8453,18 +8511,32 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                             btn.disabled = false;
                             btn.textContent = 'Pre-render';
 
-                            // Fetch all frames as blob URLs
-                            const style = body.style;
-                            const baseParams = `start_lat=${body.start[0]}&start_lon=${body.start[1]}&end_lat=${body.end[0]}&end_lon=${body.end[1]}&style=${style}&y_axis=${body.y_axis}&vscale=${body.vscale}&y_top=${body.y_top}&units=${body.units}&temp_cmap=${body.temp_cmap}&anomaly=${body.anomaly ? '1' : '0'}&model=${currentModel}`;
+                            if (cmpParams) {
+                                // Fetch comparison frames (cached on server from prerender)
+                                for (const fhr of sorted) {
+                                    try {
+                                        const url = buildComparisonFetchUrl(fhr, cmpParams);
+                                        const fRes = await fetch(url);
+                                        if (fRes.ok) {
+                                            const blob = await fRes.blob();
+                                            prerenderedFrames[fhr] = URL.createObjectURL(blob);
+                                        }
+                                    } catch (e) { /* skip failed frames */ }
+                                }
+                            } else {
+                                // Fetch single-panel frames
+                                const style = body.style;
+                                const baseParams = `start_lat=${body.start[0]}&start_lon=${body.start[1]}&end_lat=${body.end[0]}&end_lon=${body.end[1]}&style=${style}&y_axis=${body.y_axis}&vscale=${body.vscale}&y_top=${body.y_top}&units=${body.units}&temp_cmap=${body.temp_cmap}&anomaly=${body.anomaly ? '1' : '0'}&model=${currentModel}`;
 
-                            for (const fhr of sorted) {
-                                try {
-                                    const fRes = await fetch(`/api/frame?cycle=${currentCycle}&fhr=${fhr}&${baseParams}`);
-                                    if (fRes.ok) {
-                                        const blob = await fRes.blob();
-                                        prerenderedFrames[fhr] = URL.createObjectURL(blob);
-                                    }
-                                } catch (e) { /* skip failed frames */ }
+                                for (const fhr of sorted) {
+                                    try {
+                                        const fRes = await fetch(`/api/frame?cycle=${currentCycle}&fhr=${fhr}&${baseParams}`);
+                                        if (fRes.ok) {
+                                            const blob = await fRes.blob();
+                                            prerenderedFrames[fhr] = URL.createObjectURL(blob);
+                                        }
+                                    } catch (e) { /* skip failed frames */ }
+                                }
                             }
                             showToast(`${sorted.length} frames pre-rendered`, 'success');
                         }
@@ -8951,6 +9023,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 if (opt.value === currentModel) chip.classList.add('selected');
                 chip.onclick = () => {
                     chip.classList.toggle('selected');
+                    invalidatePrerender();
                     const selected = container.querySelectorAll('.selected');
                     if (selected.length >= 2) generateMultiPanel();
                 };
@@ -8973,6 +9046,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 if (val === curStyle) chip.classList.add('selected');
                 chip.onclick = () => {
                     chip.classList.toggle('selected');
+                    invalidatePrerender();
                     const selected = container.querySelectorAll('.selected');
                     if (selected.length >= 2) generateMultiPanel();
                 };
@@ -8995,6 +9069,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         mpModeSelect.addEventListener('change', function() {
             const mode = this.value;
             multiPanelMode = mode;
+            invalidatePrerender();
 
             // Hide all mode sections
             Object.values(mpModeSections).forEach(el => el.style.display = 'none');
@@ -9955,12 +10030,36 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const speed = document.getElementById('gif-speed').value;
             const fhrMin = document.getElementById('gif-fhr-min').value;
             const fhrMax = document.getElementById('gif-fhr-max').value;
-            const url = `/api/xsect_gif?start_lat=${start.lat}&start_lon=${start.lng}` +
-                `&end_lat=${end.lat}&end_lon=${end.lng}&cycle=${currentCycle}&style=${style}` +
-                `&y_axis=${currentYAxis}&vscale=${vscale}&y_top=${ytop}&units=${units}&speed=${speed}` +
-                `&temp_cmap=${document.getElementById('temp-cmap-select').value}` +
-                `&anomaly=${anomalyMode ? 1 : 0}${modelParam()}` +
-                (fhrMin ? `&fhr_min=${fhrMin}` : '') + (fhrMax ? `&fhr_max=${fhrMax}` : '');
+            const tempCmap = document.getElementById('temp-cmap-select').value;
+            const poiParams = buildMarkersParam();
+
+            // Multi-panel comparison mode: use /api/v1/comparison/gif
+            const cmpParams = getComparisonParams();
+            let url;
+            let downloadName;
+            if (cmpParams) {
+                url = `/api/v1/comparison/gif?mode=${cmpParams.mode}` +
+                    `&start_lat=${start.lat}&start_lon=${start.lng}` +
+                    `&end_lat=${end.lat}&end_lon=${end.lng}` +
+                    `&cycle=${currentCycle}&product=${style}` +
+                    `&model=${currentModel}&y_axis=${currentYAxis}` +
+                    `&y_top=${ytop}&units=${units}&speed=${speed}` +
+                    `&temp_cmap=${tempCmap}${poiParams}` +
+                    (fhrMin ? `&fhr_min=${fhrMin}` : '') +
+                    (fhrMax ? `&fhr_max=${fhrMax}` : '');
+                if (cmpParams.mode === 'product') url += `&products=${cmpParams.products.join(',')}`;
+                else if (cmpParams.mode === 'model') url += `&models=${cmpParams.models.join(',')}`;
+                else if (cmpParams.mode === 'cycle') url += `&cycles=${cmpParams.cycles.join(',')}&cycle_match=${cmpParams.cycle_match}`;
+                downloadName = `comparison_${cmpParams.mode}_${currentCycle}.gif`;
+            } else {
+                url = `/api/xsect_gif?start_lat=${start.lat}&start_lon=${start.lng}` +
+                    `&end_lat=${end.lat}&end_lon=${end.lng}&cycle=${currentCycle}&style=${style}` +
+                    `&y_axis=${currentYAxis}&vscale=${vscale}&y_top=${ytop}&units=${units}&speed=${speed}` +
+                    `&temp_cmap=${tempCmap}` +
+                    `&anomaly=${anomalyMode ? 1 : 0}${modelParam()}` +
+                    (fhrMin ? `&fhr_min=${fhrMin}` : '') + (fhrMax ? `&fhr_max=${fhrMax}` : '');
+                downloadName = `xsect_${currentCycle}_${style}.gif`;
+            }
             try {
                 const t0 = performance.now();
                 const res = await fetch(url);
@@ -9977,7 +10076,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(blob);
-                a.download = `xsect_${currentCycle}_${style}.gif`;
+                a.download = downloadName;
                 a.click();
                 URL.revokeObjectURL(a.href);
                 const sizeMB = (blob.size / 1048576).toFixed(1);
@@ -12670,9 +12769,9 @@ def api_v1_cross_section_gif():
 # MULTI-PANEL COMPARISON API
 # =============================================================================
 
-def comparison_cache_key(mode, params_key, start, end, y_axis, y_top, units, temp_cmap):
+def comparison_cache_key(mode, model, cycle_key, fhr, params_key, start, end, y_axis, y_top, units, temp_cmap):
     """Deterministic cache key for a comparison image."""
-    return f"cmp:{mode}:{params_key}:{start[0]:.4f},{start[1]:.4f}:{end[0]:.4f},{end[1]:.4f}:{y_axis}:{y_top}:{units}:{temp_cmap}"
+    return f"cmp:{mode}:{model}:{cycle_key}:F{fhr:02d}:{params_key}:{start[0]:.4f},{start[1]:.4f}:{end[0]:.4f},{end[1]:.4f}:{y_axis}:{y_top}:{units}:{temp_cmap}"
 
 
 @app.route('/api/v1/comparison')
@@ -12723,6 +12822,33 @@ def api_v1_comparison():
     if temp_cmap not in ('standard', 'green_purple', 'white_zero', 'nws_ndfd'):
         temp_cmap = 'standard'
     markers, marker, marker_label = _parse_markers(request.args)
+
+    # Build params_key for caching based on mode-specific params
+    if mode == 'model':
+        _pk_items = sorted(m.strip().lower() for m in request.args.get('models', '').split(',') if m.strip())
+        params_key = '+'.join(_pk_items) + ':' + product
+    elif mode == 'product':
+        _pk_items = sorted(p.strip() for p in request.args.get('products', '').split(',') if p.strip())
+        params_key = '+'.join(_pk_items)
+    elif mode == 'temporal':
+        params_key = request.args.get('fhrs', '') + ':' + product
+    elif mode == 'cycle':
+        _pk_items = sorted(c.strip() for c in request.args.get('cycles', '').split(',') if c.strip())
+        params_key = '+'.join(_pk_items) + ':' + request.args.get('cycle_match', 'same_fhr') + ':' + product
+    else:
+        params_key = ''
+
+    # Resolve cycle for cache key
+    _cache_mgr = model_registry.get(model_name)
+    _cache_cycle = _cache_mgr.resolve_cycle(cycle_raw, fhr) if _cache_mgr else cycle_raw
+    cache_key = comparison_cache_key(mode, model_name, _cache_cycle or cycle_raw, fhr, params_key, start, end, y_axis, y_top, units, temp_cmap)
+
+    # Check cache first
+    cached = frame_cache_get(cache_key)
+    if cached is not None:
+        return send_file(io.BytesIO(cached), mimetype='image/png',
+                         headers={'Cache-Control': 'public, max-age=300',
+                                  'X-Cache': 'hit'})
 
     panels = []
     shared_colorbar = True
@@ -12944,7 +13070,11 @@ def api_v1_comparison():
     if png_bytes is None:
         return jsonify({'error': 'Render failed'}), 500
 
-    return send_file(io.BytesIO(png_bytes), mimetype='image/png')
+    # Cache the rendered comparison frame
+    frame_cache_put(cache_key, png_bytes)
+
+    return send_file(io.BytesIO(png_bytes), mimetype='image/png',
+                     headers={'X-Cache': 'miss'})
 
 
 @app.route('/api/v1/comparison/gif')
@@ -12952,11 +13082,11 @@ def api_v1_comparison():
 def api_v1_comparison_gif():
     """Generate animated GIF of multi-panel comparison across FHRs.
 
-    Works with mode=model and mode=product (FHR is the animation variable).
+    Works with mode=model, mode=product, and mode=cycle (FHR is the animation variable).
     """
     mode = request.args.get('mode', '')
-    if mode not in ('model', 'product'):
-        return jsonify({'error': 'GIF comparison only supports mode=model or mode=product'}), 400
+    if mode not in ('model', 'product', 'cycle'):
+        return jsonify({'error': 'GIF comparison only supports mode=model, mode=product, or mode=cycle'}), 400
 
     try:
         start = (float(request.args['start_lat']), float(request.args['start_lon']))
@@ -13027,6 +13157,32 @@ def api_v1_comparison_gif():
                     if pd:
                         pd['style'] = s
                         pd['label'] = prod
+                        result_panels.append(pd)
+
+        elif mode == 'cycle':
+            from datetime import datetime, timedelta
+            cycles_raw = base_args.get('cycles', '')
+            cycle_list = [c.strip() for c in cycles_raw.split(',') if c.strip()]
+            cycle_match = base_args.get('cycle_match', 'same_fhr')
+            style = PRODUCT_TO_STYLE.get(base_args.get('product', 'temperature'), 'temperature')
+            for i, ck in enumerate(cycle_list):
+                this_fhr = fhr
+                if cycle_match == 'valid_time' and i > 0:
+                    try:
+                        base_cycle = next(c for c in mgr.available_cycles if c['cycle_key'] == cycle_list[0])
+                        this_cycle = next(c for c in mgr.available_cycles if c['cycle_key'] == ck)
+                        hour_diff = int((base_cycle['init_dt'] - this_cycle['init_dt']).total_seconds() / 3600)
+                        this_fhr = fhr + hour_diff
+                    except (StopIteration, KeyError, TypeError):
+                        pass
+                if mgr.ensure_loaded(ck, this_fhr):
+                    pd = mgr.get_panel_data(start, end, ck, this_fhr, style)
+                    if pd:
+                        try:
+                            cycle_info = next(c for c in mgr.available_cycles if c['cycle_key'] == ck)
+                            pd['label'] = f'{cycle_info["init_dt"].strftime("%HZ %b %d")} Init'
+                        except (StopIteration, KeyError, AttributeError):
+                            pd['label'] = ck
                         result_panels.append(pd)
 
         if len(result_panels) >= 2:
@@ -13113,10 +13269,15 @@ def api_v1_comparison_gif():
 @app.route('/api/prerender', methods=['POST'])
 @rate_limit
 def api_prerender():
-    """Batch prerender frames for slider/comparison. Returns session_id for progress polling.
+    """Batch prerender frames for slider playback. Returns session_id for progress polling.
 
     POST JSON: {frames: [{cycle, fhr}, ...], start: [lat, lon], end: [lat, lon],
-                style, y_axis, vscale, y_top, units, temp_cmap, anomaly, model}
+                style, y_axis, vscale, y_top, units, temp_cmap, anomaly, model,
+                comparison: {mode, products, models, cycles, cycle_match} (optional)}
+
+    When 'comparison' is provided, renders multi-panel composites per FHR instead
+    of single-panel frames. The results are cached with comparison-specific keys
+    so /api/v1/comparison returns instant cache hits during slider playback.
     """
     data = request.get_json()
     if not data:
@@ -13139,125 +13300,310 @@ def api_prerender():
     model = data.get('model', 'hrrr')
     markers, marker, marker_label = _parse_markers(data)
 
+    # Comparison mode (optional) — renders multi-panel composites instead of single panels
+    comparison = data.get('comparison')  # {mode, products, models, cycles, cycle_match}
+
     session_id = f"prerender:{int(time.time() * 1000)}"
 
-    def _render_batch():
-        mgr = model_registry.get(model)
-        if not mgr:
-            progress_update(session_id, 0, 1, "Unknown model", label="Pre-render failed")
-            progress_done(session_id)
-            return
+    if comparison:
+        # Multi-panel comparison prerender path
+        cmp_mode = comparison.get('mode', '')
+        cmp_products = comparison.get('products', [])
+        cmp_models = comparison.get('models', [])
+        cmp_cycles = comparison.get('cycles', [])
+        cmp_cycle_match = comparison.get('cycle_match', 'same_fhr')
 
-        total = len(frames)
-        progress_update(session_id, 0, total, "Starting...", label=f"Pre-rendering {total} frames")
+        # Build params_key for cache (same logic as /api/v1/comparison)
+        if cmp_mode == 'model':
+            params_key = '+'.join(sorted(m.lower() for m in cmp_models)) + ':' + style
+        elif cmp_mode == 'product':
+            params_key = '+'.join(sorted(cmp_products))
+        elif cmp_mode == 'cycle':
+            params_key = '+'.join(sorted(cmp_cycles)) + ':' + cmp_cycle_match + ':' + style
+        else:
+            params_key = ''
 
-        # Lock terrain to first frame for consistency
-        first = frames[0]
-        try:
-            terrain_data = mgr.get_terrain_data(start, end, first['cycle'], first['fhr'], style)
-        except Exception:
-            terrain_data = None
+        def _render_comparison_batch():
+            mgr = model_registry.get(model)
+            if not mgr:
+                progress_update(session_id, 0, 1, "Unknown model", label="Pre-render failed")
+                progress_done(session_id)
+                return
 
-        # Ensure all data is loaded first (sequential, fast from mmap cache)
-        render_frames = []
-        rendered = [0]  # mutable for closure
-        for frame in frames:
-            ck = frame['cycle']
-            fhr = int(frame['fhr'])
-            cache_key = frame_cache_key(model, ck, fhr, style, start, end, y_axis, vscale, y_top, units, temp_cmap, anomaly)
+            total = len(frames)
+            progress_update(session_id, 0, total, "Starting...",
+                            label=f"Pre-rendering {total} {cmp_mode} comparison frames")
 
-            if frame_cache_get(cache_key) is not None:
-                rendered[0] += 1
-                progress_update(session_id, rendered[0], total, f"F{fhr:02d} (cached)")
-                continue
+            rendered = [0]
+            render_tasks = []  # (fhr, cycle_key, cache_key)
 
-            try:
-                mgr.ensure_loaded(ck, fhr)
-                render_frames.append((ck, fhr, cache_key))
-            except Exception:
-                rendered[0] += 1
-                progress_update(session_id, rendered[0], total, f"F{fhr:02d} load failed")
+            for frame in frames:
+                ck = frame['cycle']
+                fhr = int(frame['fhr'])
+                ck_resolved = mgr.resolve_cycle(ck, fhr) or ck
+                c_key = comparison_cache_key(cmp_mode, model, ck_resolved, fhr, params_key,
+                                             start, end, y_axis, y_top, units, temp_cmap)
 
-        if not render_frames:
-            progress_done(session_id)
-            return
-
-        # Build args for multiprocess rendering — each worker gets everything it needs
-        pool_config = mgr.get_render_pool_config()
-        project_dir = str(Path(__file__).resolve().parent.parent)
-        worker_args = []
-        fhr_to_cache_key = {}
-        for ck, fhr, cache_key in render_frames:
-            info = mgr.get_render_info(ck, fhr)
-            if info is None:
-                rendered[0] += 1
-                progress_update(session_id, rendered[0], total, f"F{fhr:02d} no data")
-                continue
-            fhr_to_cache_key[info['engine_key']] = (fhr, cache_key)
-            worker_args.append((
-                info['grib_file'], info['engine_key'], start, end, style,
-                y_axis, vscale, y_top, units, temp_cmap, anomaly,
-                marker, marker_label, markers, info['metadata'], terrain_data,
-            ))
-
-        if not worker_args:
-            progress_done(session_id)
-            return
-
-        # Multiprocess render — persistent pool, each worker has its own GIL
-        from tools.render_worker import render_frame
-        try:
-            pool = _get_render_pool(pool_config, project_dir)
-            futures = {pool.submit(render_frame, args): args for args in worker_args}
-            for future in as_completed(futures):
-                try:
-                    engine_key, png_bytes = future.result(timeout=60)
-                except Exception as e:
-                    logger.error(f"Render worker error: {e}")
+                if frame_cache_get(c_key) is not None:
                     rendered[0] += 1
-                    progress_update(session_id, rendered[0], total, "worker error")
+                    progress_update(session_id, rendered[0], total, f"F{fhr:02d} (cached)")
                     continue
 
-                fhr, cache_key = fhr_to_cache_key.get(engine_key, (engine_key, None))
-                rendered[0] += 1
-                if png_bytes and cache_key:
-                    frame_cache_put(cache_key, png_bytes)
-                    progress_update(session_id, rendered[0], total, f"F{fhr:02d} rendered")
+                render_tasks.append((fhr, ck, ck_resolved, c_key))
+
+            if not render_tasks:
+                progress_done(session_id)
+                return
+
+            # Gather panel data and render multi-panel composites
+            pool_config = mgr.get_render_pool_config()
+            project_dir = str(Path(__file__).resolve().parent.parent)
+            from tools.render_worker import render_multi_panel as render_mp
+
+            # Phase 1: Gather panel data per FHR (sequential, fast from mmap)
+            per_fhr_work = {}  # fhr -> (panels, layout, shared_cb, cache_key)
+            for fhr, ck, ck_resolved, c_key in render_tasks:
+                if is_cancelled(session_id):
+                    break
+
+                result_panels = []
+                shared_colorbar = True
+
+                if cmp_mode == 'model':
+                    for m in cmp_models:
+                        m_mgr = model_registry.get(m.lower())
+                        m_ck = m_mgr.resolve_cycle(ck, fhr)
+                        if m_ck and m_mgr.ensure_loaded(m_ck, fhr):
+                            s = PRODUCT_TO_STYLE.get(style, style)
+                            pd = m_mgr.get_panel_data(start, end, m_ck, fhr, s)
+                            if pd:
+                                pd['label'] = m.upper()
+                                result_panels.append(pd)
+
+                elif cmp_mode == 'product':
+                    shared_colorbar = False
+                    if mgr.ensure_loaded(ck_resolved, fhr):
+                        for prod in cmp_products:
+                            s = PRODUCT_TO_STYLE.get(prod, prod)
+                            pd = mgr.get_panel_data(start, end, ck_resolved, fhr, s)
+                            if pd:
+                                pd['style'] = s
+                                pd['label'] = prod
+                                result_panels.append(pd)
+
+                elif cmp_mode == 'cycle':
+                    for c in cmp_cycles:
+                        c_mgr = model_registry.get(model)
+                        this_fhr = fhr
+                        if cmp_cycle_match == 'valid_time' and c != cmp_cycles[0]:
+                            try:
+                                base_cycle = next(cc for cc in c_mgr.available_cycles if cc['cycle_key'] == cmp_cycles[0])
+                                this_cycle = next(cc for cc in c_mgr.available_cycles if cc['cycle_key'] == c)
+                                hour_diff = int((base_cycle['init_dt'] - this_cycle['init_dt']).total_seconds() / 3600)
+                                this_fhr = fhr + hour_diff
+                            except (StopIteration, KeyError, TypeError):
+                                pass
+                        if c_mgr.ensure_loaded(c, this_fhr):
+                            s = PRODUCT_TO_STYLE.get(style, style)
+                            pd = c_mgr.get_panel_data(start, end, c, this_fhr, s)
+                            if pd:
+                                try:
+                                    cycle_info = next(cc for cc in c_mgr.available_cycles if cc['cycle_key'] == c)
+                                    pd['label'] = f'{cycle_info["init_dt"].strftime("%HZ %b %d")} Init'
+                                except (StopIteration, KeyError, AttributeError):
+                                    pd['label'] = c
+                                result_panels.append(pd)
+
+                if len(result_panels) >= 2:
+                    n = len(result_panels)
+                    if cmp_mode == 'product':
+                        layout = {2: '2x1', 3: '3x1', 4: '2x2'}.get(n, '2x1')
+                    else:
+                        layout = {2: '1x2', 3: '1x3', 4: '1x4'}.get(n, '1x2')
+                    per_fhr_work[fhr] = (result_panels, layout, shared_colorbar, c_key)
                 else:
-                    progress_update(session_id, rendered[0], total, f"F{fhr:02d} failed")
+                    rendered[0] += 1
+                    progress_update(session_id, rendered[0], total, f"F{fhr:02d} insufficient panels")
 
-                if is_cancelled(session_id):
-                    for f in futures:
-                        f.cancel()
-                    logger.info(f"Pre-render CANCELLED at {rendered[0]}/{total}")
-                    PROGRESS[session_id]['detail'] = 'Cancelled'
-                    break
-        except Exception as e:
-            logger.error(f"Process pool error: {e}, falling back to threaded render")
-            # Kill the broken pool so next prerender creates a fresh one
-            shutdown_render_pool()
-            # Fallback to single-threaded if process pool fails
-            for ck, fhr, cache_key in render_frames:
-                if is_cancelled(session_id):
-                    break
+            # Phase 2: Render multi-panel composites via process pool
+            if per_fhr_work:
                 try:
-                    buf = mgr.generate_cross_section(
-                        start, end, ck, fhr, style, y_axis, vscale, y_top,
-                        units=units, terrain_data=terrain_data,
-                        temp_cmap=temp_cmap, anomaly=anomaly,
-                        marker=marker, marker_label=marker_label, markers=markers
-                    )
-                    if buf:
-                        frame_cache_put(cache_key, buf.getvalue())
+                    pool = _get_render_pool(pool_config, project_dir)
+                    futures = {}
+                    for fhr, (panels, layout, shared_cb, c_key) in per_fhr_work.items():
+                        render_kwargs = dict(layout=layout, shared_colorbar=shared_cb,
+                                             dpi=100, y_axis=y_axis, y_top=y_top,
+                                             units=units, temp_cmap=temp_cmap,
+                                             marker=marker, marker_label=marker_label,
+                                             markers=markers)
+                        fut = pool.submit(render_mp, (panels, render_kwargs))
+                        futures[fut] = (fhr, c_key)
+
+                    for future in as_completed(futures):
+                        fhr, c_key = futures[future]
+                        try:
+                            png = future.result(timeout=60)
+                            rendered[0] += 1
+                            if png:
+                                frame_cache_put(c_key, png)
+                                progress_update(session_id, rendered[0], total, f"F{fhr:02d} rendered")
+                            else:
+                                progress_update(session_id, rendered[0], total, f"F{fhr:02d} failed")
+                        except Exception as e:
+                            logger.error(f"Comparison render worker error: {e}")
+                            rendered[0] += 1
+                            progress_update(session_id, rendered[0], total, f"F{fhr:02d} error")
+
+                        if is_cancelled(session_id):
+                            for f in futures:
+                                f.cancel()
+                            PROGRESS[session_id]['detail'] = 'Cancelled'
+                            break
+                except Exception as e:
+                    logger.error(f"Comparison prerender pool error: {e}")
+                    shutdown_render_pool()
+                    # Fallback: sequential render in main process
+                    for fhr, (panels, layout, shared_cb, c_key) in per_fhr_work.items():
+                        if is_cancelled(session_id):
+                            break
+                        try:
+                            eng = mgr.xsect
+                            png = eng.render_multi_panel(
+                                panels, layout=layout, shared_colorbar=shared_cb,
+                                dpi=100, y_axis=y_axis, y_top=y_top,
+                                units=units, temp_cmap=temp_cmap,
+                                marker=marker, marker_label=marker_label,
+                                markers=markers)
+                            if png:
+                                frame_cache_put(c_key, png)
+                        except Exception:
+                            pass
+                        rendered[0] += 1
+                        progress_update(session_id, rendered[0], total, f"F{fhr:02d} (fallback)")
+
+            progress_done(session_id)
+            CANCEL_FLAGS.pop(session_id, None)
+
+        threading.Thread(target=_render_comparison_batch, daemon=True).start()
+    else:
+        # Standard single-panel prerender path
+        def _render_batch():
+            mgr = model_registry.get(model)
+            if not mgr:
+                progress_update(session_id, 0, 1, "Unknown model", label="Pre-render failed")
+                progress_done(session_id)
+                return
+
+            total = len(frames)
+            progress_update(session_id, 0, total, "Starting...", label=f"Pre-rendering {total} frames")
+
+            # Lock terrain to first frame for consistency
+            first = frames[0]
+            try:
+                terrain_data = mgr.get_terrain_data(start, end, first['cycle'], first['fhr'], style)
+            except Exception:
+                terrain_data = None
+
+            # Ensure all data is loaded first (sequential, fast from mmap cache)
+            render_frames = []
+            rendered = [0]  # mutable for closure
+            for frame in frames:
+                ck = frame['cycle']
+                fhr = int(frame['fhr'])
+                cache_key = frame_cache_key(model, ck, fhr, style, start, end, y_axis, vscale, y_top, units, temp_cmap, anomaly)
+
+                if frame_cache_get(cache_key) is not None:
+                    rendered[0] += 1
+                    progress_update(session_id, rendered[0], total, f"F{fhr:02d} (cached)")
+                    continue
+
+                try:
+                    mgr.ensure_loaded(ck, fhr)
+                    render_frames.append((ck, fhr, cache_key))
                 except Exception:
-                    pass
-                rendered[0] += 1
-                progress_update(session_id, rendered[0], total, f"F{fhr:02d} (fallback)")
+                    rendered[0] += 1
+                    progress_update(session_id, rendered[0], total, f"F{fhr:02d} load failed")
 
-        progress_done(session_id)
-        CANCEL_FLAGS.pop(session_id, None)
+            if not render_frames:
+                progress_done(session_id)
+                return
 
-    threading.Thread(target=_render_batch, daemon=True).start()
+            # Build args for multiprocess rendering — each worker gets everything it needs
+            pool_config = mgr.get_render_pool_config()
+            project_dir = str(Path(__file__).resolve().parent.parent)
+            worker_args = []
+            fhr_to_cache_key = {}
+            for ck, fhr, cache_key in render_frames:
+                info = mgr.get_render_info(ck, fhr)
+                if info is None:
+                    rendered[0] += 1
+                    progress_update(session_id, rendered[0], total, f"F{fhr:02d} no data")
+                    continue
+                fhr_to_cache_key[info['engine_key']] = (fhr, cache_key)
+                worker_args.append((
+                    info['grib_file'], info['engine_key'], start, end, style,
+                    y_axis, vscale, y_top, units, temp_cmap, anomaly,
+                    marker, marker_label, markers, info['metadata'], terrain_data,
+                ))
+
+            if not worker_args:
+                progress_done(session_id)
+                return
+
+            # Multiprocess render — persistent pool, each worker has its own GIL
+            from tools.render_worker import render_frame
+            try:
+                pool = _get_render_pool(pool_config, project_dir)
+                futures = {pool.submit(render_frame, args): args for args in worker_args}
+                for future in as_completed(futures):
+                    try:
+                        engine_key, png_bytes = future.result(timeout=60)
+                    except Exception as e:
+                        logger.error(f"Render worker error: {e}")
+                        rendered[0] += 1
+                        progress_update(session_id, rendered[0], total, "worker error")
+                        continue
+
+                    fhr, cache_key = fhr_to_cache_key.get(engine_key, (engine_key, None))
+                    rendered[0] += 1
+                    if png_bytes and cache_key:
+                        frame_cache_put(cache_key, png_bytes)
+                        progress_update(session_id, rendered[0], total, f"F{fhr:02d} rendered")
+                    else:
+                        progress_update(session_id, rendered[0], total, f"F{fhr:02d} failed")
+
+                    if is_cancelled(session_id):
+                        for f in futures:
+                            f.cancel()
+                        logger.info(f"Pre-render CANCELLED at {rendered[0]}/{total}")
+                        PROGRESS[session_id]['detail'] = 'Cancelled'
+                        break
+            except Exception as e:
+                logger.error(f"Process pool error: {e}, falling back to threaded render")
+                # Kill the broken pool so next prerender creates a fresh one
+                shutdown_render_pool()
+                # Fallback to single-threaded if process pool fails
+                for ck, fhr, cache_key in render_frames:
+                    if is_cancelled(session_id):
+                        break
+                    try:
+                        buf = mgr.generate_cross_section(
+                            start, end, ck, fhr, style, y_axis, vscale, y_top,
+                            units=units, terrain_data=terrain_data,
+                            temp_cmap=temp_cmap, anomaly=anomaly,
+                            marker=marker, marker_label=marker_label, markers=markers
+                        )
+                        if buf:
+                            frame_cache_put(cache_key, buf.getvalue())
+                    except Exception:
+                        pass
+                    rendered[0] += 1
+                    progress_update(session_id, rendered[0], total, f"F{fhr:02d} (fallback)")
+
+            progress_done(session_id)
+            CANCEL_FLAGS.pop(session_id, None)
+
+        threading.Thread(target=_render_batch, daemon=True).start()
 
     return jsonify({
         'session_id': session_id,
