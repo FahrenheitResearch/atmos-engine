@@ -2373,6 +2373,69 @@ class InteractiveCrossSection:
                           - 4.686035)
             result['wetbulb_overlay'] = Tw_overlay
 
+        if style == 'isentropic_ascent':
+            # Isentropic vertical motion: air ascending/descending along θ surfaces
+            # ω_isen = V_s · (∂p/∂s)|_θ  where V_s is section-parallel wind and
+            # (∂p/∂s)|_θ is the along-section pressure gradient on θ surfaces
+            # Positive = descent (sinking along isentrope), Negative = ascent (rising)
+            from scipy.ndimage import gaussian_filter
+
+            theta = result.get('theta')
+            u = result.get('u_wind')
+            v = result.get('v_wind')
+            omega_raw = None
+            if fhr_data.omega is not None:
+                omega_raw = interp_3d(fhr_data.omega)
+
+            if theta is not None and u is not None and v is not None:
+                try:
+                    sigma_val = 1.5
+                    theta_smooth = gaussian_filter(theta, sigma=sigma_val)
+                    u_smooth = gaussian_filter(u, sigma=sigma_val)
+                    v_smooth = gaussian_filter(v, sigma=sigma_val)
+
+                    distances_m = result['distances'] * 1000  # km to m
+                    p_levels_arr = np.asarray(fhr_data.pressure_levels, dtype=np.float64)
+
+                    # Section azimuth for wind projection
+                    dlat = path_lats[-1] - path_lats[0]
+                    dlon = path_lons[-1] - path_lons[0]
+                    azimuth = np.arctan2(dlon * np.cos(np.radians(np.mean(path_lats))), dlat)
+
+                    # Section-parallel wind (m/s)
+                    v_section = u_smooth * np.cos(azimuth) + v_smooth * np.sin(azimuth)
+
+                    n_lev, n_pts = theta_smooth.shape
+
+                    # Build pressure 2D array (n_levels, n_points)
+                    p_2d = np.broadcast_to(p_levels_arr[:, np.newaxis], (n_lev, n_pts)).copy()
+
+                    # Gradients along vertical (axis=0) and horizontal (axis=1)
+                    dtheta_dp = np.gradient(theta_smooth, axis=0)
+                    dp = np.gradient(p_2d, axis=0)
+                    dtheta_ds = np.gradient(theta_smooth, distances_m, axis=1)
+
+                    # Along-section pressure gradient on θ surfaces:
+                    # (∂p/∂s)|_θ = -(∂θ/∂s)|_p / (∂θ/∂p) * dp
+                    dtheta_dp_safe = np.where(np.abs(dtheta_dp) < 1e-6, -1e-6, dtheta_dp)
+                    dp_ds_theta = -dtheta_ds * dp / dtheta_dp_safe
+
+                    # Isentropic vertical motion: ω_isen = V_s · (∂p/∂s)|_θ
+                    # Units: (m/s) * (hPa/m) = hPa/s, convert to hPa/hr (*3600)
+                    omega_isen = v_section * dp_ds_theta * 3600.0
+
+                    # Replace any NaN/Inf from edge cases
+                    omega_isen = np.nan_to_num(omega_isen, nan=0.0, posinf=20.0, neginf=-20.0)
+                    omega_isen = gaussian_filter(omega_isen, sigma=0.8)
+                    omega_isen = np.clip(omega_isen, -20, 20)
+
+                    result['isentropic_ascent'] = omega_isen
+                except Exception as e:
+                    print(f"Isentropic ascent computation failed: {e}")
+                # Also store omega if computed for comparison
+                if omega_raw is not None:
+                    result['omega'] = omega_raw
+
         if style == 'frontogenesis':
             # Petterssen Kinematic Frontogenesis (Winter Bander Mode)
             # Compute frontogenesis on the cross-section using NumPy
@@ -2666,7 +2729,7 @@ class InteractiveCrossSection:
                     'specific_humidity', 'theta_e', 'shear', 'dew_point', 'frontogenesis',
                     'icing', 'wetbulb', 'lapse_rate',
                     'vpd', 'dewpoint_dep', 'moisture_transport', 'pv',
-                    'fire_wx', 'wetbulb_overlay',
+                    'fire_wx', 'wetbulb_overlay', 'isentropic_ascent',
                     'ice', 'rain', 'snow', 'graupel']:
             if key in data and data[key] is not None and data[key].ndim == 2:
                 data[key] = filter_levels(data[key])
@@ -3078,6 +3141,34 @@ class InteractiveCrossSection:
                         except:
                             pass
                 shading_label = "Fire Wx (RH + Wind)"
+        elif style == "isentropic_ascent":
+            isen = data.get('isentropic_ascent')
+            if isen is not None:
+                # Diverging: blue (ascent/negative ω) → white → red (descent/positive ω)
+                # Convention: negative = ascent (pressure falling along isentrope)
+                isen_colors = ['#08306b', '#2171b5', '#4292c6', '#9ecae1',
+                               '#f7f7f7',
+                               '#fcbba1', '#fb6a4a', '#cb181d', '#67000d']
+                isen_cmap = mcolors.LinearSegmentedColormap.from_list('isen', isen_colors, N=256)
+
+                # Auto-scale to data range, capped at ±15 hPa/hr
+                isen_max = min(np.nanpercentile(np.abs(isen), 98), 15)
+                if isen_max < 1:
+                    isen_max = 5  # Minimum range for weak cases
+                levels = np.linspace(-isen_max, isen_max, 21)
+                cf = ax.contourf(X, Y, isen, levels=levels, cmap=isen_cmap, extend='both')
+                cbar_ax = fig.add_axes([0.90, 0.12, 0.012, 0.68])
+                cbar = fig.colorbar(cf, cax=cbar_ax)
+                cbar.set_label('ω isentropic (hPa/hr)', fontsize=10)
+                # Zero line and strong ascent/descent contours
+                try:
+                    ax.contour(X, Y, isen, levels=[0], colors='black', linewidths=1.2, linestyles='-')
+                    strong = isen_max * 0.5
+                    ax.contour(X, Y, isen, levels=[-strong, strong],
+                              colors=['#08306b', '#67000d'], linewidths=1.5, linestyles='--')
+                except Exception:
+                    pass
+                shading_label = "Isentropic ω"
         else:
             # Default to theta shading
             if theta is not None:

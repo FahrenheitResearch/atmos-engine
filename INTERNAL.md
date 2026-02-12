@@ -11,33 +11,33 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 
 ## File Map (Where Everything Lives)
 
-### Core Engine (3 files, ~4,970 lines)
+### Core Engine (3 files, ~5,060 lines)
 
 | File | Lines | What It Does |
 |------|-------|-------------|
-| `core/cross_section_interactive.py` | ~3,515 | **The heart.** GRIB extraction, mmap cache, KDTree interp, all 21 product renderers, GFS CONUS subset, smoke lazy-load, comparison panels |
+| `core/cross_section_interactive.py` | ~3,605 | **The heart.** GRIB extraction, mmap cache, KDTree interp, all 21 product renderers (including isentropic ascent), GFS CONUS subset, smoke lazy-load, comparison panels |
 | `core/map_overlay.py` | ~1,133 | Map overlay rendering. Reprojection (KDTree for curvilinear, bilinear for GFS), composite assembly (fill + contours + barbs), PNG/binary output |
 | `model_config.py` | ~320 | Model registry. 6 models (HRRR/GFS/RRFS/NAM/RAP/NAM-Nest) metadata, grid specs, download URLs, forecast hour lists |
 
-### Server + UI (1 file, ~12,630 lines)
+### Server + UI (1 file, ~12,670 lines)
 
 | File | Lines | What It Does |
 |------|-------|-------------|
-| `tools/unified_dashboard.py` | ~12,630 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 57 API endpoints (34 v1 + 23 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects |
+| `tools/unified_dashboard.py` | ~12,670 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 57 API endpoints (34 v1 + 23 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects |
 
 **Key sections in unified_dashboard.py:**
-- Lines 1-1018: Imports, constants, overlay cache, helper functions, model config dicts
-- Lines 1019-1240: `CrossSectionManager` class — init, config, model management
-- Lines 1241-1720: `scan_available_cycles()`, `preload_latest_cycles()`, loading logic
-- Lines 1721-2464: `auto_load_latest()`, orchestration, prerender hooks
-- Lines 2478-9304: HTML template (inline, ~6,826 lines) — the entire frontend
+- Lines 1-1031: Imports, constants, overlay cache, helper functions, model config dicts
+- Lines 1032-1253: `CrossSectionManager` class — init, config, model management
+- Lines 1254-1720: `scan_available_cycles()`, `preload_latest_cycles()`, loading logic
+- Lines 1721-2477: `auto_load_latest()`, orchestration, prerender hooks
+- Lines 2478-9345: HTML template (inline, ~6,868 lines) — the entire frontend
   - CSS (~1,200 lines): Inter font, model pills, workflow grid, product picker, map HUD, dark theme with cyan accents, loading spinners
   - HTML body (~950 lines): icon sidebar (48px) + expanded panel (400px) + map + bottom slide-up
   - Mapbox GL JS map init + overlay controller (~2,100 lines): starts ~line 4500, double-buffered swap with 8s timeout
   - Frontend JS (~2,500 lines): model pills, FHR slider, visual product picker, keyboard shortcuts, URL state, GIF, events, cities, transect presets, quick-start, guide modal, recent transects
-- Lines 9310: Flask route `/` — serves HTML with token injection
-- Lines 9310-12493: All API route handlers (57 endpoints)
-- Lines 12494-12628: Startup — argument parsing, preload, rescan thread, server launch
+- Lines 9351: Flask route `/` — serves HTML with token injection
+- Lines 9351-12534: All API route handlers (57 endpoints)
+- Lines 12535-12669: Startup — argument parsing, preload, rescan thread, server launch
 
 ### Download System (2 files, ~1,240 lines)
 
@@ -62,7 +62,7 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 | `tools/agent_tools/frontal_analysis.py` | 1,078 | detect_wind_shifts, classify_overnight_conditions |
 | `tools/agent_tools/report_quality.py` | 803 | fire_report_checklist, validate_report_claims |
 
-### Regional Profile Data (6 files, ~42,000 lines, 258 cities)
+### Regional Profile Data (6 files, ~42,000 lines, 258 cities + 3 hardcoded = 261 total)
 
 | File | Lines | Cities |
 |------|-------|--------|
@@ -289,7 +289,7 @@ Visual 1-2-3 step guide ("Click A → Click B → Explore") with numbered circle
 ### Tabbed Guide Modal
 Help button opens a 3-tab modal:
 - **Getting Started**: visual steps, key features overview, quick shortcuts
-- **Products (20)**: clickable product reference cards (click to switch and close modal)
+- **Products (21)**: clickable product reference cards (click to switch and close modal)
 - **Shortcuts**: comprehensive keyboard shortcut grid organized by category
 
 ### New Cycle Notifications
@@ -297,6 +297,12 @@ Auto-refresh checks for new model cycles every 3 minutes. Shows toast with model
 
 ### Quick Analysis Workflows
 8 one-click workflow presets in a 4-column grid (sidebar buttons): Fire Weather, Severe, Upper Air, Moisture, Jet Stream, Surface, Model Compare, Time Series. Each sets style + overlay product + y_top.
+
+### Product Quick-Switch Strip
+After generating a cross-section, a row of small product pills appears below the image. Active product highlighted in cyan; click any pill to instantly switch products. Pills are grouped by category with colored dot separators (matching the product picker's group colors). Excluded products for the current model are hidden.
+
+### Recent Transects
+Last 5 cross-section transects saved to localStorage with dedup. Shows clickable "Recent transects" section on landing page for quick re-access. Functions: `getRecentTransects()`, `saveRecentTransect()`, `renderRecentTransects()`.
 
 ### Share & Save Buttons
 - Share: copies current URL (with all state) to clipboard
@@ -354,7 +360,7 @@ Current Oregon pilot: 7 zones × 22 agents = 154 agents per HRRR cycle
 5 tiers: Data Acquisition → Cross-Section → Assessment → Synthesis → Output
 
 Future vision:
-- Scale to all CONUS with 258 city profiles as seeds
+- Scale to all CONUS with 261 city profiles as seeds
 - Each city gets a team of agents every cycle
 - Agents compare model vs observations, detect anomalies
 - Towns that are "the main risk but don't know it" get proactive alerts

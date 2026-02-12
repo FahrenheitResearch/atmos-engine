@@ -131,7 +131,7 @@ PRODUCTS_INFO = [
     {'id': 'moisture_transport', 'name': 'Moisture Transport', 'units': 'g\u00b7m/kg/s'},
     {'id': 'pv', 'name': 'Potential Vorticity', 'units': 'PVU'},
     {'id': 'fire_wx', 'name': 'Fire Weather Composite', 'units': 'RH% + wind'},
-    {'id': 'isentropic_ascent', 'name': 'Isentropic Ascent', 'units': 'RH% + \u03c9 + V\u2097'},
+    {'id': 'isentropic_ascent', 'name': 'Isentropic Ascent', 'units': 'hPa/hr'},
 ]
 
 # --- Events cache (loaded once at import time) ---
@@ -7482,18 +7482,28 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 // Quick product strip below image
                 const strip = document.createElement('div');
                 strip.id = 'product-strip';
-                strip.style.cssText = 'display:flex;gap:3px;flex-wrap:wrap;justify-content:center;padding:4px 8px;';
+                strip.style.cssText = 'display:flex;gap:3px;flex-wrap:wrap;justify-content:center;padding:4px 8px;align-items:center;';
                 const excluded = modelExcludedStyles[currentModel] || new Set();
-                styleGroups.forEach(([, items]) => {
-                    items.forEach(([key, name]) => {
-                        if (excluded.has(key)) return;
+                let groupIdx = 0;
+                styleGroups.forEach(([groupName, items]) => {
+                    const visibleItems = items.filter(([key]) => !excluded.has(key));
+                    if (visibleItems.length === 0) return;
+                    if (groupIdx > 0) {
+                        const sep = document.createElement('span');
+                        const gc = ppGroupColors[groupName] || '#666';
+                        sep.style.cssText = `width:3px;height:3px;border-radius:50%;background:${gc};opacity:0.6;margin:0 1px;flex-shrink:0;`;
+                        sep.title = groupName;
+                        strip.appendChild(sep);
+                    }
+                    visibleItems.forEach(([key, name]) => {
                         const pill = document.createElement('span');
                         pill.style.cssText = `padding:1px 6px;border-radius:8px;font-size:9px;cursor:pointer;transition:all 0.1s;background:${key === style ? 'var(--accent)' : 'var(--card)'};color:${key === style ? '#000' : 'var(--muted)'};border:1px solid ${key === style ? 'var(--accent)' : 'transparent'};`;
                         pill.textContent = name;
-                        pill.title = styleDescriptions[key] || name;
+                        pill.title = groupName + ': ' + (styleDescriptions[key] || name);
                         pill.onclick = () => { styleSelect.value = key; styleSelect.dispatchEvent(new Event('change')); };
                         strip.appendChild(pill);
                     });
+                    groupIdx++;
                 });
                 container.appendChild(strip);
                 // Update bottom status with active FHR
