@@ -2551,8 +2551,42 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             display: flex;
             gap: 3px;
             align-items: center;
-            flex-wrap: wrap;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.15) transparent;
+            padding-bottom: 2px;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
         }
+        .chip-group::-webkit-scrollbar { height: 3px; }
+        .chip-group::-webkit-scrollbar-track { background: transparent; }
+        .chip-group::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+        .chip-group::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+        .chip-scroll-wrap {
+            position: relative;
+        }
+        .chip-scroll-wrap::before, .chip-scroll-wrap::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 24px;
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .chip-scroll-wrap::before {
+            left: 0;
+            background: linear-gradient(to right, var(--panel), transparent);
+        }
+        .chip-scroll-wrap::after {
+            right: 0;
+            background: linear-gradient(to left, var(--panel), transparent);
+        }
+        .chip-scroll-wrap.scroll-left::before { opacity: 1; }
+        .chip-scroll-wrap.scroll-right::after { opacity: 1; }
         .chip {
             background: var(--card);
             color: var(--muted);
@@ -2564,6 +2598,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             font-weight: 500;
             transition: all 0.15s ease;
             user-select: none;
+            flex-shrink: 0;
+            white-space: nowrap;
         }
         .chip:hover { border-color: var(--accent); color: var(--text); }
         .chip.loaded {
@@ -3072,6 +3108,14 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         #multi-panel-controls .toggle-btn { font-size: 11px; padding: 2px 8px; }
 
         /* Slider row inside bottom panel */
+        .kbd-hint {
+            display: inline-block; font-size: 8px; font-family: monospace;
+            background: rgba(255,255,255,0.08); color: var(--muted);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 3px;
+            padding: 0 3px; margin-left: 4px; vertical-align: middle;
+            line-height: 14px; font-weight: 400; opacity: 0.7;
+        }
+        button:hover .kbd-hint { opacity: 1; }
         #slider-row {
             padding: 4px 16px;
             background: rgba(0,0,0,0.15);
@@ -4023,21 +4067,23 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 </div>
                 <div class="ctrl-section">
                     <div class="ctrl-section-title">Forecast Hours <span id="fhr-loaded-count" style="font-weight:400;color:var(--accent);font-size:10px;"></span></div>
-                    <div class="chip-group" id="fhr-chips"></div>
+                    <div class="chip-scroll-wrap" id="fhr-chips-wrap">
+                        <div class="chip-group" id="fhr-chips"></div>
+                    </div>
                 </div>
                 <div class="ctrl-section">
                     <div class="ctrl-section-title">Actions</div>
                     <div class="ctrl-row" style="flex-wrap:wrap;">
-                        <button id="swap-btn" style="padding:3px 8px;font-size:12px;" title="Swap A/B endpoints (S)" aria-label="Swap endpoints">Swap</button>
-                        <button id="clear-btn" style="padding:3px 8px;font-size:12px;" title="Clear cross-section line (Esc)" aria-label="Clear line">Clear</button>
+                        <button id="swap-btn" style="padding:3px 8px;font-size:12px;" title="Swap A/B endpoints (S)" aria-label="Swap endpoints">Swap <span class="kbd-hint">S</span></button>
+                        <button id="clear-btn" style="padding:3px 8px;font-size:12px;" title="Clear cross-section line (Esc)" aria-label="Clear line">Clear <span class="kbd-hint">Esc</span></button>
                         <button id="poi-btn" style="padding:3px 8px;font-size:12px;" title="Place POI marker (or right-click map)" aria-label="Add point of interest">+ POI</button>
                         <button id="load-all-btn" style="padding:3px 8px;font-size:12px;" aria-label="Load all forecast hours">Load All</button>
                         <button id="gif-btn" style="padding:3px 8px;font-size:12px;" title="Generate animated GIF of cross-section loop" aria-label="Generate GIF">GIF</button>
-                        <button id="compare-btn" style="padding:3px 8px;font-size:12px;" title="Compare two cycles side-by-side (C)" aria-label="Compare cycles">Compare</button>
+                        <button id="compare-btn" style="padding:3px 8px;font-size:12px;" title="Compare two cycles side-by-side (C)" aria-label="Compare cycles">Compare <span class="kbd-hint">C</span></button>
                         <button id="all-models-btn" style="padding:3px 8px;font-size:12px;" title="Compare this transect across all 6 models" aria-label="Compare all models">All Models</button>
                         <button id="share-btn" style="padding:3px 8px;font-size:12px;" title="Copy shareable link to clipboard" aria-label="Share link">Share</button>
                         <button id="save-btn" style="padding:3px 8px;font-size:12px;" title="Download cross-section as PNG" aria-label="Save image">Save</button>
-                        <button id="help-btn" style="padding:3px 8px;font-size:12px;" title="Keyboard shortcuts and guide (?)" aria-label="Open guide">Guide</button>
+                        <button id="help-btn" style="padding:3px 8px;font-size:12px;" title="Keyboard shortcuts and guide (?)" aria-label="Open guide">Guide <span class="kbd-hint">?</span></button>
                     </div>
                     <div class="ctrl-row">
                         <select id="gif-speed" title="GIF speed" aria-label="GIF speed" style="min-width:55px;font-size:11px;">
@@ -4210,9 +4256,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <div id="bottom-body">
                     <!-- Slider row -->
                     <div id="slider-row">
-                        <button id="prev-btn" title="Previous frame (Left / J)" aria-label="Previous frame" style="padding:3px 6px;font-size:12px;min-width:28px;">&#9664;</button>
-                        <button id="play-btn" title="Auto-play (Space)" aria-label="Play" style="padding:3px 8px;font-size:14px;min-width:32px;">&#9654;</button>
-                        <button id="next-btn" title="Next frame (Right / K)" aria-label="Next frame" style="padding:3px 6px;font-size:12px;min-width:28px;">&#9654;</button>
+                        <button id="prev-btn" title="Previous frame (Left / J)" aria-label="Previous frame" style="padding:3px 6px;font-size:12px;min-width:28px;">&#9664;<span class="kbd-hint">&#8592;</span></button>
+                        <button id="play-btn" title="Auto-play (Space)" aria-label="Play" style="padding:3px 8px;font-size:14px;min-width:32px;">&#9654;<span class="kbd-hint">Spc</span></button>
+                        <button id="next-btn" title="Next frame (Right / K)" aria-label="Next frame" style="padding:3px 6px;font-size:12px;min-width:28px;">&#9654;<span class="kbd-hint">&#8594;</span></button>
                         <input type="range" id="fhr-slider" min="0" max="18" value="0" style="flex:1;" aria-label="Forecast hour slider">
                         <span id="slider-label" style="font-size:11px;color:var(--muted);min-width:110px;text-align:center;white-space:nowrap;">F00</span>
                         <span id="frame-counter" style="font-size:10px;color:var(--muted);min-width:50px;text-align:center;display:none;"></span>
@@ -4708,7 +4754,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             document.getElementById('model-select').value = modelId;
             // Update bottom panel model label
             const modelLabel = document.getElementById('bottom-model-label');
-            if (modelLabel) modelLabel.textContent = modelId.toUpperCase().replace('_', '-');
+            const modelColors = { hrrr: '#0ea5e9', gfs: '#8b5cf6', rrfs: '#22c55e', nam: '#f97316', rap: '#eab308', nam_nest: '#ec4899' };
+            if (modelLabel) {
+                modelLabel.textContent = modelId.toUpperCase().replace('_', '-');
+                const mc = modelColors[modelId] || 'var(--accent)';
+                modelLabel.style.cssText = `background:${mc}22;color:${mc};border:1px solid ${mc}44;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;`;
+            }
             // Update pill active states
             document.querySelectorAll('.model-pill').forEach(p => {
                 p.classList.toggle('active', p.dataset.model === modelId);
@@ -6577,6 +6628,18 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         //   - Click unloaded chip = load to RAM (~15s), then view
         //   - Shift+click loaded chip = unload from RAM (deliberate only)
         // =========================================================================
+        function updateChipScrollFade() {
+            const wrap = document.getElementById('fhr-chips-wrap');
+            const group = document.getElementById('fhr-chips');
+            if (!wrap || !group) return;
+            const sl = group.scrollLeft;
+            const sw = group.scrollWidth;
+            const cw = group.clientWidth;
+            wrap.classList.toggle('scroll-left', sl > 8);
+            wrap.classList.toggle('scroll-right', sl + cw < sw - 8);
+        }
+        document.getElementById('fhr-chips')?.addEventListener('scroll', updateChipScrollFade);
+
         function renderFhrChips(availableFhrs) {
             const container = document.getElementById('fhr-chips');
             container.innerHTML = '';
@@ -6622,6 +6685,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             }
 
             updateSliderVisibility();
+            requestAnimationFrame(updateChipScrollFade);
         }
 
         // FHR thumbnail hover preview
@@ -6796,6 +6860,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 chip.classList.remove('loaded', 'active');
                 if (fhr === activeFhr) {
                     chip.classList.add('active');
+                    chip.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
                     chip.title = 'Currently viewing (Shift+click to unload)';
                 } else if (selectedFhrs.includes(fhr)) {
                     chip.classList.add('loaded');
