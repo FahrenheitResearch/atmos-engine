@@ -3184,6 +3184,15 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             -webkit-appearance: none; width: 16px; height: 16px;
             background: var(--accent); border-radius: 50%; cursor: pointer;
             box-shadow: 0 0 4px rgba(77,166,255,0.4);
+            transition: transform 0.12s ease, box-shadow 0.12s ease;
+        }
+        #fhr-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 8px rgba(77,166,255,0.6);
+        }
+        #fhr-slider:active::-webkit-slider-thumb {
+            transform: scale(1.1);
+            box-shadow: 0 0 12px rgba(77,166,255,0.8);
         }
         #fhr-slider-wrap {
             flex: 1; position: relative; display: flex; flex-direction: column; gap: 0;
@@ -8442,7 +8451,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             hideMapContextMenu();
             ctxMenu = document.createElement('div');
             ctxMenu.id = 'map-ctx-menu';
-            ctxMenu.style.cssText = `position:fixed;left:${x}px;top:${y}px;z-index:9999;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:4px 0;min-width:180px;box-shadow:0 4px 16px rgba(0,0,0,0.4);font-size:12px;`;
+            ctxMenu.style.cssText = `position:fixed;left:${x}px;top:${y}px;z-index:9999;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:4px 0;min-width:180px;box-shadow:0 4px 16px rgba(0,0,0,0.4);font-size:12px;opacity:0;transform:scale(0.95);transition:opacity 0.12s ease,transform 0.12s ease;`;
+            requestAnimationFrame(() => { ctxMenu.style.opacity = '1'; ctxMenu.style.transform = 'scale(1)'; });
             const items = [
                 { label: 'Set start point (A)', icon: 'A', action: () => { clearXSMarkers(); startMarker = setupStartMarker(lat, lng); updateDrawState(); } },
                 { label: 'Set end point (B)', icon: 'B', action: () => { if (startMarker) { if (endMarker) endMarker.remove(); endMarker = setupEndMarker(lat, lng); updateLine(); updateDrawState(); generateCrossSection(); } else { showToast('Set start point first', 'error'); } } },
@@ -8460,7 +8470,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     return;
                 }
                 const row = document.createElement('div');
-                row.style.cssText = 'padding:6px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;';
+                row.style.cssText = 'padding:6px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background 0.1s;margin:0 4px;border-radius:4px;';
                 row.onmouseenter = () => row.style.background = 'var(--card)';
                 row.onmouseleave = () => row.style.background = '';
                 row.innerHTML = `<span style="width:18px;text-align:center;font-weight:600;color:var(--accent);font-size:11px;">${item.icon}</span><span>${item.label}</span>`;
@@ -8916,7 +8926,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     }
                     visibleItems.forEach(([key, name]) => {
                         const pill = document.createElement('span');
-                        pill.style.cssText = `padding:1px 6px;border-radius:8px;font-size:9px;cursor:pointer;transition:all 0.1s;background:${key === style ? 'var(--accent)' : 'var(--card)'};color:${key === style ? '#000' : 'var(--muted)'};border:1px solid ${key === style ? 'var(--accent)' : 'transparent'};`;
+                        const isActive = key === style;
+                        pill.style.cssText = `padding:1px 6px;border-radius:8px;font-size:9px;cursor:pointer;transition:all 0.12s;background:${isActive ? 'var(--accent)' : 'var(--card)'};color:${isActive ? '#000' : 'var(--muted)'};border:1px solid ${isActive ? 'var(--accent)' : 'transparent'};font-weight:${isActive ? '600' : '400'};`;
+                        if (!isActive) {
+                            pill.onmouseenter = () => { pill.style.background = 'var(--surface)'; pill.style.color = 'var(--text)'; };
+                            pill.onmouseleave = () => { pill.style.background = 'var(--card)'; pill.style.color = 'var(--muted)'; };
+                        }
                         pill.textContent = name;
                         pill.title = groupName + ': ' + (styleDescriptions[key] || name);
                         pill.onclick = () => { styleSelect.value = key; styleSelect.dispatchEvent(new Event('change')); };
@@ -10944,7 +10959,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             if (existing) { existing.remove(); return; }
             const div = document.createElement('div');
             div.id = 'shortcut-help';
-            div.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9999;background:rgba(15,23,42,0.95);border:1px solid var(--border);border-radius:12px;padding:24px 32px;max-width:380px;backdrop-filter:blur(8px);box-shadow:0 8px 32px rgba(0,0,0,0.5);';
+            div.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.95);z-index:9999;background:rgba(15,23,42,0.95);border:1px solid var(--border);border-radius:12px;padding:24px 32px;max-width:380px;backdrop-filter:blur(8px);box-shadow:0 8px 32px rgba(0,0,0,0.5);opacity:0;transition:opacity 0.2s ease,transform 0.2s ease;';
+            requestAnimationFrame(() => { div.style.opacity = '1'; div.style.transform = 'translate(-50%,-50%) scale(1)'; });
             const kbd = 'background:var(--card);padding:2px 8px;border-radius:4px;font-family:monospace;border:1px solid var(--border);font-size:11px;';
             div.innerHTML = '<div style="font-size:14px;font-weight:700;color:var(--accent);margin-bottom:14px;">Keyboard Shortcuts</div>' +
                 '<div style="display:grid;grid-template-columns:auto 1fr;gap:7px 18px;font-size:12px;">' +
@@ -10958,7 +10974,6 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 '<kbd style="' + kbd + '">[ / ]</kbd><span style="color:var(--muted);">Previous / Next product</span>' +
                 '<kbd style="' + kbd + '">1-6</kbd><span style="color:var(--muted);">Switch model (HRRR..NAM-Nest)</span>' +
                 '<kbd style="' + kbd + '">y</kbd><span style="color:var(--muted);">Cycle y-axis (pressure/height/\\u03b8)</span>' +
-                '<kbd style="' + kbd + '">a</kbd><span style="color:var(--muted);">Toggle anomaly mode</span>' +
                 '<kbd style="' + kbd + '">o</kbd><span style="color:var(--muted);">Toggle map overlay</span>' +
                 '<kbd style="' + kbd + '">c</kbd><span style="color:var(--muted);">Compare mode</span>' +
                 '<kbd style="' + kbd + '">s</kbd><span style="color:var(--muted);">Swap endpoints</span>' +
@@ -10969,9 +10984,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 '<kbd style="' + kbd + '">?</kbd><span style="color:var(--muted);">Toggle this help</span>' +
                 '</div>' +
                 '<div style="margin-top:12px;font-size:10px;color:var(--muted);text-align:center;">Click anywhere to close</div>';
-            div.onclick = () => div.remove();
+            const closeHelp = () => { div.style.opacity = '0'; div.style.transform = 'translate(-50%,-50%) scale(0.95)'; setTimeout(() => div.remove(), 200); };
+            div.onclick = closeHelp;
             document.body.appendChild(div);
-            setTimeout(() => div.remove(), 12000);
+            setTimeout(closeHelp, 12000);
         }
 
         // =====================================================================
