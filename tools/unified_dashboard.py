@@ -10076,7 +10076,7 @@ def api_v1_tools():
     tools = [
         {
             'name': 'wxsection_cross_section',
-            'description': 'Generate a PNG atmospheric cross-section between two geographic points from HRRR/GFS/RRFS weather models.',
+            'description': 'Generate a PNG atmospheric cross-section between two geographic points from HRRR/GFS/RRFS/NAM/RAP/NAM-Nest weather models.',
             'input_schema': {
                 'type': 'object',
                 'properties': {
@@ -10086,7 +10086,7 @@ def api_v1_tools():
                     'end_lon': {'type': 'number', 'description': 'End longitude'},
                     'product': {'type': 'string', 'description': 'Atmospheric product', 'default': 'temperature',
                                 'enum': [p['id'] for p in PRODUCTS_INFO]},
-                    'model': {'type': 'string', 'enum': ['hrrr', 'gfs', 'rrfs'], 'default': 'hrrr'},
+                    'model': {'type': 'string', 'enum': ['hrrr', 'gfs', 'rrfs', 'nam', 'rap', 'nam_nest'], 'default': 'hrrr'},
                     'cycle': {'type': 'string', 'description': "Cycle key or 'latest'", 'default': 'latest'},
                     'fhr': {'type': 'integer', 'description': 'Forecast hour', 'default': 0, 'minimum': 0},
                     'y_axis': {'type': 'string', 'enum': ['pressure', 'height', 'isentropic'], 'default': 'pressure'},
@@ -10108,7 +10108,7 @@ def api_v1_tools():
                     'end_lon': {'type': 'number', 'description': 'End longitude'},
                     'product': {'type': 'string', 'description': 'Atmospheric product', 'default': 'temperature',
                                 'enum': [p['id'] for p in PRODUCTS_INFO]},
-                    'model': {'type': 'string', 'enum': ['hrrr', 'gfs', 'rrfs'], 'default': 'hrrr'},
+                    'model': {'type': 'string', 'enum': ['hrrr', 'gfs', 'rrfs', 'nam', 'rap', 'nam_nest'], 'default': 'hrrr'},
                     'cycle': {'type': 'string', 'default': 'latest'},
                     'fhr': {'type': 'integer', 'default': 0, 'minimum': 0},
                 },
@@ -10144,7 +10144,7 @@ def api_v1_tools():
             'input_schema': {
                 'type': 'object',
                 'properties': {
-                    'model': {'type': 'string', 'enum': ['hrrr', 'gfs', 'rrfs'], 'default': 'hrrr'},
+                    'model': {'type': 'string', 'enum': ['hrrr', 'gfs', 'rrfs', 'nam', 'rap', 'nam_nest'], 'default': 'hrrr'},
                 },
             },
         },
@@ -10154,7 +10154,7 @@ def api_v1_tools():
             'input_schema': {
                 'type': 'object',
                 'properties': {
-                    'model': {'type': 'string', 'enum': ['hrrr', 'gfs', 'rrfs'], 'default': 'hrrr'},
+                    'model': {'type': 'string', 'enum': ['hrrr', 'gfs', 'rrfs', 'nam', 'rap', 'nam_nest'], 'default': 'hrrr'},
                 },
             },
         },
@@ -10185,7 +10185,7 @@ def api_v1_map_overlay():
     Query params:
         product: Product preset name (e.g. 'surface_analysis') — overrides field/level
         field: Field ID from OVERLAY_FIELDS (required unless product is set)
-        model: hrrr/gfs/rrfs (default: hrrr)
+        model: hrrr/gfs/rrfs/nam/rap/nam_nest (default: hrrr)
         cycle: Cycle key or 'latest' (default: latest)
         fhr: Forecast hour (default: 0)
         level: Pressure level hPa (required for isobaric fields)
@@ -10339,7 +10339,7 @@ def api_v1_map_overlay_fields():
     """List available map overlay fields with metadata and colormap LUTs.
 
     Query params:
-        model: hrrr/gfs/rrfs (default: hrrr)
+        model: hrrr/gfs/rrfs/nam/rap/nam_nest (default: hrrr)
         colormaps: 'true' to include base64 RGBA colormap arrays (default: false)
     """
     model = request.args.get('model', 'hrrr').lower()

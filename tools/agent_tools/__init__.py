@@ -9,7 +9,7 @@ All tools connect to the wxsection.com dashboard API (localhost:5565)
 and are also exposed via MCP server (tools/mcp_server.py).
 
 Modules:
-    cross_section    - Generate and analyze HRRR/GFS/RRFS cross-sections
+    cross_section    - Generate and analyze HRRR/GFS/RRFS/NAM/RAP/NAM-Nest cross-sections
     external_data    - METAR, RAWS, SPC, NWS, elevation, drought, Street View
     fire_risk        - Fire weather risk assessment, indices, threshold analysis
     fuel_conditions  - Fuel condition assessment, seasonal context, ignition sources

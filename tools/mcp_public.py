@@ -111,7 +111,7 @@ mcp = FastMCP(
     "wxsection-public",
     instructions=(
         "wxsection.com public atmospheric research platform. "
-        "Generate vertical cross-sections from HRRR/GFS/RRFS weather models. "
+        "Generate vertical cross-sections from HRRR/GFS/RRFS/NAM/RAP/NAM-Nest weather models. "
         "Browse 88 historical weather events. Get raw numerical data. "
         "Access 232 city fire weather profiles with terrain, fuels, ignition sources, "
         "and evacuation routes. "
@@ -180,7 +180,7 @@ def list_products(model: str = "hrrr") -> str:
     """List available atmospheric visualization products/styles.
 
     Args:
-        model: Weather model ('hrrr', 'gfs', 'rrfs'). Some products like 'smoke'
+        model: Weather model ('hrrr', 'gfs', 'rrfs', 'nam', 'rap', 'nam_nest'). Some products like 'smoke'
                are only available for HRRR. Default: hrrr.
     """
     return json.dumps(_api_get("/api/v1/products", {"model": model}, api_base=API_BASE), indent=2)
@@ -209,7 +209,7 @@ def generate_cross_section(
         end_lon: Ending longitude.
         product: Atmospheric variable ('temperature', 'wind_speed', 'rh', 'omega',
                  'theta_e', 'smoke', 'fire_wx'). Use list_products() for all.
-        model: Weather model ('hrrr', 'gfs', 'rrfs'). Default: hrrr.
+        model: Weather model ('hrrr', 'gfs', 'rrfs', 'nam', 'rap', 'nam_nest'). Default: hrrr.
         cycle: Model cycle key (e.g. '20260205_12z') or 'latest'.
         fhr: Forecast hour (0=analysis). Default: 0.
         y_axis: 'pressure' (hPa), 'height' (km), or 'isentropic' (theta K).
@@ -273,7 +273,7 @@ def get_atmospheric_data(
         end_lat: Ending latitude.
         end_lon: Ending longitude.
         product: Atmospheric variable ('temperature', 'wind_speed', 'rh', etc.).
-        model: Weather model ('hrrr', 'gfs', 'rrfs'). Default: hrrr.
+        model: Weather model ('hrrr', 'gfs', 'rrfs', 'nam', 'rap', 'nam_nest'). Default: hrrr.
         cycle: Model cycle key or 'latest'. Default: latest.
         fhr: Forecast hour. Default: 0.
         y_axis: 'pressure', 'height', or 'isentropic'. Default: pressure.
@@ -1277,7 +1277,7 @@ def get_model_map(
                Derived: 'rh_surface', 'wind_chill', 'heat_index'.
         level: Pressure level in hPa (e.g. '500', '850') for isobaric fields,
                or 'surface' for surface fields. Default: surface.
-        model: Weather model ('hrrr', 'gfs', 'rrfs'). Default: hrrr.
+        model: Weather model ('hrrr', 'gfs', 'rrfs', 'nam', 'rap', 'nam_nest'). Default: hrrr.
         cycle: Model cycle key (e.g. '20260205_12z') or 'latest'.
         fhr: Forecast hour. Default: 0.
         bounds: Optional geographic crop 'south,west,north,east'
@@ -1332,7 +1332,7 @@ def list_map_fields(model: str = "hrrr") -> str:
     """List available map overlay fields and their metadata.
 
     Args:
-        model: Weather model ('hrrr', 'gfs', 'rrfs'). Default: hrrr.
+        model: Weather model ('hrrr', 'gfs', 'rrfs', 'nam', 'rap', 'nam_nest'). Default: hrrr.
 
     Returns:
         JSON list of fields with id, name, units, category, and value ranges.

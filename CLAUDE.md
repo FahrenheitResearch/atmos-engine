@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Multi-model atmospheric cross-section generator. Users draw a line on a map, get an instant vertical cross-section from HRRR, GFS, or RRFS weather model data. Live at **wxsection.com**. 20 visualization styles, all derived from cached fields. Agent-native platform: everything the web UI can do is also available via a free REST API and MCP tool servers at feature parity.
+Multi-model atmospheric cross-section generator. Users draw a line on a map, get an instant vertical cross-section from HRRR, GFS, RRFS, NAM, RAP, or NAM-Nest weather model data. Live at **wxsection.com**. 20 visualization styles, all derived from cached fields. Agent-native platform: everything the web UI can do is also available via a free REST API and MCP tool servers at feature parity.
 
 ## Architecture Summary
 
@@ -11,7 +11,7 @@ tools/unified_dashboard.py         — Flask server + Mapbox GL JS frontend + 57
 core/cross_section_interactive.py  — Rendering engine (matplotlib, 0.5s warm renders) (~3,435 lines)
 core/map_overlay.py                — Map overlay composites (fill + contours + wind barbs) (~1,133 lines)
 tools/auto_update.py               — GRIB download daemon (slot-based concurrent) (~913 lines)
-model_config.py                    — Model registry (HRRR/GFS/RRFS metadata, URLs, grids) (~246 lines)
+model_config.py                    — Model registry (6 models: HRRR/GFS/RRFS/NAM/RAP/NAM-Nest) (~320 lines)
 smart_hrrr/orchestrator.py         — Parallel GRIB download with multi-layer validation (~311 lines)
 tools/agent_tools/                 — Agent research platform (12 modules + 8 data files, ~57,500 lines)
 tools/agent_tools/wfo_swarm/       — Oregon WFO agent swarm pilot (7 zones, 154 agents, ~3,900 lines)

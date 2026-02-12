@@ -88,7 +88,7 @@ mcp = FastMCP(
     "wxsection",
     instructions=(
         "wxsection.com AI-agent atmospheric research platform. "
-        "Generate vertical cross-sections from HRRR/GFS/RRFS weather models. "
+        "Generate vertical cross-sections from HRRR/GFS/RRFS/NAM/RAP/NAM-Nest weather models. "
         "Browse 88 historical weather events. Get raw numerical data for research. "
         "Ingest external data: METARs, RAWS, SPC products, NWS alerts, elevation, drought. "
         "Investigate fire weather at specific locations — gather observations, alerts, "
@@ -170,7 +170,7 @@ def list_cycles(model: str = "hrrr") -> str:
     """List available model cycles with their forecast hours.
 
     Args:
-        model: Weather model - 'hrrr' (3km CONUS, hourly), 'gfs' (0.25deg global),
+        model: Weather model - 'hrrr' (3km CONUS, hourly), 'gfs' (0.25deg global), 'nam' (12km), 'rap' (13km, hourly), 'nam_nest' (3km),
                or 'rrfs' (3km CONUS experimental). Default: hrrr.
 
     Returns:
@@ -186,7 +186,7 @@ def list_products(model: str = "hrrr") -> str:
     """List available atmospheric visualization products/styles.
 
     Args:
-        model: Weather model ('hrrr', 'gfs', 'rrfs'). Some products like 'smoke'
+        model: Weather model ('hrrr', 'gfs', 'rrfs', 'nam', 'rap', 'nam_nest'). Some products like 'smoke'
                are only available for HRRR. Default: hrrr.
 
     Returns:
@@ -228,7 +228,7 @@ def generate_cross_section(
         product: Atmospheric variable to visualize. Common: 'temperature',
                  'wind_speed', 'rh', 'omega', 'theta_e', 'smoke', 'fire_wx'.
                  Use list_products() for the full list.
-        model: Weather model ('hrrr', 'gfs', 'rrfs'). Default: hrrr.
+        model: Weather model ('hrrr', 'gfs', 'rrfs', 'nam', 'rap', 'nam_nest'). Default: hrrr.
         cycle: Model cycle key (e.g. '20260205_12z') or 'latest'. Default: latest.
         fhr: Forecast hour (0=analysis, 6=6hr forecast, etc.). Default: 0.
         y_axis: Vertical axis type - 'pressure' (hPa), 'height' (km), or 'isentropic' (theta K). Default: pressure. Isentropic mode shows data on constant-theta surfaces with pressure contours — ideal for downslope wind and stability analysis.
@@ -333,7 +333,7 @@ def get_atmospheric_data(
         end_lon: Ending longitude.
         product: Atmospheric variable. Common: 'temperature', 'wind_speed', 'rh',
                  'omega', 'theta_e'. Use list_products() for all options.
-        model: Weather model ('hrrr', 'gfs', 'rrfs'). Default: hrrr.
+        model: Weather model ('hrrr', 'gfs', 'rrfs', 'nam', 'rap', 'nam_nest'). Default: hrrr.
         cycle: Model cycle key or 'latest'. Default: latest.
         fhr: Forecast hour. Default: 0.
         y_axis: Vertical axis - 'pressure', 'height', or 'isentropic'. Default: pressure.
@@ -835,7 +835,7 @@ def assess_fire_risk(
         end_lon: Ending longitude.
         cycle: Model cycle key or 'latest'.
         fhr: Forecast hour (0-48 for HRRR).
-        model: Weather model ('hrrr', 'gfs', 'rrfs').
+        model: Weather model ('hrrr', 'gfs', 'rrfs', 'nam', 'rap', 'nam_nest').
 
     Returns:
         JSON with risk_level, risk_score, contributing factors, and surface statistics
@@ -1588,7 +1588,7 @@ def get_model_map(
                Derived: 'rh_surface', 'wind_chill', 'heat_index'.
         level: Pressure level in hPa (e.g. '500', '850') for isobaric fields,
                or 'surface' for surface fields. Default: surface.
-        model: Weather model ('hrrr', 'gfs', 'rrfs'). Default: hrrr.
+        model: Weather model ('hrrr', 'gfs', 'rrfs', 'nam', 'rap', 'nam_nest'). Default: hrrr.
         cycle: Model cycle key (e.g. '20260205_12z') or 'latest'.
         fhr: Forecast hour. Default: 0.
         bounds: Optional geographic crop 'south,west,north,east'
@@ -1643,7 +1643,7 @@ def list_map_fields(model: str = "hrrr") -> str:
     """List available map overlay fields and their metadata.
 
     Args:
-        model: Weather model ('hrrr', 'gfs', 'rrfs'). Default: hrrr.
+        model: Weather model ('hrrr', 'gfs', 'rrfs', 'nam', 'rap', 'nam_nest'). Default: hrrr.
 
     Returns:
         JSON list of fields with id, name, units, category, and value ranges.

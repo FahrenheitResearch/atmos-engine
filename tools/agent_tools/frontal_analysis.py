@@ -1,7 +1,7 @@
 """
 Frontal Analysis & Wind Shift Detection for Fire Weather
 
-Detects wind direction shifts from HRRR/GFS/RRFS temporal evolution data,
+Detects wind direction shifts from HRRR/GFS/RRFS/NAM/RAP/NAM-Nest temporal evolution data,
 classifies frontal passages, and assesses their impact on active fires.
 
 This module exists because "nighttime recovery" is a dangerously vague term.
@@ -390,7 +390,7 @@ def detect_wind_shifts(
     Args:
         lat: Latitude of the point.
         lon: Longitude of the point.
-        model: Model name ("hrrr", "gfs", "rrfs"). Default: "hrrr".
+        model: Model name ("hrrr", "gfs", "rrfs", "nam", "rap", "nam_nest"). Default: "hrrr".
         cycle: Cycle key (e.g. "20260209_21z") or "latest". Default: "latest".
         fhr_range: Tuple of (min_fhr, max_fhr). Default: full range.
         fhr_step: Step between forecast hours to sample. Default: 1.

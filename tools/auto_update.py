@@ -5,12 +5,13 @@ Auto-Update Script for Cross-Section Dashboard (Multi-Model)
 Continuously monitors for new model cycles and progressively downloads
 forecast hours as they become available on NOAA servers.
 
-Supports HRRR, GFS, and RRFS models.
+Supports HRRR, GFS, RRFS, NAM, RAP, and NAM-Nest models.
 
 Usage:
     python tools/auto_update.py                              # Default: HRRR only
     python tools/auto_update.py --models hrrr,gfs            # HRRR + GFS
-    python tools/auto_update.py --models hrrr,gfs,rrfs       # All models
+    python tools/auto_update.py --models hrrr,gfs,rrfs       # Core models
+    python tools/auto_update.py --models hrrr,nam,rap        # HRRR + mesoscale
     python tools/auto_update.py --interval 3                  # Check every 3 minutes
     python tools/auto_update.py --once                        # Run once and exit
     python tools/auto_update.py --max-hours 18                # Download up to F18 (HRRR)

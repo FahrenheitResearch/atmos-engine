@@ -179,7 +179,7 @@ class ForecastConfig:
         scope: Spatial scope (ForecastScope constant).
         forecast_type: Analysis type (ForecastType constant).
         cycle: Model cycle key or "latest".
-        model: Weather model ("hrrr", "gfs", "rrfs").
+        model: Weather model ("hrrr", "gfs", "rrfs", "nam", "rap", "nam_nest").
         fhr_range: (start_fhr, end_fhr) inclusive range.
         fhr_step: Step between forecast hours.
         regions: List of region names (keys from FIRE_REGIONS) or custom
@@ -210,7 +210,7 @@ class ForecastConfig:
     report_format: str = "full"
 
     # Model-specific max forecast hours
-    MODEL_FHR_MAX = {"hrrr": 48, "gfs": 384, "rrfs": 18}
+    MODEL_FHR_MAX = {"hrrr": 48, "gfs": 384, "rrfs": 18, "nam": 84, "rap": 21, "nam_nest": 60}
 
     def __post_init__(self):
         ForecastScope.validate(self.scope)
@@ -298,7 +298,7 @@ def get_latest_cycle(model: str = "hrrr",
     that has data loaded.
 
     Args:
-        model: Weather model name ("hrrr", "gfs", "rrfs").
+        model: Weather model name ("hrrr", "gfs", "rrfs", "nam", "rap", "nam_nest").
         base_url: Dashboard base URL.
 
     Returns:
