@@ -4380,6 +4380,19 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const vt = formatValidTime(fhr);
             return vt ? `${fhrLabel(fhr)} \u2014 ${vt}` : fhrLabel(fhr);
         }
+        function fhrWithLocalTime(fhr) {
+            const vt = getValidTime(fhr);
+            if (!vt) return fhrLabel(fhr);
+            const utcH = String(vt.getUTCHours()).padStart(2, '0');
+            const day = DAY_NAMES[vt.getUTCDay()];
+            const dd = vt.getUTCDate();
+            const localH = vt.getHours();
+            const localM = String(vt.getMinutes()).padStart(2, '0');
+            const ampm = localH >= 12 ? 'PM' : 'AM';
+            const h12 = localH % 12 || 12;
+            const tz = new Intl.DateTimeFormat('en', {timeZoneName:'short'}).formatToParts(vt).find(p => p.type === 'timeZoneName')?.value || '';
+            return `${fhrLabel(fhr)} \u2014 ${utcH}Z ${day} ${dd} (${h12}:${localM} ${ampm} ${tz})`;
+        }
 
         let compareActive = false;
         let compareCycle = null;
@@ -6571,7 +6584,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const idx = sorted.indexOf(activeFhr);
             slider.value = idx >= 0 ? idx : 0;
             slider.dataset.fhrMap = JSON.stringify(sorted);
-            document.getElementById('slider-label').textContent = activeFhr != null ? fhrWithTime(activeFhr) : '';
+            document.getElementById('slider-label').textContent = activeFhr != null ? fhrWithLocalTime(activeFhr) : '';
         }
 
         document.getElementById('fhr-slider').addEventListener('input', function() {
@@ -6579,7 +6592,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const fhr = fhrMap[parseInt(this.value)];
             if (fhr === undefined) return;
 
-            document.getElementById('slider-label').textContent = fhrWithTime(fhr);
+            document.getElementById('slider-label').textContent = fhrWithLocalTime(fhr);
             activeFhr = fhr;
             updateChipStates();
 
@@ -7209,9 +7222,18 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const bearing = ((Math.atan2(y, x) * 180 / Math.PI) + 360) % 360;
             const dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
             const dir = dirs[Math.round(bearing / 22.5) % 16];
-            const vt = activeFhr != null ? formatValidTime(activeFhr) : '';
-            const vtStr = vt ? ` · Valid ${vt}` : '';
-            return `${currentModel.toUpperCase()} ${km.toFixed(0)} km (${mi.toFixed(0)} mi) · ${bearing.toFixed(0)}\u00b0 ${dir}${vtStr}`;
+            const vtDate = activeFhr != null ? getValidTime(activeFhr) : null;
+            let vtStr = '';
+            if (vtDate) {
+                const utcH = String(vtDate.getUTCHours()).padStart(2, '0');
+                const day = DAY_NAMES[vtDate.getUTCDay()];
+                const dd = vtDate.getUTCDate();
+                const lH = vtDate.getHours();
+                const ampm = lH >= 12 ? 'PM' : 'AM';
+                const h12 = lH % 12 || 12;
+                vtStr = ` \u00b7 ${utcH}Z ${day} ${dd} (${h12}${ampm} local)`;
+            }
+            return `${currentModel.toUpperCase()} ${km.toFixed(0)} km (${mi.toFixed(0)} mi) \u00b7 ${bearing.toFixed(0)}\u00b0 ${dir}${vtStr}`;
         }
 
         function buildMarkersParam() {
