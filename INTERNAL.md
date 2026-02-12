@@ -19,25 +19,25 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 | `core/map_overlay.py` | ~1,133 | Map overlay rendering. Reprojection (KDTree for curvilinear, bilinear for GFS), composite assembly (fill + contours + barbs), PNG/binary output |
 | `model_config.py` | ~320 | Model registry. 6 models (HRRR/GFS/RRFS/NAM/RAP/NAM-Nest) metadata, grid specs, download URLs, forecast hour lists |
 
-### Server + UI (1 file, ~13,080 lines)
+### Server + UI (1 file, ~13,260 lines)
 
 | File | Lines | What It Does |
 |------|-------|-------------|
-| `tools/unified_dashboard.py` | ~13,080 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 57 API endpoints (34 v1 + 23 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects, og:image preview, FHR hover thumbnails, hero cross-section, smart product suggestions, skeleton loading |
+| `tools/unified_dashboard.py` | ~13,260 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 58 API endpoints (34 v1 + 24 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects, og:image preview, FHR hover thumbnails, hero cross-section, smart product suggestions, skeleton loading, draw-mode feedback, distance/bearing line label, mobile panel backdrop |
 
 **Key sections in unified_dashboard.py:**
 - Lines 1-1031: Imports, constants, overlay cache, helper functions, model config dicts
 - Lines 1032-1253: `CrossSectionManager` class — init, config, model management
 - Lines 1254-1720: `scan_available_cycles()`, `preload_latest_cycles()`, loading logic
 - Lines 1721-2477: `auto_load_latest()`, orchestration, prerender hooks
-- Lines 2478-9700: HTML template (inline, ~7,223 lines) — the entire frontend
-  - CSS (~1,260 lines): Inter font, model pills, workflow grid, product picker, map HUD, dark theme with cyan accents, skeleton loading animation, event category pills
-  - HTML body (~960 lines): icon sidebar (48px) + expanded panel (400px) + map + bottom slide-up + hero preview
+- Lines 2478-9877: HTML template (inline, ~7,400 lines) — the entire frontend
+  - CSS (~1,300 lines): Inter font, model pills, workflow grid, product picker, map HUD, dark theme with cyan accents, skeleton loading animation, event category pills, draw-mode crosshair cursor, map toast, mobile backdrop
+  - HTML body (~960 lines): icon sidebar (48px) + expanded panel (400px) + map toast + mobile backdrop + map + bottom slide-up + hero preview
   - Mapbox GL JS map init + overlay controller (~2,100 lines): starts ~line 4500, double-buffered swap with 8s timeout
-  - Frontend JS (~2,900 lines): model pills, FHR slider, FHR hover thumbnails, hero cross-section loader, smart product suggestions (geography-based), visual product picker, keyboard shortcuts (18 bindings), URL state, user preference persistence, local timezone display, GIF, events with category pills, cities, transect presets, quick-start, guide modal, recent transects, all-models compare
-- Lines 9700: Flask routes start — `/` serves HTML, `/og-preview.png` serves branded preview
-- Lines 9700-12950: All API route handlers (57 endpoints + og-preview)
-- Lines 12950-13084: Startup — argument parsing, preload, rescan thread, server launch
+  - Frontend JS (~3,000 lines): model pills, FHR slider, FHR hover thumbnails, hero cross-section loader, smart product suggestions (geography-based), visual product picker, keyboard shortcuts (21 bindings), URL state, user preference persistence, local timezone display, GIF, events with category pills, cities, transect presets, quick-start with loading state, guide modal, recent transects, all-models compare, draw-mode state management, distance/bearing line label
+- Lines 9883: Flask routes start — `/` serves HTML, `/og-preview.png` serves branded preview
+- Lines 9883-13121: All API route handlers (58 endpoints + og-preview)
+- Lines 13122-13260: Startup — argument parsing, preload, rescan thread, server launch
 
 ### Download System (2 files, ~1,240 lines)
 

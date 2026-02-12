@@ -7,7 +7,7 @@ Multi-model atmospheric cross-section generator. Users draw a line on a map, get
 ## Architecture Summary
 
 ```
-tools/unified_dashboard.py         — Flask server + Mapbox GL JS frontend + 57 API endpoints (~13,080 lines)
+tools/unified_dashboard.py         — Flask server + Mapbox GL JS frontend + 58 API endpoints (~13,260 lines)
 core/cross_section_interactive.py  — Rendering engine (matplotlib, 0.5s warm renders) (~3,605 lines)
 core/map_overlay.py                — Map overlay composites (fill + contours + wind barbs) (~1,133 lines)
 tools/auto_update.py               — GRIB download daemon (slot-based concurrent) (~929 lines)
@@ -100,7 +100,7 @@ MIN_GRIB_SIZE = 500_000     # Download validation minimum (500KB)
 
 ## API Counts
 
-- **57 total endpoints** (34 v1 agent-friendly + 23 legacy/internal)
+- **58 total endpoints** (34 v1 agent-friendly + 24 legacy/internal)
 - **52 MCP tools** (private stdio server)
 - **53 MCP tools** (public SSE server, +3 city browsing tools)
 - **21 cross-section products** (13 with anomaly support)

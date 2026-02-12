@@ -2928,6 +2928,15 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             background: rgba(59,130,246,0.3); border-color: rgba(59,130,246,0.5);
             color: #bfdbfe; transform: translateY(-1px);
         }
+        .quick-start-btn.loading {
+            background: rgba(14,165,233,0.3); border-color: var(--accent);
+            color: var(--accent); pointer-events: none;
+            animation: qs-pulse 0.8s ease-in-out infinite;
+        }
+        @keyframes qs-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
         .qs-chip {
             display: inline-block; width: 10px; height: 6px; border-radius: 2px;
             margin-right: 4px; vertical-align: middle; opacity: 0.9;
@@ -3604,6 +3613,42 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .mapboxgl-ctrl-attrib { font-size: 10px !important; background: rgba(0,0,0,0.5) !important; }
         .mapboxgl-ctrl-attrib a { color: #94a3b8 !important; }
 
+        /* ===== Draw-mode feedback ===== */
+        .draw-mode .mapboxgl-canvas-container { cursor: crosshair !important; }
+        #map-toast {
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+            background: rgba(15, 23, 42, 0.88);
+            backdrop-filter: blur(8px);
+            color: var(--text);
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.2px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            border: 1px solid rgba(255,255,255,0.08);
+            white-space: nowrap;
+        }
+        #map-toast.visible {
+            opacity: 1;
+        }
+        #map-toast .toast-key {
+            display: inline-block;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            padding: 1px 6px;
+            font-size: 11px;
+            margin-left: 8px;
+            font-family: monospace;
+            color: var(--muted);
+        }
+
         /* Memory bar in settings */
         .mem-bar { width: 60px; height: 6px; background: var(--card); border-radius: 3px; overflow: hidden; }
         .mem-fill { height: 100%; background: var(--accent); transition: width 0.3s ease; }
@@ -3688,6 +3733,22 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             /* Close panel button gets larger */
             #panel-header .close-panel { font-size: 24px; padding: 4px 8px; }
 
+            /* Backdrop dims map when panel is open */
+            #panel-backdrop {
+                display: block;
+                position: fixed;
+                top: 0; left: 0; right: 0; bottom: 48px;
+                background: rgba(0,0,0,0.5);
+                z-index: 140;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.25s ease;
+            }
+            #panel-backdrop.visible {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
             /* Menu-top mode: icon sidebar on top instead of bottom */
             body.menu-top #icon-sidebar {
                 order: 0;
@@ -3736,6 +3797,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
             </div>
         </div>
+
+        <!-- Mobile backdrop (dims map when panel open) -->
+        <div id="panel-backdrop" style="display:none;"></div>
 
         <!-- Expanded Panel (320px, collapsible) -->
         <div id="expanded-panel">
@@ -4063,6 +4127,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         <!-- Map Area (fills remaining space) -->
         <div id="map-area">
             <div id="map"></div>
+            <div id="map-toast"></div>
             <!-- Map Overlay Colorbar Legend -->
             <!-- Map HUD: model + cycle + product indicator -->
             <div id="map-hud" style="position:absolute;top:10px;left:10px;z-index:1000;display:flex;gap:6px;align-items:center;pointer-events:none;">
@@ -4358,6 +4423,51 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 });
             }
             lineExists = true;
+            updateLineLabel(s, e);
+        }
+
+        function updateLineLabel(s, e) {
+            // Compute distance + bearing for midpoint label
+            const R = 6371;
+            const dLat = (e.lat - s.lat) * Math.PI / 180;
+            const dLon = (e.lng - s.lng) * Math.PI / 180;
+            const a = Math.sin(dLat/2)**2 + Math.cos(s.lat*Math.PI/180) * Math.cos(e.lat*Math.PI/180) * Math.sin(dLon/2)**2;
+            const km = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const y = Math.sin(dLon) * Math.cos(e.lat*Math.PI/180);
+            const x = Math.cos(s.lat*Math.PI/180)*Math.sin(e.lat*Math.PI/180) - Math.sin(s.lat*Math.PI/180)*Math.cos(e.lat*Math.PI/180)*Math.cos(dLon);
+            const bearing = ((Math.atan2(y, x) * 180 / Math.PI) + 360) % 360;
+            const dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+            const dir = dirs[Math.round(bearing / 22.5) % 16];
+            const labelText = `${km.toFixed(0)} km \u00b7 ${dir}`;
+            const midLng = (s.lng + e.lng) / 2;
+            const midLat = (s.lat + e.lat) / 2;
+            const ptData = {
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: [midLng, midLat] },
+                properties: { label: labelText }
+            };
+            if (map.getSource('xs-label')) {
+                map.getSource('xs-label').setData(ptData);
+            } else {
+                map.addSource('xs-label', { type: 'geojson', data: ptData });
+                map.addLayer({
+                    id: 'xs-label',
+                    type: 'symbol',
+                    source: 'xs-label',
+                    layout: {
+                        'text-field': ['get', 'label'],
+                        'text-size': 12,
+                        'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
+                        'text-offset': [0, -1.2],
+                        'text-allow-overlap': true
+                    },
+                    paint: {
+                        'text-color': '#fbbf24',
+                        'text-halo-color': 'rgba(0,0,0,0.8)',
+                        'text-halo-width': 1.5
+                    }
+                });
+            }
         }
 
         function removeLine() {
@@ -4365,6 +4475,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 if (map.getLayer('xs-line')) map.removeLayer('xs-line');
                 if (map.getLayer('xs-line-glow')) map.removeLayer('xs-line-glow');
                 if (map.getSource('xs-line')) map.removeSource('xs-line');
+                if (map.getLayer('xs-label')) map.removeLayer('xs-label');
+                if (map.getSource('xs-label')) map.removeSource('xs-label');
             }
             lineExists = false;
         }
@@ -4373,6 +4485,36 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             if (startMarker) { startMarker.remove(); startMarker = null; }
             if (endMarker) { endMarker.remove(); endMarker = null; }
             removeLine();
+            updateDrawState();
+        }
+
+        // Draw-mode visual feedback: crosshair cursor + instruction toast
+        let _drawToastTimer = null;
+        function updateDrawState() {
+            const mapEl = document.getElementById('map');
+            const toast = document.getElementById('map-toast');
+            if (!mapEl || !toast) return;
+            if (!startMarker && !endMarker) {
+                // No markers — ready to draw point A
+                mapEl.classList.add('draw-mode');
+                toast.innerHTML = 'Click to place point <b style="color:#38bdf8">A</b><span class="toast-key">Esc to clear</span>';
+                toast.classList.add('visible');
+                // Auto-hide after 6s for returning users
+                clearTimeout(_drawToastTimer);
+                _drawToastTimer = setTimeout(() => { toast.classList.remove('visible'); }, 6000);
+            } else if (startMarker && !endMarker) {
+                // Point A placed — draw point B
+                mapEl.classList.add('draw-mode');
+                toast.innerHTML = 'Click to place point <b style="color:#f87171">B</b>';
+                toast.classList.add('visible');
+                clearTimeout(_drawToastTimer);
+                _drawToastTimer = setTimeout(() => { toast.classList.remove('visible'); }, 6000);
+            } else {
+                // Both points placed — line exists, normal mode
+                mapEl.classList.remove('draw-mode');
+                toast.classList.remove('visible');
+                clearTimeout(_drawToastTimer);
+            }
         }
 
         function setupStartMarker(lat, lng) {
@@ -4641,11 +4783,20 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         const tabNames = { controls: 'Controls', cities: 'Fire Weather Cities', events: 'Historical Events', activity: 'Activity', settings: 'Settings' };
         let activeTab = 'controls';
 
+        const panelBackdrop = document.getElementById('panel-backdrop');
+        function updateBackdrop(panelOpen) {
+            if (panelBackdrop && isMobile) {
+                panelBackdrop.classList.toggle('visible', panelOpen);
+            }
+        }
+        if (panelBackdrop) panelBackdrop.onclick = () => closePanelMobile();
+
         function closePanelMobile() {
             // On mobile, close the overlay panel to reveal the map
             if (isMobile && !expandedPanel.classList.contains('collapsed')) {
                 expandedPanel.classList.add('collapsed');
                 iconTabs.forEach(t => t.classList.remove('active'));
+                updateBackdrop(false);
                 setTimeout(() => map.resize(), 300);
             }
         }
@@ -4655,11 +4806,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 // Clicking active tab collapses
                 expandedPanel.classList.add('collapsed');
                 iconTabs.forEach(t => t.classList.remove('active'));
+                updateBackdrop(false);
                 setTimeout(() => map.resize(), 250);
                 return;
             }
             activeTab = tabId;
             expandedPanel.classList.remove('collapsed');
+            updateBackdrop(true);
             iconTabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tabId));
             tabContents.forEach(tc => tc.classList.toggle('active', tc.id === 'tab-' + tabId));
             panelTitle.textContent = tabNames[tabId] || tabId;
@@ -4674,6 +4827,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         document.getElementById('close-panel-btn').onclick = () => {
             expandedPanel.classList.add('collapsed');
             iconTabs.forEach(t => t.classList.remove('active'));
+            updateBackdrop(false);
             setTimeout(() => map.resize(), 250);
         };
 
@@ -4772,6 +4926,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         map.on('style.load', () => {
             mapStyleLoaded = true;
             readdCustomLayers();
+            updateDrawState();
         });
 
         // Settings: basemap style selector
@@ -5856,6 +6011,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     startMarker = setupStartMarker(cfg.start_lat, cfg.start_lon);
                     endMarker = setupEndMarker(cfg.end_lat, cfg.end_lon);
                     updateLine();
+                    updateDrawState();
                     fitBoundsLL([[cfg.start_lat, cfg.start_lon], [cfg.end_lat, cfg.end_lon]], 50);
                 }
                 if (cfg.style) document.getElementById('style-select').value = cfg.style;
@@ -7257,9 +7413,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
             if (!startMarker) {
                 startMarker = setupStartMarker(lat, lng);
+                updateDrawState();
             } else if (!endMarker) {
                 endMarker = setupEndMarker(lat, lng);
                 updateLine();
+                updateDrawState();
                 generateCrossSection();
             }
         });
@@ -7451,8 +7609,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             ctxMenu.id = 'map-ctx-menu';
             ctxMenu.style.cssText = `position:fixed;left:${x}px;top:${y}px;z-index:9999;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:4px 0;min-width:180px;box-shadow:0 4px 16px rgba(0,0,0,0.4);font-size:12px;`;
             const items = [
-                { label: 'Set start point (A)', icon: 'A', action: () => { clearXSMarkers(); startMarker = setupStartMarker(lat, lng); } },
-                { label: 'Set end point (B)', icon: 'B', action: () => { if (startMarker) { if (endMarker) endMarker.remove(); endMarker = setupEndMarker(lat, lng); updateLine(); generateCrossSection(); } else { showToast('Set start point first', 'error'); } } },
+                { label: 'Set start point (A)', icon: 'A', action: () => { clearXSMarkers(); startMarker = setupStartMarker(lat, lng); updateDrawState(); } },
+                { label: 'Set end point (B)', icon: 'B', action: () => { if (startMarker) { if (endMarker) endMarker.remove(); endMarker = setupEndMarker(lat, lng); updateLine(); updateDrawState(); generateCrossSection(); } else { showToast('Set start point first', 'error'); } } },
                 { label: 'Add POI marker', icon: '+', action: () => addPoi(lat, lng) },
                 null, // divider
                 { label: 'Copy coords', icon: '\u00b7', action: () => { navigator.clipboard.writeText(lat.toFixed(5) + ', ' + lng.toFixed(5)).then(() => showToast('Coordinates copied', 'success')); } },
@@ -7554,11 +7712,15 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         // =========================================================================
         // Quick Start — one-click featured transects from landing page
         // =========================================================================
-        function quickStart(lat1, lon1, lat2, lon2, style) {
+        function quickStart(lat1, lon1, lat2, lon2, style, srcBtn) {
+            // Show loading state on clicked button
+            if (!srcBtn && window.event) srcBtn = window.event.target?.closest('.quick-start-btn');
+            if (srcBtn) srcBtn.classList.add('loading');
             clearXSMarkers();
             startMarker = setupStartMarker(lat1, lon1);
             endMarker = setupEndMarker(lat2, lon2);
             updateLine();
+            updateDrawState();
             fitBoundsLL([[lat1, lon1], [lat2, lon2]], 50);
             const sel = document.getElementById('style-select');
             if (sel && style) { sel.value = style; sel.dispatchEvent(new Event('change')); }
@@ -7698,6 +7860,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 img.src = URL.createObjectURL(blob);
                 container.innerHTML = '';
                 container.appendChild(img);
+                // Clear quick-start loading states
+                document.querySelectorAll('.quick-start-btn.loading').forEach(b => b.classList.remove('loading'));
                 // Transect metadata overlay with render time
                 const meta = document.createElement('div');
                 meta.id = 'xsect-meta';
@@ -7766,6 +7930,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             } catch (err) {
                 if (err.name === 'AbortError') return;
                 container.innerHTML = `<div style="color:#f87171">${err.message}</div>`;
+                document.querySelectorAll('.quick-start-btn.loading').forEach(b => b.classList.remove('loading'));
             }
 
             if (compareActive) {
@@ -8502,6 +8667,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 startMarker = setupStartMarker(startLat, startLon);
                 endMarker = setupEndMarker(endLat, endLon);
                 updateLine();
+                updateDrawState();
                 fitBoundsLL([[startLat, startLon], [endLat, endLon]], 60);
                 closePanelMobile();
                 generateCrossSection();
@@ -8653,6 +8819,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             startMarker = setupStartMarker(section.start[0], section.start[1]);
             endMarker = setupEndMarker(section.end[0], section.end[1]);
             updateLine();
+            updateDrawState();
 
             // Load POI markers from section if present
             if (section.markers && Array.isArray(section.markers)) {
