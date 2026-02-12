@@ -3593,6 +3593,14 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                             <span class="wf-icon">&#127777;</span>
                             <span class="wf-label">Surface</span>
                         </button>
+                        <button class="workflow-btn" data-workflow="model_compare" title="Compare 2+ models side-by-side for the same transect">
+                            <span class="wf-icon">&#8644;</span>
+                            <span class="wf-label">Model vs</span>
+                        </button>
+                        <button class="workflow-btn" data-workflow="time_series" title="View temporal evolution across FHRs in 4-panel grid">
+                            <span class="wf-icon">&#9202;</span>
+                            <span class="wf-label">Time Evo</span>
+                        </button>
                     </div>
                 </div>
                 <div class="ctrl-section">
@@ -4224,11 +4232,24 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             moisture: { style: 'relative_humidity', overlay: 'moisture', y_top: '300' },
             jet_stream: { style: 'wind_speed', overlay: 'upper_250', y_top: '100' },
             surface: { style: 'temperature', overlay: 'surface_analysis', y_top: '500' },
+            model_compare: { action: 'multi_model' },
+            time_series: { action: 'multi_temporal' },
         };
         document.querySelectorAll('.workflow-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const wf = WORKFLOWS[btn.dataset.workflow];
                 if (!wf) return;
+                // Handle special action workflows
+                if (wf.action === 'multi_model') {
+                    const sel = document.getElementById('multi-panel-mode');
+                    if (sel) { sel.value = 'model'; sel.dispatchEvent(new Event('change')); }
+                    return;
+                }
+                if (wf.action === 'multi_temporal') {
+                    const sel = document.getElementById('multi-panel-mode');
+                    if (sel) { sel.value = 'temporal'; sel.dispatchEvent(new Event('change')); }
+                    return;
+                }
                 // Set style
                 const styleSelect = document.getElementById('style-select');
                 if (styleSelect.querySelector('option[value="' + wf.style + '"]')) {
@@ -8395,8 +8416,32 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 case 'Escape':
                     document.getElementById('clear-btn')?.click();
                     break;
+                case '?':
+                    showShortcutHelp();
+                    break;
             }
         });
+
+        function showShortcutHelp() {
+            const existing = document.getElementById('shortcut-help');
+            if (existing) { existing.remove(); return; }
+            const div = document.createElement('div');
+            div.id = 'shortcut-help';
+            div.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9999;background:rgba(15,23,42,0.95);border:1px solid var(--border);border-radius:12px;padding:20px 28px;max-width:320px;backdrop-filter:blur(8px);';
+            div.innerHTML = '<div style="font-size:14px;font-weight:700;color:var(--accent);margin-bottom:12px;">Keyboard Shortcuts</div>' +
+                '<div style="display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:12px;">' +
+                '<kbd style="background:var(--card);padding:2px 6px;border-radius:3px;font-family:monospace;">\\u2190 / j</kbd><span style="color:var(--muted);">Previous FHR</span>' +
+                '<kbd style="background:var(--card);padding:2px 6px;border-radius:3px;font-family:monospace;">\\u2192 / k</kbd><span style="color:var(--muted);">Next FHR</span>' +
+                '<kbd style="background:var(--card);padding:2px 6px;border-radius:3px;font-family:monospace;">Space</kbd><span style="color:var(--muted);">Play / Pause</span>' +
+                '<kbd style="background:var(--card);padding:2px 6px;border-radius:3px;font-family:monospace;">c</kbd><span style="color:var(--muted);">Compare mode</span>' +
+                '<kbd style="background:var(--card);padding:2px 6px;border-radius:3px;font-family:monospace;">s</kbd><span style="color:var(--muted);">Swap endpoints</span>' +
+                '<kbd style="background:var(--card);padding:2px 6px;border-radius:3px;font-family:monospace;">Esc</kbd><span style="color:var(--muted);">Clear line</span>' +
+                '<kbd style="background:var(--card);padding:2px 6px;border-radius:3px;font-family:monospace;">?</kbd><span style="color:var(--muted);">Toggle this help</span>' +
+                '</div>';
+            div.onclick = () => div.remove();
+            document.body.appendChild(div);
+            setTimeout(() => div.remove(), 8000);
+        }
 
         // =====================================================================
         // URL state sharing (read on load, update on changes)
