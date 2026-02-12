@@ -4270,6 +4270,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         </select>
                         <button id="prerender-btn" title="Pre-render all FHR frames for instant playback" aria-label="Pre-render frames" style="padding:3px 6px;font-size:11px;">Pre-render</button>
                     </div>
+                    <div id="context-hint" style="padding:0 16px 3px;font-size:9px;color:var(--muted);opacity:0.6;text-align:center;display:none;"></div>
                     <!-- Compare controls -->
                     <div id="compare-controls">
                         <label style="font-size:12px;color:var(--muted);">vs</label>
@@ -5854,9 +5855,30 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         const ppGroupColors = { 'Core': '#60a5fa', 'Thermodynamics': '#f97316', 'Moisture': '#22c55e', 'Dynamics': '#a78bfa', 'Cloud & Precip': '#94a3b8', 'Fire & Smoke': '#ef4444' };
 
         // Build dropdown items from styleGroups
+        let ppFilterCat = '';
         function buildProductPicker() {
             ppDropdown.innerHTML = '';
-            styleGroups.forEach(([groupName, items]) => {
+            // Category filter chips
+            const chipRow = document.createElement('div');
+            chipRow.style.cssText = 'display:flex;gap:3px;padding:4px 8px;flex-wrap:wrap;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--panel);z-index:1;';
+            const allChip = document.createElement('span');
+            allChip.textContent = 'All';
+            allChip.className = 'pp-cat-chip' + (ppFilterCat === '' ? ' active' : '');
+            allChip.style.cssText = 'font-size:9px;padding:1px 6px;border-radius:8px;cursor:pointer;border:1px solid var(--accent);color:var(--accent);background:' + (ppFilterCat === '' ? 'rgba(14,165,233,0.15)' : 'transparent') + ';';
+            allChip.onclick = (e) => { e.stopPropagation(); ppFilterCat = ''; buildProductPicker(); };
+            chipRow.appendChild(allChip);
+            styleGroups.forEach(([groupName]) => {
+                const color = ppGroupColors[groupName] || '#64748b';
+                const isActive = ppFilterCat === groupName;
+                const chip = document.createElement('span');
+                chip.textContent = groupName.replace(' & ', '/');
+                chip.className = 'pp-cat-chip' + (isActive ? ' active' : '');
+                chip.style.cssText = `font-size:9px;padding:1px 6px;border-radius:8px;cursor:pointer;border:1px solid ${color};color:${color};opacity:${isActive ? '1' : '0.6'};background:${isActive ? color + '22' : 'transparent'};`;
+                chip.onclick = (e) => { e.stopPropagation(); ppFilterCat = groupName; buildProductPicker(); };
+                chipRow.appendChild(chip);
+            });
+            ppDropdown.appendChild(chipRow);
+            styleGroups.filter(([gn]) => !ppFilterCat || gn === ppFilterCat).forEach(([groupName, items]) => {
                 const label = document.createElement('div');
                 label.className = 'pp-group-label';
                 const dot = ppGroupColors[groupName] ? `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${ppGroupColors[groupName]};margin-right:4px;vertical-align:middle;"></span>` : '';
@@ -6915,6 +6937,23 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 sliderRow.classList.remove('visible');
                 stopPlayback();
             }
+            updateContextHint();
+        }
+
+        function updateContextHint() {
+            const hint = document.getElementById('context-hint');
+            if (!hint) return;
+            const sliderVisible = selectedFhrs.length >= 2;
+            if (!sliderVisible) {
+                hint.style.display = 'none';
+                return;
+            }
+            hint.style.display = '';
+            if (playInterval) {
+                hint.textContent = 'Space to pause \u00b7 \u2190\u2192 to step \u00b7 ? for all shortcuts';
+            } else {
+                hint.textContent = '\u2190\u2192 browse FHRs \u00b7 Space play \u00b7 S swap \u00b7 C compare \u00b7 ? shortcuts';
+            }
         }
 
         function updateSliderRange() {
@@ -7029,6 +7068,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
             // Background prefetch frames for smoother playback
             prefetchPlaybackFrames();
+            updateContextHint();
 
             playInterval = setInterval(() => {
                 let val = parseInt(slider.value) + 1;
@@ -7050,6 +7090,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 clearInterval(playInterval);
                 playInterval = null;
             }
+            updateContextHint();
         }
 
         function invalidatePrerender() {
