@@ -3473,8 +3473,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             50% { opacity: 0.6; box-shadow: 0 0 16px rgba(14,165,233,0.5); }
         }
         .qs-chip {
-            display: inline-block; width: 10px; height: 6px; border-radius: 2px;
-            margin-right: 4px; vertical-align: middle; opacity: 0.9;
+            display: inline-block; width: 14px; height: 8px; border-radius: 3px;
+            margin-right: 5px; vertical-align: middle;
         }
         .loading-spinner {
             display: flex;
@@ -3565,16 +3565,24 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         #xsect-panels.compare-active .xsect-panel-label { display: block; }
         #xsect-panels.compare-active .xsect-panel + .xsect-panel { border-left: 1px solid var(--border); }
         #compare-divider {
-            display: none; position: absolute; top: 0; bottom: 0; width: 6px;
+            display: none; position: absolute; top: 0; bottom: 0; width: 4px;
             background: var(--accent); cursor: col-resize; z-index: var(--z-divider); left: 50%;
             transform: translateX(-50%); opacity: 0.6;
-            transition: opacity var(--transition-fast), box-shadow var(--transition-fast);
+            transition: opacity var(--transition-fast), box-shadow var(--transition-fast), width var(--transition-fast);
             box-shadow: 0 0 8px rgba(14,165,233,0.2);
         }
-        #compare-divider:hover, #compare-divider.dragging { opacity: 1; box-shadow: 0 0 16px rgba(14,165,233,0.4); }
+        #compare-divider:hover, #compare-divider.dragging { opacity: 1; width: 6px; box-shadow: 0 0 20px rgba(14,165,233,0.5); }
         #compare-divider::after {
-            content: '\u2195'; position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%) rotate(90deg); color: #fff; font-size: 11px; font-weight: 700;
+            content: ''; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px; height: 32px; border-radius: 10px;
+            background: var(--accent); opacity: 0.9;
+            box-shadow: 0 0 8px rgba(14,165,233,0.3);
+        }
+        #compare-divider::before {
+            content: '\u2194'; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); color: #000; font-size: 12px; font-weight: 700;
+            z-index: 1;
         }
         #xsect-panels.compare-active { position: relative; }
         #xsect-panels.compare-active #compare-divider { display: block; }
@@ -3719,9 +3727,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
         .product-picker-btn:hover { border-color: var(--accent); }
         .product-picker-btn .pp-chip {
-            width: 14px;
+            width: 20px;
             height: 10px;
-            border-radius: 2px;
+            border-radius: 3px;
             flex-shrink: 0;
         }
         .product-picker-btn .pp-label { flex: 1; text-align: left; }
@@ -3765,9 +3773,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .pp-item.active { background: var(--accent); color: #000; }
         .pp-item.active .pp-item-desc { color: rgba(0,0,0,0.6); }
         .pp-item .pp-chip {
-            width: 16px;
-            height: 10px;
-            border-radius: 2px;
+            width: 24px;
+            height: 12px;
+            border-radius: 3px;
             flex-shrink: 0;
         }
         .pp-item-text { flex: 1; min-width: 0; }
@@ -4545,7 +4553,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             <!-- TAB: Controls -->
             <div class="tab-content active" id="tab-controls">
                 <div class="ctrl-section">
-                    <div class="ctrl-section-title">Model</div>
+                    <div class="ctrl-section-title">&#9729; Model</div>
                     <div class="model-pills" id="model-pills"></div>
                     <select id="model-select" aria-label="Weather model" style="display:none;"></select>
                     <div class="ctrl-row" style="margin-top:6px;">
@@ -4555,7 +4563,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     </div>
                 </div>
                 <div class="ctrl-section">
-                    <div class="ctrl-section-title">Quick Analysis</div>
+                    <div class="ctrl-section-title">&#9889; Quick Analysis</div>
                     <div class="workflow-grid">
                         <button class="workflow-btn" data-workflow="fire_weather" title="Fire weather analysis: wind speed XS + fire weather overlay">
                             <span class="wf-icon">&#128293;</span>
@@ -4592,7 +4600,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     </div>
                 </div>
                 <div class="ctrl-section">
-                    <div class="ctrl-section-title">Visualization</div>
+                    <div class="ctrl-section-title">&#127912; Visualization</div>
                     <div class="ctrl-row">
                         <label>Style:</label>
                         <select id="style-select" aria-label="Visualization product" style="display:none;"></select>
@@ -4657,7 +4665,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     </div>
                 </div>
                 <div class="ctrl-section">
-                    <div class="ctrl-section-title">Favorites</div>
+                    <div class="ctrl-section-title">&#11088; Favorites</div>
                     <div class="ctrl-row">
                         <select id="favorites-select" aria-label="Saved favorites" style="flex:1;">
                             <option value="">Saved Favorites</option>
@@ -4672,7 +4680,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     <div id="preset-lib" class="collapsed"></div>
                 </div>
                 <div class="ctrl-section">
-                    <div class="ctrl-section-title">Map Overlay</div>
+                    <div class="ctrl-section-title">&#127758; Map Overlay</div>
                     <div class="ctrl-row">
                         <label>Overlay:</label>
                         <div class="toggle-group">
@@ -4720,13 +4728,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     </div>
                 </div>
                 <div class="ctrl-section">
-                    <div class="ctrl-section-title">Forecast Hours <span id="fhr-loaded-count" class="fhr-loaded-count"></span></div>
+                    <div class="ctrl-section-title">&#128337; Forecast Hours <span id="fhr-loaded-count" class="fhr-loaded-count"></span></div>
                     <div class="chip-scroll-wrap" id="fhr-chips-wrap">
                         <div class="chip-group" id="fhr-chips"></div>
                     </div>
                 </div>
                 <div class="ctrl-section">
-                    <div class="ctrl-section-title">Actions</div>
+                    <div class="ctrl-section-title">&#9881; Actions</div>
                     <div class="ctrl-row" style="flex-wrap:wrap;">
                         <button id="swap-btn" class="btn-sm" title="Swap A/B endpoints (S)" aria-label="Swap endpoints">Swap <span class="kbd-hint">S</span></button>
                         <button id="clear-btn" class="btn-sm" title="Clear cross-section line (Esc)" aria-label="Clear line">Clear <span class="kbd-hint">Esc</span></button>
@@ -4807,11 +4815,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             <!-- TAB: Activity -->
             <div class="tab-content" id="tab-activity">
                 <div class="ctrl-section">
-                    <div class="ctrl-section-title">Generation Progress</div>
+                    <div class="ctrl-section-title">&#9881; Generation Progress</div>
                     <div id="activity-progress-items"></div>
                 </div>
                 <div class="ctrl-section">
-                    <div class="ctrl-section-title">Memory Status</div>
+                    <div class="ctrl-section-title">&#128202; Memory Status</div>
                     <div id="memory-status" style="cursor:pointer;">
                         <span id="mem-text" class="mem-text">0 MB</span>
                         <div class="mem-bar"><div class="mem-fill" id="mem-fill" style="width:0%"></div></div>
