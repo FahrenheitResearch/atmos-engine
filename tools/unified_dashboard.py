@@ -2737,6 +2737,29 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .landing-prompt { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
         .landing-quickstarts { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 16px; }
         .landing-recent { margin-bottom: 12px; }
+        .active-product-badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            background: rgba(255,255,255,0.1); padding: 1px 8px; border-radius: 10px;
+            font-size: 10px; color: var(--muted);
+        }
+        .active-product-chip { width: 12px; height: 7px; border-radius: 2px; }
+        .loaded-count { font-size: 9px; color: var(--muted); opacity: 0.7; }
+        .settings-footer {
+            font-size: 10px; color: var(--muted); text-align: center; line-height: 1.6;
+            padding-top: 8px; border-top: 1px solid var(--border);
+        }
+        .api-code {
+            font-size: 10px; background: var(--bg); padding: 2px 6px; border-radius: 3px;
+            color: var(--accent); flex: 1; overflow: hidden; text-overflow: ellipsis;
+        }
+        .api-copy-btn {
+            font-size: 9px; padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border);
+            background: var(--card); color: var(--muted); cursor: pointer;
+        }
+        .api-copy-btn:hover { background: var(--surface); }
+        .api-links a { color: var(--accent); text-decoration: none; }
+        .api-links a:hover { text-decoration: underline; }
+        .cycle-age { font-size: 10px; color: var(--muted); white-space: nowrap; min-width: 40px; text-align: right; transition: color var(--transition-default); }
         /* Map HUD */
         .map-hud {
             position: absolute; top: 10px; left: 10px; z-index: var(--z-map-hud);
@@ -4431,7 +4454,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     <div class="ctrl-row" style="margin-top:6px;">
                         <label>Run:</label>
                         <select id="cycle-select" aria-label="Model run cycle" style="font-size:12px;flex:1;"></select>
-                        <span id="cycle-age" style="font-size:10px;color:var(--muted);white-space:nowrap;min-width:40px;text-align:right;transition:color var(--transition-default);"></span>
+                        <span id="cycle-age" class="cycle-age"></span>
                     </div>
                 </div>
                 <div class="ctrl-section">
@@ -4749,14 +4772,14 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     <div style="font-size:11px;color:var(--muted);line-height:1.5;">
                         <div style="margin-bottom:4px;">Free REST API &mdash; no key required</div>
                         <div style="display:flex;gap:4px;align-items:center;">
-                            <code style="font-size:10px;background:var(--bg);padding:2px 6px;border-radius:3px;color:var(--accent);flex:1;overflow:hidden;text-overflow:ellipsis;">/api/v1/cross-section</code>
-                            <button onclick="navigator.clipboard.writeText(location.origin + '/api/v1/cross-section');showToast('Copied API URL','success');" style="font-size:9px;padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;">Copy</button>
+                            <code class="api-code">/api/v1/cross-section</code>
+                            <button class="api-copy-btn" onclick="navigator.clipboard.writeText(location.origin + '/api/v1/cross-section');showToast('Copied API URL','success');">Copy</button>
                         </div>
-                        <div style="margin-top:4px;font-size:10px;"><a href="/api/v1/products" target="_blank" style="color:var(--accent);text-decoration:none;">Browse products</a> &middot; <a href="/api/v1/status" target="_blank" style="color:var(--accent);text-decoration:none;">Server status</a></div>
+                        <div class="api-links" style="margin-top:4px;font-size:10px;"><a href="/api/v1/products" target="_blank">Browse products</a> &middot; <a href="/api/v1/status" target="_blank">Server status</a></div>
                     </div>
                 </div>
                 <div class="ctrl-section" style="margin-top:auto;">
-                    <div style="font-size:10px;color:var(--muted);text-align:center;line-height:1.6;padding-top:8px;border-top:1px solid var(--border);">
+                    <div class="settings-footer">
                         <b style="color:var(--accent);">wxsection.com</b><br>
                         6 models &middot; 21 products &middot; sub-second renders<br>
                         <span id="version-info"></span>
@@ -4806,9 +4829,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     <div class="drag-indicator"><span></span><span></span><span></span></div>
                     <div id="bottom-status">
                         <span id="bottom-model-label">Cross-Section</span>
-                        <span id="active-product-badge" style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.1);padding:1px 8px;border-radius:10px;font-size:10px;color:var(--muted);"><span id="active-product-chip" style="width:12px;height:7px;border-radius:2px;"></span><span id="active-product-name"></span></span>
+                        <span id="active-product-badge" class="active-product-badge"><span id="active-product-chip" class="active-product-chip"></span><span id="active-product-name"></span></span>
                         <span class="fhr-label" id="active-fhr"></span>
-                        <span id="loaded-count" style="font-size:9px;color:var(--muted);opacity:0.7;"></span>
+                        <span id="loaded-count" class="loaded-count"></span>
                     </div>
                     <div id="bottom-actions">
                         <button class="bottom-action-btn" id="bottom-expand-btn" title="Expand" aria-label="Expand cross-section panel">&#9650;</button>
