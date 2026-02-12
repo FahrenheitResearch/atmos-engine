@@ -4024,7 +4024,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <div id="bottom-handle">
                     <div class="drag-indicator"></div>
                     <div id="bottom-status">
-                        <span>Cross-Section</span>
+                        <span id="bottom-model-label">Cross-Section</span>
+                        <span id="active-product-badge" style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.1);padding:1px 8px;border-radius:10px;font-size:10px;color:var(--muted);"><span id="active-product-chip" style="width:12px;height:7px;border-radius:2px;"></span><span id="active-product-name"></span></span>
                         <span class="fhr-label" id="active-fhr"></span>
                     </div>
                     <div id="bottom-actions">
@@ -4426,6 +4427,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         async function switchModel(modelId) {
             currentModel = modelId;
             document.getElementById('model-select').value = modelId;
+            // Update bottom panel model label
+            const modelLabel = document.getElementById('bottom-model-label');
+            if (modelLabel) modelLabel.textContent = modelId.toUpperCase().replace('_', '-');
             // Update pill active states
             document.querySelectorAll('.model-pill').forEach(p => {
                 p.classList.toggle('active', p.dataset.model === modelId);
@@ -5477,6 +5481,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     const item = document.createElement('div');
                     item.className = 'pp-item' + (styleSelect.value === val ? ' active' : '');
                     item.setAttribute('role', 'option');
+                    item.tabIndex = -1;
                     item.dataset.value = val;
                     const grad = cmapGradients[val] || cmapGradients.temp;
                     item.innerHTML = `<span class="pp-chip" style="background:${grad}"></span>`
@@ -5500,11 +5505,17 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const grad = cmapGradients[val] || cmapGradients.temp;
             ppChipCurrent.style.background = grad;
             const opt = styleSelect.selectedOptions[0];
-            ppLabelCurrent.textContent = opt ? opt.textContent : val;
+            const name = opt ? opt.textContent : val;
+            ppLabelCurrent.textContent = name;
             // Update active state in dropdown
             ppDropdown.querySelectorAll('.pp-item').forEach(el => {
                 el.classList.toggle('active', el.dataset.value === val);
             });
+            // Update bottom panel product badge
+            const badgeChip = document.getElementById('active-product-chip');
+            const badgeName = document.getElementById('active-product-name');
+            if (badgeChip) badgeChip.style.background = grad;
+            if (badgeName) badgeName.textContent = name;
         }
         syncProductPickerBtn();
 
@@ -5522,6 +5533,37 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         document.addEventListener('click', (e) => {
             if (!e.target.closest('#product-picker')) ppDropdown.classList.remove('open');
         });
+        // Keyboard navigation in product picker
+        ppBtn.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                ppDropdown.classList.add('open');
+                const first = ppDropdown.querySelector('.pp-item.active') || ppDropdown.querySelector('.pp-item');
+                if (first) first.focus();
+            }
+        });
+        ppDropdown.addEventListener('keydown', (e) => {
+            const items = [...ppDropdown.querySelectorAll('.pp-item')];
+            const focused = document.activeElement;
+            const idx = items.indexOf(focused);
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                const next = items[idx + 1] || items[0];
+                next.focus(); next.scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                const prev = items[idx - 1] || items[items.length - 1];
+                prev.focus(); prev.scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                if (focused && focused.classList.contains('pp-item')) focused.click();
+            } else if (e.key === 'Escape') {
+                ppDropdown.classList.remove('open');
+                ppBtn.focus();
+            }
+        });
+        // Make items focusable
+        ppDropdown.querySelectorAll('.pp-item').forEach(el => el.tabIndex = -1);
 
         let styleToastTimer = null;
         styleSelect.onchange = () => {
@@ -7317,11 +7359,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             xsectAbortController = new AbortController();
 
             const container = document.getElementById('xsect-container');
-            container.innerHTML = '<div class="loading-spinner"><div class="spinner-ring"></div><div class="spinner-text">Generating cross-section...</div></div>';
+            const style = document.getElementById('style-select').value;
+            const styleName = styleSelect.selectedOptions[0]?.textContent || style;
+            container.innerHTML = `<div class="loading-spinner"><div class="spinner-ring"></div><div class="spinner-text">Rendering ${styleName}...</div></div>`;
 
             const start = startMarker.getLatLng();
             const end = endMarker.getLatLng();
-            const style = document.getElementById('style-select').value;
             const vscale = document.getElementById('vscale-select').value;
             const ytop = document.getElementById('ytop-select').value;
 
