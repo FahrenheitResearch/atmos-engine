@@ -4232,7 +4232,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         function getValidTime(fhr) {
             if (fhr == null || !currentCycle) return null;
             // Parse cycle key like "20260212_12z"
-            const m = currentCycle.match(/^(\d{4})(\d{2})(\d{2})_(\d{2})z$/);
+            const m = currentCycle.match(/^(\\d{4})(\\d{2})(\\d{2})_(\\d{2})z$/);
             if (!m) return null;
             const initDate = new Date(Date.UTC(+m[1], +m[2]-1, +m[3], +m[4]));
             const validDate = new Date(initDate.getTime() + fhr * 3600000);
@@ -5805,7 +5805,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         function updateCycleAge() {
             const el = document.getElementById('cycle-age');
             if (!el || !currentCycle) { if (el) el.textContent = ''; return; }
-            const m = currentCycle.match(/^(\d{4})(\d{2})(\d{2})_(\d{2})z$/);
+            const m = currentCycle.match(/^(\\d{4})(\\d{2})(\\d{2})_(\\d{2})z$/);
             if (!m) { el.textContent = ''; return; }
             const initDate = new Date(Date.UTC(+m[1], +m[2]-1, +m[3], +m[4]));
             const hoursAgo = Math.round((Date.now() - initDate.getTime()) / 3600000);
@@ -6522,7 +6522,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
             // Parse cycle init hours from keys like "20260205_18z"
             const parseCycleTime = (key) => {
-                const m = key.match(/(\d{8})_(\d{2})z/);
+                const m = key.match(/(\\d{8})_(\\d{2})z/);
                 if (!m) return null;
                 const yr = parseInt(m[1].substring(0, 4));
                 const mo = parseInt(m[1].substring(4, 6)) - 1;
@@ -6582,7 +6582,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
 
         function parseCycleKey(key) {
-            const m = key.match(/(\d{8})_(\d{2})z/);
+            const m = key.match(/(\\d{8})_(\\d{2})z/);
             if (!m) return null;
             const yr = parseInt(m[1].substring(0, 4));
             const mo = parseInt(m[1].substring(4, 6)) - 1;
@@ -8851,7 +8851,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             // Update landing page with current cycle info
             const el = document.getElementById('landing-cycle');
             if (el && currentCycle) {
-                const m = currentCycle.match(/^(\d{4})(\d{2})(\d{2})_(\d{2})z$/);
+                const m = currentCycle.match(/^(\\d{4})(\\d{2})(\\d{2})_(\\d{2})z$/);
                 if (m) {
                     const d = new Date(Date.UTC(+m[1], +m[2]-1, +m[3], +m[4]));
                     const day = DAY_NAMES[d.getUTCDay()];
