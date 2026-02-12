@@ -12846,9 +12846,10 @@ def api_v1_comparison():
     # Check cache first
     cached = frame_cache_get(cache_key)
     if cached is not None:
-        return send_file(io.BytesIO(cached), mimetype='image/png',
-                         headers={'Cache-Control': 'public, max-age=300',
-                                  'X-Cache': 'hit'})
+        resp = send_file(io.BytesIO(cached), mimetype='image/png')
+        resp.headers['Cache-Control'] = 'public, max-age=300'
+        resp.headers['X-Cache'] = 'hit'
+        return resp
 
     panels = []
     shared_colorbar = True
@@ -13073,8 +13074,9 @@ def api_v1_comparison():
     # Cache the rendered comparison frame
     frame_cache_put(cache_key, png_bytes)
 
-    return send_file(io.BytesIO(png_bytes), mimetype='image/png',
-                     headers={'X-Cache': 'miss'})
+    resp = send_file(io.BytesIO(png_bytes), mimetype='image/png')
+    resp.headers['X-Cache'] = 'miss'
+    return resp
 
 
 @app.route('/api/v1/comparison/gif')
