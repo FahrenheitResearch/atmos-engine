@@ -3604,6 +3604,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     <div class="ctrl-row" style="margin-top:6px;">
                         <label>Run:</label>
                         <select id="cycle-select" style="font-size:12px;flex:1;"></select>
+                        <span id="cycle-age" style="font-size:10px;color:var(--muted);white-space:nowrap;min-width:40px;text-align:right;"></span>
                     </div>
                 </div>
                 <div class="ctrl-section">
@@ -3931,7 +3932,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <button id="play-btn" title="Auto-play" style="padding:3px 8px;font-size:14px;min-width:32px;">&#9654;</button>
                         <button id="next-btn" title="Next frame" style="padding:3px 6px;font-size:12px;min-width:28px;">&#9654;</button>
                         <input type="range" id="fhr-slider" min="0" max="18" value="0" style="flex:1;">
-                        <span id="slider-label" style="font-size:11px;color:var(--muted);min-width:32px;text-align:center;">F00</span>
+                        <span id="slider-label" style="font-size:11px;color:var(--muted);min-width:110px;text-align:center;white-space:nowrap;">F00</span>
                         <select id="play-speed" title="Playback speed" style="min-width:50px;font-size:11px;">
                             <option value="2000">0.5x</option>
                             <option value="1000" selected>1x</option>
@@ -4000,11 +4001,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                                         <button class="quick-start-btn" onclick="quickStart(44.0,-123.5,44.0,-121.0,'wind_speed')" title="McKenzie Pass corridor — critical Oregon fire weather terrain">Oregon Cascades</button>
                                         <button class="quick-start-btn" onclick="quickStart(34.2,-118.8,34.2,-117.5,'rh')" title="Santa Ana wind corridor across LA metro">LA Basin</button>
                                     </div>
-                                    <div style="font-size:11px;color:var(--muted);line-height:1.7;">
+                                    <div id="landing-stats" style="font-size:11px;color:var(--muted);line-height:1.7;">
                                         <b style="color:var(--text);">6 models</b> &middot; HRRR 3km, GFS, RRFS, NAM, RAP, NAM-Nest<br>
                                         <b style="color:var(--text);">20 products</b> &middot; Temperature, wind, fire weather, moisture, dynamics<br>
                                         <b style="color:var(--text);">Keyboard</b> &middot; Left/Right: FHR, Space: play, ?: help
                                     </div>
+                                    <div id="landing-cycle" style="margin-top:10px;font-size:10px;color:var(--muted);opacity:0.7;"></div>
                                 </div>
                             </div>
                         </div>
@@ -4190,6 +4192,33 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         let playInterval = null;
         let prerenderedFrames = {};
         let xsectAbortController = null;
+
+        // Valid time computation from cycle key + FHR
+        const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        function getValidTime(fhr) {
+            if (fhr == null || !currentCycle) return null;
+            // Parse cycle key like "20260212_12z"
+            const m = currentCycle.match(/^(\d{4})(\d{2})(\d{2})_(\d{2})z$/);
+            if (!m) return null;
+            const initDate = new Date(Date.UTC(+m[1], +m[2]-1, +m[3], +m[4]));
+            const validDate = new Date(initDate.getTime() + fhr * 3600000);
+            return validDate;
+        }
+        function formatValidTime(fhr) {
+            const vt = getValidTime(fhr);
+            if (!vt) return '';
+            const hh = String(vt.getUTCHours()).padStart(2, '0');
+            const day = DAY_NAMES[vt.getUTCDay()];
+            const dd = vt.getUTCDate();
+            return `${hh}Z ${day} ${dd}`;
+        }
+        function fhrLabel(fhr) {
+            return `F${String(fhr).padStart(2, '0')}`;
+        }
+        function fhrWithTime(fhr) {
+            const vt = formatValidTime(fhr);
+            return vt ? `${fhrLabel(fhr)} \u2014 ${vt}` : fhrLabel(fhr);
+        }
 
         let compareActive = false;
         let compareCycle = null;
@@ -5640,8 +5669,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
                 if (selectedFhrs.length > 0 && !activeFhr) {
                     activeFhr = selectedFhrs[0];
-                    document.getElementById('active-fhr').textContent = `F${String(activeFhr).padStart(2,'0')}`;
+                    document.getElementById('active-fhr').textContent = fhrWithTime(activeFhr);
                 }
+                updateCycleAge();
             } catch (err) {
                 console.error('Failed to load cycles:', err);
             }
@@ -5691,9 +5721,21 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const txt = sel && sel.selectedOptions[0] ? sel.selectedOptions[0].textContent : '';
                 hudCycle.textContent = txt;
             }
-            if (hudFhr) hudFhr.textContent = activeFhr != null ? 'F' + String(activeFhr).padStart(2, '0') : '';
+            if (hudFhr) hudFhr.textContent = activeFhr != null ? fhrWithTime(activeFhr) : '';
+        }
+        function updateCycleAge() {
+            const el = document.getElementById('cycle-age');
+            if (!el || !currentCycle) { if (el) el.textContent = ''; return; }
+            const m = currentCycle.match(/^(\d{4})(\d{2})(\d{2})_(\d{2})z$/);
+            if (!m) { el.textContent = ''; return; }
+            const initDate = new Date(Date.UTC(+m[1], +m[2]-1, +m[3], +m[4]));
+            const hoursAgo = Math.round((Date.now() - initDate.getTime()) / 3600000);
+            if (hoursAgo < 1) el.textContent = '<1h ago';
+            else if (hoursAgo < 48) el.textContent = `${hoursAgo}h ago`;
+            else el.textContent = `${Math.round(hoursAgo/24)}d ago`;
         }
         setInterval(updateHUD, 500);
+        setInterval(updateCycleAge, 10000);
 
         // === Progress Panel ===
         const OP_ICONS = {
@@ -5886,11 +5928,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             // Auto-select first FHR
             if (selectedFhrs.length > 0) {
                 activeFhr = selectedFhrs[0];
-                document.getElementById('active-fhr').textContent = `F${String(activeFhr).padStart(2,'0')}`;
+                document.getElementById('active-fhr').textContent = fhrWithTime(activeFhr);
                 updateChipStates();
                 generateCrossSection();
                 modelMapOverlay.update();
             }
+            updateCycleAge();
         };
 
         // =========================================================================
@@ -5961,19 +6004,21 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             chip.textContent = `F${String(fhr).padStart(2, '0')}`;
             chip.dataset.fhr = fhr;
 
+            const vt = formatValidTime(fhr);
+            const vtSuffix = vt ? ` (${vt})` : '';
             if (!availableFhrs.includes(fhr)) {
                 chip.classList.add('unavailable');
-                chip.title = 'Not downloaded yet';
+                chip.title = `${fhrLabel(fhr)}${vtSuffix} — Not downloaded yet`;
             } else {
                 // Set visual state based on loaded/active
                 if (fhr === activeFhr) {
                     chip.classList.add('active');
-                    chip.title = 'Currently viewing (Shift+click to unload)';
+                    chip.title = `${fhrLabel(fhr)}${vtSuffix} — Currently viewing (Shift+click to unload)`;
                 } else if (selectedFhrs.includes(fhr)) {
                     chip.classList.add('loaded');
-                    chip.title = 'Loaded in RAM — click for instant view (Shift+click to unload)';
+                    chip.title = `${fhrLabel(fhr)}${vtSuffix} — Loaded in RAM, click for instant view (Shift+click to unload)`;
                 } else {
-                    chip.title = 'Click to load (~15s)';
+                    chip.title = `${fhrLabel(fhr)}${vtSuffix} — Click to load (~15s)`;
                 }
                 chip.onclick = (e) => handleChipClick(fhr, chip, e);
             }
@@ -6007,7 +6052,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         if (activeFhr === fhr) {
                             activeFhr = selectedFhrs.length > 0 ? selectedFhrs[selectedFhrs.length - 1] : null;
                             if (activeFhr !== null) {
-                                document.getElementById('active-fhr').textContent = `F${String(activeFhr).padStart(2,'0')}`;
+                                document.getElementById('active-fhr').textContent = fhrWithTime(activeFhr);
                                 generateCrossSection();
                             } else {
                                 document.getElementById('xsect-container').innerHTML =
@@ -6031,7 +6076,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             // --- Normal click on loaded chip = INSTANT VIEW SWITCH ---
             if (isLoaded) {
                 activeFhr = fhr;
-                document.getElementById('active-fhr').textContent = `F${String(fhr).padStart(2,'0')}`;
+                document.getElementById('active-fhr').textContent = fhrWithTime(fhr);
                 updateChipStates();
                 generateCrossSection();
                 return;
@@ -6055,7 +6100,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     await refreshLoadedStatus();
 
                     activeFhr = fhr;
-                    document.getElementById('active-fhr').textContent = `F${String(fhr).padStart(2,'0')}`;
+                    document.getElementById('active-fhr').textContent = fhrWithTime(fhr);
                     generateCrossSection();
                 } else {
                     toast.remove();
@@ -6134,7 +6179,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const idx = sorted.indexOf(activeFhr);
             slider.value = idx >= 0 ? idx : 0;
             slider.dataset.fhrMap = JSON.stringify(sorted);
-            document.getElementById('slider-label').textContent = activeFhr != null ? `F${String(activeFhr).padStart(2, '0')}` : '';
+            document.getElementById('slider-label').textContent = activeFhr != null ? fhrWithTime(activeFhr) : '';
         }
 
         document.getElementById('fhr-slider').addEventListener('input', function() {
@@ -6142,7 +6187,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const fhr = fhrMap[parseInt(this.value)];
             if (fhr === undefined) return;
 
-            document.getElementById('slider-label').textContent = `F${String(fhr).padStart(2, '0')}`;
+            document.getElementById('slider-label').textContent = fhrWithTime(fhr);
             activeFhr = fhr;
             updateChipStates();
 
@@ -6158,7 +6203,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     container.appendChild(img);
                 }
                 img.src = prerenderedFrames[fhr];
-                document.getElementById('active-fhr').textContent = `F${String(fhr).padStart(2, '0')}`;
+                document.getElementById('active-fhr').textContent = fhrWithTime(fhr);
                 if (compareActive) { updateCompareLabels(); generateComparisonSection(); }
             } else {
                 generateCrossSection();
@@ -6762,7 +6807,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const bearing = ((Math.atan2(y, x) * 180 / Math.PI) + 360) % 360;
             const dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
             const dir = dirs[Math.round(bearing / 22.5) % 16];
-            return `${km.toFixed(0)} km (${mi.toFixed(0)} mi) · ${bearing.toFixed(0)}\u00b0 ${dir} · ${Math.abs(lat1).toFixed(2)}\u00b0${lat1>=0?'N':'S'}, ${Math.abs(lon1).toFixed(2)}\u00b0${lon1>=0?'E':'W'} \u2192 ${Math.abs(lat2).toFixed(2)}\u00b0${lat2>=0?'N':'S'}, ${Math.abs(lon2).toFixed(2)}\u00b0${lon2>=0?'E':'W'}`;
+            const vt = activeFhr != null ? formatValidTime(activeFhr) : '';
+            const vtStr = vt ? ` · Valid ${vt}` : '';
+            return `${currentModel.toUpperCase()} ${km.toFixed(0)} km (${mi.toFixed(0)} mi) · ${bearing.toFixed(0)}\u00b0 ${dir}${vtStr}`;
         }
 
         function buildMarkersParam() {
@@ -6997,6 +7044,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 meta.id = 'xsect-meta';
                 meta.textContent = formatTransectMeta(start.lat, start.lng, end.lat, end.lng);
                 container.appendChild(meta);
+                // Update bottom status with style name
+                const statusEl = document.getElementById('bottom-status');
+                if (statusEl && !statusEl.querySelector('.event-star')) {
+                    const styleSel = document.getElementById('style-select');
+                    const styleName = styleSel?.selectedOptions[0]?.textContent || style;
+                    statusEl.innerHTML = `<span>${styleName}</span> <span class="fhr-label" id="active-fhr">${fhrWithTime(activeFhr)}</span>`;
+                }
                 // Auto-open bottom panel when cross-section generated
                 if (bottomState === 'collapsed') setBottomState('half');
             } catch (err) {
@@ -7823,7 +7877,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const fhr = section.best_fhr + fhrOffset;
                 if (selectedFhrs.includes(fhr)) {
                     activeFhr = fhr;
-                    document.getElementById('active-fhr').textContent = `F${String(fhr).padStart(2,'0')}`;
+                    document.getElementById('active-fhr').textContent = fhrWithTime(fhr);
                     updateChipStates();
                 }
             }
@@ -8093,7 +8147,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     } else if (selectedFhrs.length > 0) {
                         activeFhr = selectedFhrs[0];
                     }
-                    document.getElementById('active-fhr').textContent = `F${String(activeFhr).padStart(2,'0')}`;
+                    document.getElementById('active-fhr').textContent = fhrWithTime(activeFhr);
                     updateChipStates();
 
                     // Select hero product if available
@@ -8192,7 +8246,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 } else if (selectedFhrs.length > 0) {
                     activeFhr = selectedFhrs[0];
                 }
-                document.getElementById('active-fhr').textContent = `F${String(activeFhr).padStart(2,'0')}`;
+                document.getElementById('active-fhr').textContent = fhrWithTime(activeFhr);
                 updateChipStates();
 
                 // Set hero product
@@ -8235,7 +8289,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
             // Update bottom status
             const statusEl = document.getElementById('bottom-status');
-            if (statusEl) statusEl.innerHTML = `<span style="color:var(--accent);">&#9733; ${evt.name || cycleKey}</span> <span class="fhr-label" id="active-fhr">F${String(activeFhr).padStart(2,'0')}</span>`;
+            if (statusEl) statusEl.innerHTML = `<span style="color:var(--accent);">&#9733; ${evt.name || cycleKey}</span> <span class="fhr-label" id="active-fhr">${fhrWithTime(activeFhr)}</span>`;
 
             // Auto-generate quad plot after a brief delay for cross-section to render
             if (evt.quad_products && evt.quad_products.length >= 2) {
@@ -8557,7 +8611,18 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         // =====================================================================
         // Initialize everything
         // =====================================================================
-        loadModels().then(() => loadCycles());
+        loadModels().then(() => loadCycles()).then(() => {
+            // Update landing page with current cycle info
+            const el = document.getElementById('landing-cycle');
+            if (el && currentCycle) {
+                const m = currentCycle.match(/^(\d{4})(\d{2})(\d{2})_(\d{2})z$/);
+                if (m) {
+                    const d = new Date(Date.UTC(+m[1], +m[2]-1, +m[3], +m[4]));
+                    const day = DAY_NAMES[d.getUTCDay()];
+                    el.textContent = `Latest: ${currentModel.toUpperCase()} ${m[4]}Z ${day} ${m[2]}/${m[3]}`;
+                }
+            }
+        });
         loadCityMarkers();
         loadEventMarkers().then(() => populateEventCategories());
 
