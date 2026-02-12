@@ -2896,6 +2896,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             justify-content: center;
             overflow: hidden;
             padding: 8px;
+            position: relative;
         }
         #xsect-img {
             max-width: 100%;
@@ -7928,6 +7929,68 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         })();
 
         // =========================================================================
+        // Cross-Section Hover Readout
+        // =========================================================================
+        // matplotlib plot area bounds (fraction of image width/height)
+        // Approximate for standard layout: left margin ~12%, right ~5% (colorbar ~10%), top ~5%, bottom ~12%
+        const XS_PLOT_LEFT = 0.10;
+        const XS_PLOT_RIGHT = 0.86;
+        const XS_PLOT_TOP = 0.06;
+        const XS_PLOT_BOTTOM = 0.88;
+
+        function addXSHoverReadout(img, startPt, endPt) {
+            let cursor = document.getElementById('xs-cursor');
+            if (!cursor) {
+                cursor = document.createElement('div');
+                cursor.id = 'xs-cursor';
+                cursor.style.cssText = 'position:absolute;pointer-events:none;opacity:0;transition:opacity 0.15s;z-index:5;' +
+                    'background:rgba(15,23,42,0.85);backdrop-filter:blur(4px);padding:3px 8px;border-radius:6px;' +
+                    'font-size:10px;color:#f4f4f4;white-space:nowrap;border:1px solid rgba(255,255,255,0.1);';
+                img.parentElement.appendChild(cursor);
+            }
+            img.addEventListener('mousemove', e => {
+                const rect = img.getBoundingClientRect();
+                const px = (e.clientX - rect.left) / rect.width;
+                const py = (e.clientY - rect.top) / rect.height;
+                // Map pixel position to plot fraction (0-1 within data axes)
+                const fx = Math.max(0, Math.min(1, (px - XS_PLOT_LEFT) / (XS_PLOT_RIGHT - XS_PLOT_LEFT)));
+                const fy = Math.max(0, Math.min(1, (py - XS_PLOT_TOP) / (XS_PLOT_BOTTOM - XS_PLOT_TOP)));
+                // Within plot area?
+                if (px >= XS_PLOT_LEFT && px <= XS_PLOT_RIGHT && py >= XS_PLOT_TOP && py <= XS_PLOT_BOTTOM) {
+                    // Interpolate lat/lon along transect
+                    const lat = startPt.lat + fx * (endPt.lat - startPt.lat);
+                    const lon = startPt.lng + fx * (endPt.lng - startPt.lng);
+                    // Approximate pressure from vertical position
+                    const ytop = parseInt(document.getElementById('ytop-select')?.value || 100);
+                    const ybot = 1013;
+                    const pres = currentYAxis === 'pressure'
+                        ? Math.round(ytop + fy * (ybot - ytop))
+                        : null;
+                    const presStr = pres ? ` \u00b7 ~${pres} hPa` : '';
+                    // Distance along transect
+                    const R = 6371;
+                    const dLat = (endPt.lat - startPt.lat) * Math.PI / 180;
+                    const dLon = (endPt.lng - startPt.lng) * Math.PI / 180;
+                    const a = Math.sin(dLat/2)**2 + Math.cos(startPt.lat*Math.PI/180) * Math.cos(endPt.lat*Math.PI/180) * Math.sin(dLon/2)**2;
+                    const totalKm = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                    const distKm = (fx * totalKm).toFixed(0);
+                    cursor.textContent = `${lat.toFixed(2)}\u00b0, ${lon.toFixed(2)}\u00b0  \u00b7  ${distKm}/${totalKm.toFixed(0)} km${presStr}`;
+                    cursor.style.opacity = '1';
+                    // Position above cursor
+                    const cx = e.clientX - rect.left;
+                    const cy = e.clientY - rect.top;
+                    cursor.style.left = Math.min(cx + 12, rect.width - cursor.offsetWidth - 4) + 'px';
+                    cursor.style.top = Math.max(cy - 30, 4) + 'px';
+                } else {
+                    cursor.style.opacity = '0';
+                }
+            });
+            img.addEventListener('mouseleave', () => {
+                cursor.style.opacity = '0';
+            });
+        }
+
+        // =========================================================================
         // Cross-Section Generation
         // =========================================================================
         async function generateCrossSection() {
@@ -7985,6 +8048,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 container.appendChild(img);
                 // Clear quick-start loading states
                 document.querySelectorAll('.quick-start-btn.loading').forEach(b => b.classList.remove('loading'));
+                // Hover cursor readout
+                addXSHoverReadout(img, start, end);
                 // Transect metadata overlay with render time
                 const meta = document.createElement('div');
                 meta.id = 'xsect-meta';
