@@ -2615,6 +2615,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             border-color: var(--accent);
             font-weight: 700;
         }
+        .chip.active.playing {
+            animation: chip-glow 0.8s ease-in-out infinite alternate;
+        }
+        @keyframes chip-glow {
+            from { box-shadow: 0 0 4px rgba(77,166,255,0.4); }
+            to { box-shadow: 0 0 12px rgba(77,166,255,0.8); }
+        }
         .chip.loading {
             background: var(--warning);
             color: #000;
@@ -7152,8 +7159,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 chip.classList.remove('loaded', 'active');
                 const vt = formatValidTime(fhr);
                 const vtHint = vt ? ` \u2014 ${vt}` : '';
+                chip.classList.remove('playing');
                 if (fhr === activeFhr) {
                     chip.classList.add('active');
+                    if (isPlaying) chip.classList.add('playing');
                     chip.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
                     chip.title = `${fhrLabel(fhr)}${vtHint} (viewing \u00b7 Shift+click to unload)`;
                 } else if (selectedFhrs.includes(fhr)) {
