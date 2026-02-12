@@ -2602,6 +2602,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .shortcut-section { grid-column: 1/-1; font-size: 10px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
         .shortcut-section + .shortcut-section { margin-top: 6px; }
         .shortcut-grid span { color: var(--muted); }
+        .shortcut-title { font-size: 14px; font-weight: 700; color: var(--accent); margin-bottom: 14px; }
+        .shortcut-footer { margin-top: 12px; font-size: 10px; color: var(--muted); text-align: center; }
         /* Map markers */
         .xs-marker {
             border-radius: 50%; border: 2px solid var(--text); cursor: grab;
@@ -5263,7 +5265,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                                         <button class="quick-start-btn" onclick="quickStart(34.2,-118.8,34.2,-117.5,'rh')" data-tip="Santa Ana wind corridor across LA metro"><span class="qs-chip" data-style="rh"></span>LA Basin</button>
                                     </div>
                                     <div id="recent-transects" class="landing-recent" style="display:none;">
-                                        <div class="landing-prompt" style="margin-bottom:6px;">Recent transects:</div>
+                                        <div class="landing-prompt ctrl-row--mt">Recent transects:</div>
                                         <div id="recent-transects-list" class="landing-quickstarts"></div>
                                     </div>
                                     <div id="hero-preview" class="hero-preview" data-tip="Click to load this transect">
@@ -12148,7 +12150,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             div.id = 'shortcut-help';
             div.className = 'shortcut-help';
             requestAnimationFrame(() => div.classList.add('visible'));
-            div.innerHTML = '<div style="font-size:14px;font-weight:700;color:var(--accent);margin-bottom:14px;">Keyboard Shortcuts</div>' +
+            div.innerHTML = '<div class="shortcut-title">Keyboard Shortcuts</div>' +
                 '<div class="shortcut-grid">' +
                 '<div class="shortcut-section">Navigation</div>' +
                 '<kbd class="kbd">\u2190 / j</kbd><span>Previous FHR</span>' +
@@ -12171,7 +12173,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 '<kbd class="kbd">Esc</kbd><span>Clear line / exit mode</span>' +
                 '<kbd class="kbd">?</kbd><span>Toggle this help</span>' +
                 '</div>' +
-                '<div style="margin-top:12px;font-size:10px;color:var(--muted);text-align:center;">Click anywhere to close</div>';
+                '<div class="shortcut-footer">Click anywhere to close</div>';
             const closeHelp = () => { div.classList.remove('visible'); setTimeout(() => div.remove(), 200); };
             div.onclick = closeHelp;
             document.body.appendChild(div);
