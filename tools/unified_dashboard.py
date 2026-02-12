@@ -3329,6 +3329,21 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .input-range--flex { flex: 1; }
         .select--min80 { min-width: 80px; }
         .ctrl-row--mt { margin-top: 6px; }
+        .select--min120 { min-width: 120px; }
+        .select--min120-sm { min-width: 120px; font-size: 11px; }
+        .select--speed { min-width: 50px; font-size: 11px; }
+        .btn--diff { margin-left: auto; font-size: 11px; padding: 2px 8px; }
+        .label--muted-sm { font-size: 11px; color: var(--muted); }
+        .input--fhrs { width: 100px; padding: 2px 6px; }
+        .zoom-btn--sm { font-size: 10px; }
+        .xsect-actions { top: 8px; left: 8px; right: auto; }
+        .xsect-action-download { font-size: 12px; }
+        .xsect-action-link { font-size: 11px; }
+        .select--gif-speed { min-width: 55px; font-size: 11px; }
+        .select--mp-mode { font-size: 11px; padding: 2px 4px; flex: 1; }
+        .legend-title--bold { margin-bottom: 4px; font-weight: 600; }
+        .ctrl-row--mb { margin-bottom: 8px; }
+        .label--vs { font-size: 12px; }
 
         /* Expanded panel (320px, collapsible) */
         #expanded-panel {
@@ -4918,7 +4933,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <button id="help-btn" class="btn-sm" data-tip="Keyboard shortcuts and guide (?)" aria-label="Open guide">Guide <span class="kbd-hint">?</span></button>
                     </div>
                     <div class="ctrl-row">
-                        <select id="gif-speed" data-tip="GIF animation speed" aria-label="GIF speed" style="min-width:55px;font-size:11px;">
+                        <select id="gif-speed" class="select--gif-speed" data-tip="GIF animation speed" aria-label="GIF speed">
                             <option value="1">1x</option>
                             <option value="0.75">0.75x</option>
                             <option value="0.5" selected>0.5x</option>
@@ -4928,7 +4943,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <input id="gif-fhr-max" type="number" placeholder="F end" data-tip="GIF end FHR" aria-label="GIF end forecast hour" class="input-xs">
                     </div>
                     <div class="ctrl-row">
-                        <select id="multi-panel-mode" data-tip="Multi-panel comparison" aria-label="Multi-panel comparison mode" style="font-size:11px;padding:2px 4px;flex:1;">
+                        <select id="multi-panel-mode" class="select--mp-mode" data-tip="Multi-panel comparison" aria-label="Multi-panel comparison mode">
                             <option value="">Multi-Panel</option>
                             <option value="model">Model vs Model</option>
                             <option value="temporal">Temporal (FHRs)</option>
@@ -4967,8 +4982,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     <canvas id="event-timeline" class="event-timeline" width="360" height="48"></canvas>
                     <input type="text" id="event-search" class="event-search" placeholder="Search events..." aria-label="Search events">
                     <div id="event-cat-pills" class="event-cat-pills"></div>
-                    <div class="ctrl-row" style="margin-bottom:8px;">
-                        <select id="event-category-filter" aria-label="Event category filter" style="font-size:11px;min-width:80px;display:none;">
+                    <div class="ctrl-row ctrl-row--mb">
+                        <select id="event-category-filter" class="select--min80 select--flex" aria-label="Event category filter" style="display:none;">
                             <option value="">All Categories</option>
                         </select>
                         <label style="font-size:10px;"><input type="checkbox" id="event-coords-only">With coordinates only</label>
@@ -5086,7 +5101,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 </div>
             </div>
             <div id="barb-legend" class="map-legend map-legend-left" style="display:none;">
-                <div class="map-legend-title" style="margin-bottom:4px;font-weight:600;">Wind Barbs</div>
+                <div class="map-legend-title legend-title--bold">Wind Barbs</div>
                 <div class="barb-legend-items">
                     <div><svg width="20" height="24" viewBox="0 0 20 24"><line x1="10" y1="22" x2="10" y2="4" stroke="#ccc" stroke-width="1.5"/><line x1="10" y1="4" x2="16" y2="8" stroke="#ccc" stroke-width="1.5"/></svg><div>5 kt</div></div>
                     <div><svg width="20" height="24" viewBox="0 0 20 24"><line x1="10" y1="22" x2="10" y2="4" stroke="#ccc" stroke-width="1.5"/><line x1="10" y1="4" x2="18" y2="8" stroke="#ccc" stroke-width="1.5"/><line x1="10" y1="7" x2="18" y2="11" stroke="#ccc" stroke-width="1.5"/></svg><div>10 kt</div></div>
@@ -5128,7 +5143,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         </div>
                         <span id="slider-label" class="slider-label">F00</span>
                         <span id="frame-counter" class="frame-counter"></span>
-                        <select id="play-speed" data-tip="Playback speed" aria-label="Playback speed" style="min-width:50px;font-size:11px;">
+                        <select id="play-speed" class="select--speed" data-tip="Playback speed" aria-label="Playback speed">
                             <option value="2000">0.5x</option>
                             <option value="1000" selected>1x</option>
                             <option value="500">2x</option>
@@ -5139,24 +5154,24 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     <div id="context-hint" class="context-hint"></div>
                     <!-- Compare controls -->
                     <div id="compare-controls">
-                        <label class="mp-label" style="font-size:12px;">vs</label>
-                        <select id="compare-cycle-select" style="min-width:120px;"></select>
+                        <label class="mp-label label--vs">vs</label>
+                        <select id="compare-cycle-select" class="select--min120"></select>
                         <div class="toggle-group" id="compare-mode-toggle">
                             <button class="toggle-btn active" data-value="same_fhr">Same FHR</button>
                             <button class="toggle-btn" data-value="valid_time">Valid Time</button>
                         </div>
                         <span id="compare-fhr-label" class="mp-label"></span>
-                        <button id="compare-diff-btn" class="toggle-btn" data-tip="Show pixel difference between panels" style="margin-left:auto;font-size:11px;padding:2px 8px;">Diff</button>
+                        <button id="compare-diff-btn" class="toggle-btn btn--diff" data-tip="Show pixel difference between panels">Diff</button>
                     </div>
                     <!-- Multi-panel controls -->
                     <div id="multi-panel-controls">
                         <div id="mp-model-controls" class="mp-mode-section" style="display:none;">
-                            <label style="font-size:11px;color:var(--muted);">Models:</label>
+                            <label class="label--muted-sm">Models:</label>
                             <div id="mp-model-checkboxes" class="mp-chip-row"></div>
                         </div>
                         <div id="mp-temporal-controls" class="mp-mode-section" style="display:none;">
                             <label class="mp-label">FHRs:</label>
-                            <input id="mp-fhrs-input" type="text" placeholder="e.g. 0,6,12" class="input-xs" style="width:100px;padding:2px 6px;">
+                            <input id="mp-fhrs-input" type="text" placeholder="e.g. 0,6,12" class="input-xs input--fhrs">
                             <button id="mp-temporal-go" class="mp-go-btn">Go</button>
                         </div>
                         <div id="mp-product-controls" class="mp-mode-section" style="display:none;">
@@ -5165,7 +5180,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         </div>
                         <div id="mp-cycle-controls" class="mp-mode-section" style="display:none;">
                             <label class="mp-label">vs Cycle:</label>
-                            <select id="mp-cycle-select" style="min-width:120px;font-size:11px;"></select>
+                            <select id="mp-cycle-select" class="select--min120-sm"></select>
                             <div class="toggle-group" id="mp-cycle-match-toggle">
                                 <button class="toggle-btn active" data-value="same_fhr">Same FHR</button>
                                 <button class="toggle-btn" data-value="valid_time">Valid Time</button>
@@ -5188,11 +5203,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                                 <div class="zoom-controls" id="zoom-controls">
                                     <button id="zoom-in-btn" data-tip="Zoom in">+</button>
                                     <button id="zoom-out-btn" data-tip="Zoom out">&minus;</button>
-                                    <button id="zoom-reset-btn" data-tip="Reset zoom" style="font-size:10px;">1:1</button>
+                                    <button id="zoom-reset-btn" class="zoom-btn--sm" data-tip="Reset zoom">1:1</button>
                                 </div>
-                                <div class="zoom-controls" id="xsect-actions" style="top:8px;left:8px;right:auto;">
-                                    <button id="xsect-download-btn" data-tip="Download cross-section PNG" style="font-size:12px;">&#8681;</button>
-                                    <button id="xsect-copylink-btn" data-tip="Copy shareable link" style="font-size:11px;">&#128279;</button>
+                                <div class="zoom-controls xsect-actions" id="xsect-actions">
+                                    <button id="xsect-download-btn" class="xsect-action-download" data-tip="Download cross-section PNG">&#8681;</button>
+                                    <button id="xsect-copylink-btn" class="xsect-action-link" data-tip="Copy shareable link">&#128279;</button>
                                 </div>
                                 <div id="instructions" class="landing">
                                     <div class="landing-title">wxsection</div>
