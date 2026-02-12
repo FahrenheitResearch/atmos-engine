@@ -4483,7 +4483,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             </div>
             <div id="map-attribution" style="position:absolute;bottom:4px;left:52px;z-index:500;font-size:9px;color:rgba(148,163,184,0.6);pointer-events:none;letter-spacing:0.3px;">wxsection.com &middot; NOAA NWP Data</div>
             <div id="map-coords" style="position:absolute;bottom:4px;right:8px;z-index:500;font-size:10px;color:rgba(148,163,184,0.7);pointer-events:none;font-family:'SF Mono',Consolas,monospace;letter-spacing:0.3px;"></div>
-            <div id="overlay-colorbar" style="display:none;position:absolute;bottom:30px;right:10px;z-index:1000;background:rgba(0,0,0,0.75);border-radius:6px;padding:6px 10px;pointer-events:none;">
+            <div id="overlay-colorbar" style="display:none;position:absolute;bottom:30px;right:10px;z-index:var(--z-map-hud);background:rgba(0,0,0,0.75);border-radius:6px;padding:6px 10px;pointer-events:none;transition:opacity var(--transition-default) ease;">
                 <div style="font-size:10px;color:#ccc;margin-bottom:3px;" id="colorbar-title"></div>
                 <canvas id="colorbar-canvas" width="200" height="14" style="border-radius:2px;display:block;"></canvas>
                 <div style="display:flex;justify-content:space-between;font-size:9px;color:#aaa;margin-top:2px;">
@@ -4899,7 +4899,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             } else if (startMarker && !endMarker) {
                 // Point A placed — draw point B
                 mapEl.classList.add('draw-mode');
-                toast.innerHTML = 'Click to place point <b style="color:#f87171">B</b>';
+                toast.innerHTML = 'Click to place point <b style="color:var(--danger-light)">B</b>';
                 toast.classList.add('visible');
                 clearTimeout(_drawToastTimer);
                 _drawToastTimer = setTimeout(() => { toast.classList.remove('visible'); }, 6000);
@@ -5913,7 +5913,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                             }
                         }, 350);
                     }
-                    document.getElementById('overlay-colorbar').style.display = 'none';
+                    const _cb = document.getElementById('overlay-colorbar');
+                    _cb.style.opacity = '0';
+                    setTimeout(() => { _cb.style.display = 'none'; _cb.style.opacity = '1'; }, 200);
                 }
             }
 
@@ -6990,7 +6992,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             if (hoursAgo < 1) { el.textContent = '<1h ago'; el.style.color = 'var(--success)'; }
             else if (hoursAgo < 4) { el.textContent = hoursAgo + 'h ago'; el.style.color = 'var(--muted)'; }
             else if (hoursAgo < 48) { el.textContent = hoursAgo + 'h ago'; el.style.color = 'var(--warning)'; }
-            else { el.textContent = Math.round(hoursAgo / 24) + 'd ago'; el.style.color = '#f87171'; }
+            else { el.textContent = Math.round(hoursAgo / 24) + 'd ago'; el.style.color = 'var(--danger-light)'; }
         }
         setInterval(updateHUD, 500);
         setInterval(updateCycleAge, 10000);
@@ -8107,7 +8109,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 container.innerHTML = '';
                 container.appendChild(img);
             } catch (err) {
-                container.innerHTML = `<div style="color:#f87171">${err.message}</div>`;
+                container.innerHTML = `<div style="color:var(--danger-light)">${err.message}</div>`;
             }
         }
 
@@ -8366,7 +8368,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             function mpValidationError(msg) {
                 mpStatus.textContent = msg;
                 mpStatus.style.display = '';
-                mpStatus.style.color = '#f87171';
+                mpStatus.style.color = 'var(--danger-light)';
                 mpStatus.style.animation = 'shake 0.3s ease';
                 setTimeout(() => { mpStatus.style.animation = ''; }, 400);
                 setTimeout(() => { if (mpStatus.textContent === msg) { mpStatus.style.display = 'none'; mpStatus.style.color = 'var(--accent)'; } }, 3000);
@@ -8433,7 +8435,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 mpStatus.textContent = 'Done';
                 setTimeout(() => { if (mpStatus.textContent === 'Done') mpStatus.style.display = 'none'; }, 2000);
             } catch (err) {
-                container.innerHTML = `<div style="color:#f87171;text-align:center;padding:16px;"><div style="margin-bottom:8px;">${err.message}</div><button onclick="generateMultiPanel()" style="padding:4px 12px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#000;cursor:pointer;font-size:12px;">Retry</button></div>`;
+                container.innerHTML = `<div style="color:var(--danger-light);text-align:center;padding:16px;"><div style="margin-bottom:8px;">${err.message}</div><button onclick="generateMultiPanel()" style="padding:4px 12px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#000;cursor:pointer;font-size:12px;">Retry</button></div>`;
                 mpStatus.textContent = 'Error';
             }
         }
@@ -8574,7 +8576,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 '<input class="poi-label-input" data-poi-idx="' + idx + '" type="text" value="' + safeLabel + '" placeholder="Label (e.g. Camp Fire)" style="width:100%;box-sizing:border-box;padding:3px 6px;border:1px solid #475569;border-radius:4px;font-size:12px;background:#334155;color:#f4f4f4;">' +
                 '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">' +
                 '<span style="font-size:10px;color:#94a3b8">Enter to apply</span>' +
-                '<button class="poi-remove-btn" data-poi-idx="' + idx + '" style="font-size:10px;color:#f87171;background:none;border:1px solid #f87171;border-radius:3px;padding:1px 6px;cursor:pointer">Remove</button>' +
+                '<button class="poi-remove-btn" data-poi-idx="' + idx + '" style="font-size:10px;color:var(--danger-light);background:none;border:1px solid var(--danger-light);border-radius:3px;padding:1px 6px;cursor:pointer">Remove</button>' +
                 '</div></div>';
         }
         function bindPoiPopup(poi) {
@@ -8625,7 +8627,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
         function addPoi(lat, lng, label) {
             const el = document.createElement('div');
-            el.style.cssText = 'width:' + poiMarkerSize + 'px;height:' + poiMarkerSize + 'px;background:#10b981;border-radius:50%;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);cursor:grab;';
+            el.style.cssText = 'width:' + poiMarkerSize + 'px;height:' + poiMarkerSize + 'px;background:var(--success);border-radius:50%;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);cursor:grab;';
             const m = new mapboxgl.Marker({ element: el, draggable: true })
                 .setLngLat([lng, lat])
                 .addTo(map);
@@ -8644,7 +8646,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         function updatePoiBtn() {
             const btn = document.getElementById('poi-btn');
             if (poiPlaceMode) {
-                btn.style.background = '#10b981';
+                btn.style.background = 'var(--success)';
                 btn.style.color = '#fff';
             } else {
                 btn.style.background = '';
@@ -9174,7 +9176,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 if (bottomState === 'collapsed') setBottomState('half');
             } catch (err) {
                 if (err.name === 'AbortError') return;
-                container.innerHTML = `<div style="color:#f87171">${err.message}</div>`;
+                container.innerHTML = `<div style="color:var(--danger-light)">${err.message}</div>`;
                 document.querySelectorAll('.quick-start-btn.loading').forEach(b => b.classList.remove('loading'));
             }
 
@@ -9685,7 +9687,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const coords = f.geometry.coordinates.slice();
                 const regionLabel = REGION_LABELS[p.region] || p.region;
                 const elevText = p.elevation_ft ? ' &middot; ' + p.elevation_ft + ' ft' : '';
-                const wuiText = p.wui_exposure ? '<br><span style="font-size:11px;color:#f87171;">' + p.wui_exposure + '</span>' : '';
+                const wuiText = p.wui_exposure ? '<br><span style="font-size:11px;color:var(--danger-light);">' + p.wui_exposure + '</span>' : '';
                 new mapboxgl.Popup({ offset: 8 })
                     .setLngLat(coords)
                     .setHTML(
@@ -9878,7 +9880,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
                 content.innerHTML = html;
             } catch (e) {
-                content.innerHTML = `<div style="color:#f87171;text-align:center;padding:16px;"><div style="margin-bottom:8px;">Failed to load profile</div><button onclick="loadCityProfile('${key}')" style="padding:4px 12px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#000;cursor:pointer;font-size:12px;">Retry</button></div>`;
+                content.innerHTML = `<div style="color:var(--danger-light);text-align:center;padding:16px;"><div style="margin-bottom:8px;">Failed to load profile</div><button onclick="loadCityProfile('${key}')" style="padding:4px 12px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#000;cursor:pointer;font-size:12px;">Retry</button></div>`;
             }
         };
 
@@ -10787,7 +10789,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
                 if (evt.evaluation_notes) showShowcaseNotes(evt.evaluation_notes);
             } catch (err) {
-                container.innerHTML = `<div style="color:#f87171;text-align:center;padding:16px;"><div style="margin-bottom:8px;">${err.message}</div><button onclick="showcaseQuadPlot('${cycleKey}')" style="padding:4px 12px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#000;cursor:pointer;font-size:12px;">Retry</button></div>`;
+                container.innerHTML = `<div style="color:var(--danger-light);text-align:center;padding:16px;"><div style="margin-bottom:8px;">${err.message}</div><button onclick="showcaseQuadPlot('${cycleKey}')" style="padding:4px 12px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#000;cursor:pointer;font-size:12px;">Retry</button></div>`;
             }
         };
 
@@ -10860,7 +10862,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
                 if (evt.evaluation_notes) showShowcaseNotes(evt.evaluation_notes);
             } catch (err) {
-                container.innerHTML = `<div style="color:#f87171;text-align:center;padding:16px;"><div style="margin-bottom:8px;">${err.message}</div><button onclick="showcaseTemporalEvolution('${cycleKey}')" style="padding:4px 12px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#000;cursor:pointer;font-size:12px;">Retry</button></div>`;
+                container.innerHTML = `<div style="color:var(--danger-light);text-align:center;padding:16px;"><div style="margin-bottom:8px;">${err.message}</div><button onclick="showcaseTemporalEvolution('${cycleKey}')" style="padding:4px 12px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#000;cursor:pointer;font-size:12px;">Retry</button></div>`;
             }
         };
 
@@ -10976,7 +10978,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 if (evt.evaluation_notes) showShowcaseNotes(evt.evaluation_notes);
                 startPlayback();
             } catch (err) {
-                container.innerHTML = `<div style="color:#f87171;text-align:center;padding:16px;"><div style="margin-bottom:8px;">Playback failed: ${err.message}</div><button onclick="showcasePlayback('${cycleKey}')" style="padding:4px 12px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#000;cursor:pointer;font-size:12px;">Retry</button></div>`;
+                container.innerHTML = `<div style="color:var(--danger-light);text-align:center;padding:16px;"><div style="margin-bottom:8px;">Playback failed: ${err.message}</div><button onclick="showcasePlayback('${cycleKey}')" style="padding:4px 12px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#000;cursor:pointer;font-size:12px;">Retry</button></div>`;
             }
         };
 
