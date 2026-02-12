@@ -3519,6 +3519,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
         /* ===== Showcase Notes Bar ===== */
         .showcase-notes-bar {
+            position: relative;
             background: rgba(14, 165, 233, 0.08);
             border: 1px solid rgba(14, 165, 233, 0.2);
             border-radius: var(--radius-md); padding: 8px 12px; margin-bottom: 8px;
@@ -4504,6 +4505,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     <div id="showcase-notes" class="showcase-notes-bar" style="display:none;">
                         <div class="notes-title">Analysis</div>
                         <div id="showcase-notes-text"></div>
+                        <button onclick="hideShowcaseNotes()" style="position:absolute;top:4px;right:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 6px;" title="Dismiss">&times;</button>
                     </div>
                     <!-- Cross-section panels -->
                     <div id="xsect-panels">
@@ -6735,7 +6737,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 if (!data.success) {
                     showToast(data.error || 'Request failed', 'error');
                 }
-                // Progress is shown in the progress panel now — no need for separate polling
+                // Auto-expand progress panel to show download progress
+                const pp = document.getElementById('progress-panel');
+                if (pp && pp.classList.contains('collapsed')) pp.classList.remove('collapsed');
             } catch (e) {
                 showToast('Request failed', 'error');
             }
@@ -8341,7 +8345,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 mpStatus.textContent = 'Done';
                 setTimeout(() => { if (mpStatus.textContent === 'Done') mpStatus.style.display = 'none'; }, 2000);
             } catch (err) {
-                container.innerHTML = `<div style="color:#f87171">${err.message}</div>`;
+                container.innerHTML = `<div style="color:#f87171;text-align:center;padding:16px;"><div style="margin-bottom:8px;">${err.message}</div><button onclick="generateMultiPanel()" style="padding:4px 12px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#000;cursor:pointer;font-size:12px;">Retry</button></div>`;
                 mpStatus.textContent = 'Error';
             }
         }
@@ -9786,7 +9790,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
                 content.innerHTML = html;
             } catch (e) {
-                content.innerHTML = `<div style="color:#f87171;">Failed to load profile</div>`;
+                content.innerHTML = `<div style="color:#f87171;text-align:center;padding:16px;"><div style="margin-bottom:8px;">Failed to load profile</div><button onclick="loadCityProfile('${key}')" style="padding:4px 12px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#000;cursor:pointer;font-size:12px;">Retry</button></div>`;
             }
         };
 
@@ -10690,7 +10694,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
                 if (evt.evaluation_notes) showShowcaseNotes(evt.evaluation_notes);
             } catch (err) {
-                container.innerHTML = `<div style="color:#f87171">${err.message}</div>`;
+                container.innerHTML = `<div style="color:#f87171;text-align:center;padding:16px;"><div style="margin-bottom:8px;">${err.message}</div><button onclick="showcaseQuadPlot('${cycleKey}')" style="padding:4px 12px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#000;cursor:pointer;font-size:12px;">Retry</button></div>`;
             }
         };
 
@@ -10763,7 +10767,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
                 if (evt.evaluation_notes) showShowcaseNotes(evt.evaluation_notes);
             } catch (err) {
-                container.innerHTML = `<div style="color:#f87171">${err.message}</div>`;
+                container.innerHTML = `<div style="color:#f87171;text-align:center;padding:16px;"><div style="margin-bottom:8px;">${err.message}</div><button onclick="showcaseTemporalEvolution('${cycleKey}')" style="padding:4px 12px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#000;cursor:pointer;font-size:12px;">Retry</button></div>`;
             }
         };
 
@@ -10879,7 +10883,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 if (evt.evaluation_notes) showShowcaseNotes(evt.evaluation_notes);
                 startPlayback();
             } catch (err) {
-                container.innerHTML = `<div style="color:#f87171">Playback failed: ${err.message}</div>`;
+                container.innerHTML = `<div style="color:#f87171;text-align:center;padding:16px;"><div style="margin-bottom:8px;">Playback failed: ${err.message}</div><button onclick="showcasePlayback('${cycleKey}')" style="padding:4px 12px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#000;cursor:pointer;font-size:12px;">Retry</button></div>`;
             }
         };
 
