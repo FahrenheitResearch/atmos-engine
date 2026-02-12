@@ -4123,9 +4123,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         let poiMarkers = [];  // Array of {marker, label} objects
 
         // ---- Mapbox marker/line helpers ----
-        function createXSMarker(lat, lng, color) {
+        function createXSMarker(lat, lng, color, label) {
             const el = document.createElement('div');
-            el.style.cssText = 'width:' + markerSize + 'px;height:' + markerSize + 'px;background:' + color + ';border-radius:50%;border:2px solid white;cursor:grab;box-shadow:0 1px 4px rgba(0,0,0,0.4);';
+            el.style.cssText = 'width:' + markerSize + 'px;height:' + markerSize + 'px;background:' + color + ';border-radius:50%;border:2px solid white;cursor:grab;box-shadow:0 2px 6px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;font-size:' + Math.round(markerSize * 0.55) + 'px;font-weight:700;color:#000;user-select:none;';
+            if (label) el.textContent = label;
             const m = new mapboxgl.Marker({ element: el, draggable: true })
                 .setLngLat([lng, lat])
                 .addTo(map);
@@ -4146,6 +4147,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 map.getSource('xs-line').setData(data);
             } else {
                 map.addSource('xs-line', { type: 'geojson', data: data });
+                // Glow/halo layer for visibility on all basemaps
+                map.addLayer({
+                    id: 'xs-line-glow',
+                    type: 'line',
+                    source: 'xs-line',
+                    paint: { 'line-color': '#000', 'line-width': 7, 'line-opacity': 0.3 }
+                });
                 map.addLayer({
                     id: 'xs-line',
                     type: 'line',
@@ -4159,6 +4167,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         function removeLine() {
             if (mapStyleLoaded) {
                 if (map.getLayer('xs-line')) map.removeLayer('xs-line');
+                if (map.getLayer('xs-line-glow')) map.removeLayer('xs-line-glow');
                 if (map.getSource('xs-line')) map.removeSource('xs-line');
             }
             lineExists = false;
@@ -4171,14 +4180,14 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
 
         function setupStartMarker(lat, lng) {
-            const m = createXSMarker(lat, lng, '#38bdf8');
+            const m = createXSMarker(lat, lng, '#38bdf8', 'A');
             m.on('drag', () => { updateLine(); liveDragRender(); });
             m.on('dragend', () => { invalidatePrerender(); generateCrossSection(); });
             return m;
         }
 
         function setupEndMarker(lat, lng) {
-            const m = createXSMarker(lat, lng, '#f87171');
+            const m = createXSMarker(lat, lng, '#f87171', 'B');
             m.on('drag', () => { updateLine(); liveDragRender(); });
             m.on('dragend', () => { invalidatePrerender(); generateCrossSection(); });
             return m;
