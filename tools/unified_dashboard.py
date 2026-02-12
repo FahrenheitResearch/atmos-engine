@@ -4191,6 +4191,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
             <!-- Bottom Slide-Up Panel -->
             <div id="bottom-panel" class="collapsed">
+                <div id="bottom-peek" style="position:absolute;top:0;left:0;right:0;height:48px;overflow:hidden;pointer-events:none;opacity:0;transition:opacity 0.3s;z-index:0;">
+                    <img id="peek-img" style="width:100%;height:auto;object-fit:cover;object-position:center 60%;opacity:0.15;filter:blur(1px);">
+                </div>
                 <div id="bottom-handle">
                     <div class="drag-indicator"></div>
                     <div id="bottom-status">
@@ -4888,6 +4891,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             bottomExpandBtn.style.display = state === 'full' ? 'none' : '';
             bottomCollapseBtn.style.display = state === 'collapsed' ? 'none' : '';
             bottomExpandBtn.innerHTML = state === 'collapsed' ? '&#9650;' : '&#9650;&#9650;';
+            // Show peek preview when collapsed and image exists
+            const peek = document.getElementById('bottom-peek');
+            if (peek) {
+                const peekImg = document.getElementById('peek-img');
+                peek.style.opacity = (state === 'collapsed' && peekImg && peekImg.src) ? '1' : '0';
+            }
             setTimeout(() => map.resize(), 350);
         }
 
@@ -8130,7 +8139,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 if (oldImg && oldImg.src && oldImg.src.startsWith('blob:')) URL.revokeObjectURL(oldImg.src);
                 const img = document.createElement('img');
                 img.id = 'xsect-img';
-                img.onload = () => img.classList.add('loaded');
+                img.onload = () => {
+                    img.classList.add('loaded');
+                    // Update peek image for collapsed panel
+                    const peekImg = document.getElementById('peek-img');
+                    if (peekImg) peekImg.src = img.src;
+                };
                 img.src = URL.createObjectURL(blob);
                 container.innerHTML = '';
                 container.appendChild(img);
