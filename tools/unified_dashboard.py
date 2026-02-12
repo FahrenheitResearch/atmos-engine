@@ -7479,6 +7479,23 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const renderLabel = renderMs < 1000 ? renderMs + 'ms' : (renderMs / 1000).toFixed(1) + 's';
                 meta.textContent = formatTransectMeta(start.lat, start.lng, end.lat, end.lng) + ' \u00b7 ' + renderLabel;
                 container.appendChild(meta);
+                // Quick product strip below image
+                const strip = document.createElement('div');
+                strip.id = 'product-strip';
+                strip.style.cssText = 'display:flex;gap:3px;flex-wrap:wrap;justify-content:center;padding:4px 8px;';
+                const excluded = modelExcludedStyles[currentModel] || new Set();
+                styleGroups.forEach(([, items]) => {
+                    items.forEach(([key, name]) => {
+                        if (excluded.has(key)) return;
+                        const pill = document.createElement('span');
+                        pill.style.cssText = `padding:1px 6px;border-radius:8px;font-size:9px;cursor:pointer;transition:all 0.1s;background:${key === style ? 'var(--accent)' : 'var(--card)'};color:${key === style ? '#000' : 'var(--muted)'};border:1px solid ${key === style ? 'var(--accent)' : 'transparent'};`;
+                        pill.textContent = name;
+                        pill.title = styleDescriptions[key] || name;
+                        pill.onclick = () => { styleSelect.value = key; styleSelect.dispatchEvent(new Event('change')); };
+                        strip.appendChild(pill);
+                    });
+                });
+                container.appendChild(strip);
                 // Update bottom status with active FHR
                 const fhrEl = document.getElementById('active-fhr');
                 if (fhrEl) fhrEl.textContent = fhrWithTime(activeFhr);
