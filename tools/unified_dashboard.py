@@ -3716,8 +3716,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     <div class="ctrl-row">
                         <label>Overlay:</label>
                         <div class="toggle-group">
-                            <button class="toggle-btn active" id="overlay-off">Off</button>
-                            <button class="toggle-btn" id="overlay-on">On</button>
+                            <button class="toggle-btn active" id="overlay-off" title="Hide map overlay (O)">Off</button>
+                            <button class="toggle-btn" id="overlay-on" title="Show map overlay (O)">On</button>
                         </div>
                         <button class="toggle-btn" id="overlay-loop" style="margin-left:4px;font-size:10px;padding:2px 6px;" title="Animate through forecast hours">Loop</button>
                     </div>
@@ -3766,15 +3766,15 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <div class="ctrl-section">
                     <div class="ctrl-section-title">Actions</div>
                     <div class="ctrl-row" style="flex-wrap:wrap;">
-                        <button id="swap-btn" style="padding:3px 8px;font-size:12px;">Swap</button>
-                        <button id="clear-btn" style="padding:3px 8px;font-size:12px;">Clear</button>
+                        <button id="swap-btn" style="padding:3px 8px;font-size:12px;" title="Swap A/B endpoints (S)">Swap</button>
+                        <button id="clear-btn" style="padding:3px 8px;font-size:12px;" title="Clear cross-section line (Esc)">Clear</button>
                         <button id="poi-btn" style="padding:3px 8px;font-size:12px;" title="Place POI marker (or right-click map)">+ POI</button>
                         <button id="load-all-btn" style="padding:3px 8px;font-size:12px;">Load All</button>
                         <button id="gif-btn" style="padding:3px 8px;font-size:12px;">GIF</button>
-                        <button id="compare-btn" style="padding:3px 8px;font-size:12px;">Compare</button>
+                        <button id="compare-btn" style="padding:3px 8px;font-size:12px;" title="Compare two cycles side-by-side (C)">Compare</button>
                         <button id="share-btn" style="padding:3px 8px;font-size:12px;" title="Copy shareable link to clipboard">Share</button>
                         <button id="save-btn" style="padding:3px 8px;font-size:12px;" title="Download cross-section as PNG">Save</button>
-                        <button id="help-btn" style="padding:3px 8px;font-size:12px;">Guide</button>
+                        <button id="help-btn" style="padding:3px 8px;font-size:12px;" title="Keyboard shortcuts and guide (?)">Guide</button>
                     </div>
                     <div class="ctrl-row">
                         <select id="gif-speed" title="GIF speed" style="min-width:55px;font-size:11px;">
@@ -3933,18 +3933,19 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <div id="bottom-body">
                     <!-- Slider row -->
                     <div id="slider-row">
-                        <button id="prev-btn" title="Previous frame" style="padding:3px 6px;font-size:12px;min-width:28px;">&#9664;</button>
-                        <button id="play-btn" title="Auto-play" style="padding:3px 8px;font-size:14px;min-width:32px;">&#9654;</button>
-                        <button id="next-btn" title="Next frame" style="padding:3px 6px;font-size:12px;min-width:28px;">&#9654;</button>
+                        <button id="prev-btn" title="Previous frame (Left / J)" style="padding:3px 6px;font-size:12px;min-width:28px;">&#9664;</button>
+                        <button id="play-btn" title="Auto-play (Space)" style="padding:3px 8px;font-size:14px;min-width:32px;">&#9654;</button>
+                        <button id="next-btn" title="Next frame (Right / K)" style="padding:3px 6px;font-size:12px;min-width:28px;">&#9654;</button>
                         <input type="range" id="fhr-slider" min="0" max="18" value="0" style="flex:1;">
                         <span id="slider-label" style="font-size:11px;color:var(--muted);min-width:110px;text-align:center;white-space:nowrap;">F00</span>
+                        <span id="frame-counter" style="font-size:10px;color:var(--muted);min-width:50px;text-align:center;display:none;"></span>
                         <select id="play-speed" title="Playback speed" style="min-width:50px;font-size:11px;">
                             <option value="2000">0.5x</option>
                             <option value="1000" selected>1x</option>
                             <option value="500">2x</option>
                             <option value="250">4x</option>
                         </select>
-                        <button id="prerender-btn" title="Pre-render all frames" style="padding:3px 6px;font-size:11px;">Pre-render</button>
+                        <button id="prerender-btn" title="Pre-render all FHR frames for instant playback" style="padding:3px 6px;font-size:11px;">Pre-render</button>
                     </div>
                     <!-- Compare controls -->
                     <div id="compare-controls">
@@ -3992,18 +3993,32 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <div class="xsect-panel" id="panel-primary">
                             <div class="xsect-panel-label" id="panel-primary-label"></div>
                             <div class="xsect-panel-body" id="xsect-container">
-                                <div id="instructions" style="text-align:center;padding:24px;max-width:420px;">
-                                    <div style="font-size:22px;font-weight:700;color:var(--accent);margin-bottom:6px;letter-spacing:-0.5px;">wxsection</div>
-                                    <div style="font-size:11px;color:var(--muted);margin-bottom:14px;letter-spacing:0.5px;text-transform:uppercase;">Real-Time Atmospheric Cross-Sections</div>
-                                    <div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:16px;">
-                                        Click two points on the map &mdash; or try a featured transect:
+                                <div id="instructions" style="text-align:center;padding:24px;max-width:460px;">
+                                    <div style="font-size:22px;font-weight:700;color:var(--accent);margin-bottom:4px;letter-spacing:-0.5px;">wxsection</div>
+                                    <div style="font-size:11px;color:var(--muted);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">Real-Time Atmospheric Cross-Sections</div>
+                                    <div style="display:flex;gap:16px;justify-content:center;margin-bottom:18px;font-size:12px;color:var(--text);">
+                                        <div style="text-align:center;">
+                                            <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#000;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;margin-bottom:4px;">1</div>
+                                            <div>Click point A</div>
+                                        </div>
+                                        <div style="color:var(--muted);align-self:center;font-size:16px;margin-top:-16px;">&#8594;</div>
+                                        <div style="text-align:center;">
+                                            <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#000;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;margin-bottom:4px;">2</div>
+                                            <div>Click point B</div>
+                                        </div>
+                                        <div style="color:var(--muted);align-self:center;font-size:16px;margin-top:-16px;">&#8594;</div>
+                                        <div style="text-align:center;">
+                                            <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#000;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;margin-bottom:4px;">3</div>
+                                            <div>Explore</div>
+                                        </div>
                                     </div>
+                                    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Or try a featured transect:</div>
                                     <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:16px;">
                                         <button class="quick-start-btn" onclick="quickStart(39.7,-105.5,39.7,-104.0,'temperature')" title="Dramatic terrain drop from the Rockies to Denver">Denver Front Range</button>
                                         <button class="quick-start-btn" onclick="quickStart(45.70,-122.00,45.60,-121.50,'wind_speed')" title="Classic wind corridor through the Columbia Gorge">Columbia Gorge</button>
                                         <button class="quick-start-btn" onclick="quickStart(37.0,-121.0,37.0,-118.0,'fire_wx')" title="Cross the Sierra Nevada crest near Yosemite">Sierra Nevada</button>
                                         <button class="quick-start-btn" onclick="quickStart(35.0,-101.0,35.0,-97.0,'theta_e')" title="Southern Plains dryline boundary">Great Plains Dryline</button>
-                                        <button class="quick-start-btn" onclick="quickStart(44.0,-123.5,44.0,-121.0,'wind_speed')" title="McKenzie Pass corridor — critical Oregon fire weather terrain">Oregon Cascades</button>
+                                        <button class="quick-start-btn" onclick="quickStart(44.0,-123.5,44.0,-121.0,'wind_speed')" title="McKenzie Pass corridor \u2014 critical Oregon fire weather terrain">Oregon Cascades</button>
                                         <button class="quick-start-btn" onclick="quickStart(34.2,-118.8,34.2,-117.5,'rh')" title="Santa Ana wind corridor across LA metro">LA Basin</button>
                                     </div>
                                     <div id="landing-stats" style="font-size:11px;color:var(--muted);line-height:1.7;">
@@ -4284,7 +4299,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     pill.appendChild(label);
                     pill.appendChild(resSpan);
                     const nProducts = styles.length - (m.excluded_styles ? m.excluded_styles.length : 0);
-                    pill.title = `${m.name} (${m.resolution}) — ${nProducts} products, ${m.cycle_count} cycle${m.cycle_count !== 1 ? 's' : ''} available`;
+                    const pillIdx = pillsEl.children.length + 1;
+                    const kbHint = pillIdx <= 6 ? ` (${pillIdx})` : '';
+                    pill.title = `${m.name} (${m.resolution}) \u2014 ${nProducts} products, ${m.cycle_count} cycle${m.cycle_count !== 1 ? 's' : ''} available${kbHint}`;
                     pill.onclick = () => switchModel(m.id);
                     pillsEl.appendChild(pill);
                 });
@@ -6291,21 +6308,31 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
         function startPlayback() {
             isPlaying = true;
-            document.getElementById('play-btn').innerHTML = '&#9646;&#9646;';
+            const playBtn = document.getElementById('play-btn');
+            playBtn.innerHTML = '&#9646;&#9646;';
+            playBtn.title = 'Pause (Space)';
+            const counter = document.getElementById('frame-counter');
+            if (counter) counter.style.display = '';
             const speed = parseInt(document.getElementById('play-speed').value);
             const slider = document.getElementById('fhr-slider');
+            const total = parseInt(slider.max) + 1;
 
             playInterval = setInterval(() => {
                 let val = parseInt(slider.value) + 1;
                 if (val > parseInt(slider.max)) val = 0;
                 slider.value = val;
                 slider.dispatchEvent(new Event('input'));
+                if (counter) counter.textContent = `${val + 1}/${total}`;
             }, speed);
         }
 
         function stopPlayback() {
             isPlaying = false;
-            document.getElementById('play-btn').innerHTML = '&#9654;';
+            const playBtn = document.getElementById('play-btn');
+            playBtn.innerHTML = '&#9654;';
+            playBtn.title = 'Auto-play (Space)';
+            const counter = document.getElementById('frame-counter');
+            if (counter) counter.style.display = 'none';
             if (playInterval) {
                 clearInterval(playInterval);
                 playInterval = null;
@@ -7132,9 +7159,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 `&anomaly=${anomalyMode ? 1 : 0}${modelParam()}${poiParams}`;
 
             try {
+                const t0 = performance.now();
                 const res = await fetch(url, { signal: xsectAbortController.signal });
                 if (!res.ok) throw new Error('Failed to generate');
                 const blob = await res.blob();
+                const renderMs = Math.round(performance.now() - t0);
                 const oldImg = document.getElementById('xsect-img');
                 if (oldImg && oldImg.src && oldImg.src.startsWith('blob:')) URL.revokeObjectURL(oldImg.src);
                 const img = document.createElement('img');
@@ -7143,10 +7172,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 img.src = URL.createObjectURL(blob);
                 container.innerHTML = '';
                 container.appendChild(img);
-                // Transect metadata overlay
+                // Transect metadata overlay with render time
                 const meta = document.createElement('div');
                 meta.id = 'xsect-meta';
-                meta.textContent = formatTransectMeta(start.lat, start.lng, end.lat, end.lng);
+                const renderLabel = renderMs < 1000 ? renderMs + 'ms' : (renderMs / 1000).toFixed(1) + 's';
+                meta.textContent = formatTransectMeta(start.lat, start.lng, end.lat, end.lng) + ' \u00b7 ' + renderLabel;
                 container.appendChild(meta);
                 // Update bottom status with style name
                 const statusEl = document.getElementById('bottom-status');
@@ -7283,13 +7313,18 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         // =========================================================================
         // Auto-refresh for new cycles
         // =========================================================================
+        let _lastKnownCycles = new Set(cycles.map(c => c.cycle_key || c.display));
         setInterval(async () => {
-            const oldCount = cycles.length;
             await loadCycles();
-            if (cycles.length > oldCount) {
-                showToast('New model run available!', 'success');
+            const currentKeys = new Set(cycles.map(c => c.cycle_key || c.display));
+            const newCycles = [...currentKeys].filter(k => !_lastKnownCycles.has(k));
+            if (newCycles.length > 0) {
+                const label = newCycles[0].replace('_', ' ').toUpperCase();
+                showToast(`New ${currentModel.toUpperCase()} cycle: ${label}`, 'success', 5000);
+                updateCycleAge();
             }
-        }, 5 * 60 * 1000);  // Every 5 minutes
+            _lastKnownCycles = currentKeys;
+        }, 3 * 60 * 1000);  // Every 3 minutes
 
         // =========================================================================
         // Style Guide
