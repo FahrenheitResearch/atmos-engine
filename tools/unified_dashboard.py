@@ -2782,6 +2782,20 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .preset-arrow { font-size: 10px; transition: transform 0.15s; }
         .opacity-val { font-size: 11px; min-width: 30px; }
         .fhr-loaded-count { font-weight: 400; color: var(--accent); font-size: 10px; }
+        .event-timeline {
+            width: 100%; height: 48px; border-radius: 6px; background: var(--bg);
+            margin-bottom: 8px; cursor: pointer; border: 1px solid var(--border);
+        }
+        .event-search {
+            width: 100%; background: var(--bg); border: 1px solid var(--border);
+            border-radius: 6px; color: var(--text); padding: 8px 12px; font-size: 13px; margin-bottom: 8px;
+        }
+        .event-cat-pills { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+        .mem-text { font-size: 12px; color: var(--muted); }
+        .api-section { font-size: 11px; color: var(--muted); line-height: 1.5; }
+        .api-row { display: flex; gap: 4px; align-items: center; }
+        .setting-hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+        .ctrl-row label input[type="checkbox"] { margin-right: 4px; }
         /* Map HUD */
         .map-hud {
             position: absolute; top: 10px; left: 10px; z-index: var(--z-map-hud);
@@ -4712,14 +4726,14 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             <!-- TAB: Events -->
             <div class="tab-content" id="tab-events">
                 <div id="event-list-view">
-                    <canvas id="event-timeline" width="360" height="48" style="width:100%;height:48px;border-radius:6px;background:var(--bg);margin-bottom:8px;cursor:pointer;border:1px solid var(--border);"></canvas>
-                    <input type="text" id="event-search" placeholder="Search events..." aria-label="Search events" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 12px;font-size:13px;margin-bottom:8px;">
-                    <div id="event-cat-pills" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;"></div>
+                    <canvas id="event-timeline" class="event-timeline" width="360" height="48"></canvas>
+                    <input type="text" id="event-search" class="event-search" placeholder="Search events..." aria-label="Search events">
+                    <div id="event-cat-pills" class="event-cat-pills"></div>
                     <div class="ctrl-row" style="margin-bottom:8px;">
                         <select id="event-category-filter" aria-label="Event category filter" style="font-size:11px;min-width:80px;display:none;">
                             <option value="">All Categories</option>
                         </select>
-                        <label style="font-size:10px;"><input type="checkbox" id="event-coords-only" style="margin-right:4px;">With coordinates only</label>
+                        <label style="font-size:10px;"><input type="checkbox" id="event-coords-only">With coordinates only</label>
                     </div>
                     <div id="event-list" style="flex:1;overflow-y:auto;"></div>
                 </div>
@@ -4738,7 +4752,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <div class="ctrl-section">
                     <div class="ctrl-section-title">Memory Status</div>
                     <div id="memory-status" style="cursor:pointer;">
-                        <span id="mem-text" style="font-size:12px;color:var(--muted);">0 MB</span>
+                        <span id="mem-text" class="mem-text">0 MB</span>
                         <div class="mem-bar"><div class="mem-fill" id="mem-fill" style="width:0%"></div></div>
                     </div>
                 </div>
@@ -4758,7 +4772,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         </select>
                     </div>
                     <div class="ctrl-row">
-                        <label><input type="checkbox" id="toggle-terrain-3d" style="margin-right:4px;">3D Terrain</label>
+                        <label><input type="checkbox" id="toggle-terrain-3d">3D Terrain</label>
                         <label style="font-size:10px;color:var(--muted);">Exaggeration:</label>
                         <input type="range" id="terrain-exag" min="1" max="3" step="0.5" value="1.5" style="width:60px;" aria-label="Terrain exaggeration">
                         <span id="terrain-exag-label" style="font-size:10px;color:var(--muted);min-width:24px;">1.5x</span>
@@ -4767,13 +4781,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <div class="ctrl-section">
                     <div class="ctrl-section-title">&#128205; Map Markers</div>
                     <div class="ctrl-row">
-                        <label><input type="checkbox" id="toggle-city-markers" style="margin-right:4px;">Show city markers</label>
+                        <label><input type="checkbox" id="toggle-city-markers">Show city markers</label>
                     </div>
                     <div class="ctrl-row">
-                        <label><input type="checkbox" id="toggle-event-markers" style="margin-right:4px;">Show event markers</label>
+                        <label><input type="checkbox" id="toggle-event-markers">Show event markers</label>
                     </div>
                     <div class="ctrl-row">
-                        <label><input type="checkbox" id="toggle-clustering" checked style="margin-right:4px;">Cluster markers</label>
+                        <label><input type="checkbox" id="toggle-clustering" checked>Cluster markers</label>
                     </div>
                 </div>
                 <div class="ctrl-section mobile-only-setting" style="display:none;">
@@ -4785,15 +4799,15 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                             <option value="top">Top</option>
                         </select>
                     </div>
-                    <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+                    <div class="setting-hint">
                         Use "Top" if your browser has a bottom URL bar (e.g. Safari on iPhone).
                     </div>
                 </div>
                 <div class="ctrl-section">
                     <div class="ctrl-section-title">&#9889; API</div>
-                    <div style="font-size:11px;color:var(--muted);line-height:1.5;">
+                    <div class="api-section">
                         <div style="margin-bottom:4px;">Free REST API &mdash; no key required</div>
-                        <div style="display:flex;gap:4px;align-items:center;">
+                        <div class="api-row">
                             <code class="api-code">/api/v1/cross-section</code>
                             <button class="api-copy-btn" onclick="navigator.clipboard.writeText(location.origin + '/api/v1/cross-section');showToast('Copied API URL','success');">Copy</button>
                         </div>
