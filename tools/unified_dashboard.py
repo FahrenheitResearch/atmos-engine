@@ -2586,6 +2586,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             height: 100vh;
             overflow: hidden;
         }
+        /* Screen-reader-only utility */
+        .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
         /* Focus-visible for keyboard accessibility */
         :focus-visible {
             outline: 2px solid var(--accent);
@@ -3930,12 +3932,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
         /* ===== Mapbox GL overrides ===== */
         .mapboxgl-canvas { outline: none; }
-        .mapboxgl-popup-content { background: #1e293b; color: #f4f4f4; border-radius: var(--radius-lg); padding: 12px; font-family: system-ui, sans-serif; }
-        .mapboxgl-popup-tip { border-top-color: #1e293b; }
-        .mapboxgl-popup-close-button { color: #94a3b8; font-size: 18px; padding: 4px 8px; }
-        .mapboxgl-popup-close-button:hover { color: #fff; background: transparent; }
+        .mapboxgl-popup-content { background: var(--panel); color: var(--text); border-radius: var(--radius-lg); padding: 12px; font-family: system-ui, sans-serif; }
+        .mapboxgl-popup-tip { border-top-color: var(--panel); }
+        .mapboxgl-popup-close-button { color: var(--muted); font-size: 18px; padding: 4px 8px; }
+        .mapboxgl-popup-close-button:hover { color: var(--text); background: transparent; }
         .mapboxgl-ctrl-attrib { font-size: 10px !important; background: rgba(0,0,0,0.5) !important; }
-        .mapboxgl-ctrl-attrib a { color: #94a3b8 !important; }
+        .mapboxgl-ctrl-attrib a { color: var(--muted) !important; }
         .mapboxgl-ctrl-geocoder { background: rgba(15, 23, 42, 0.9) !important; color: var(--text) !important; border: 1px solid var(--border) !important; border-radius: 8px !important; backdrop-filter: blur(8px); }
         .mapboxgl-ctrl-geocoder input { color: var(--text) !important; }
         .mapboxgl-ctrl-geocoder .suggestions { background: rgba(15, 23, 42, 0.95) !important; border: 1px solid var(--border) !important; }
@@ -4181,7 +4183,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 </head>
 <body>
     <!-- Screen reader live region -->
-    <div id="sr-live" role="status" aria-live="polite" aria-atomic="true" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;"></div>
+    <div id="sr-live" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
     <!-- ===== APP LAYOUT ===== -->
     <div id="app-layout">
 
@@ -4221,10 +4223,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <div class="ctrl-section">
                     <div class="ctrl-section-title">Model</div>
                     <div class="model-pills" id="model-pills"></div>
-                    <select id="model-select" style="display:none;"></select>
+                    <select id="model-select" aria-label="Weather model" style="display:none;"></select>
                     <div class="ctrl-row" style="margin-top:6px;">
                         <label>Run:</label>
-                        <select id="cycle-select" style="font-size:12px;flex:1;"></select>
+                        <select id="cycle-select" aria-label="Model run cycle" style="font-size:12px;flex:1;"></select>
                         <span id="cycle-age" style="font-size:10px;color:var(--muted);white-space:nowrap;min-width:40px;text-align:right;transition:color var(--transition-default);"></span>
                     </div>
                 </div>
@@ -4269,7 +4271,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     <div class="ctrl-section-title">Visualization</div>
                     <div class="ctrl-row">
                         <label>Style:</label>
-                        <select id="style-select" style="display:none;"></select>
+                        <select id="style-select" aria-label="Visualization product" style="display:none;"></select>
                         <div class="product-picker" id="product-picker">
                             <button class="product-picker-btn" id="product-picker-btn" type="button" aria-label="Select visualization product" aria-haspopup="listbox">
                                 <span class="pp-chip" id="pp-chip-current"></span>
@@ -4280,7 +4282,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         </div>
                     </div>
                     <div style="position:relative;margin:-2px 0 4px;">
-                        <div id="cmap-preview" style="height:4px;border-radius:2px;background:linear-gradient(to right,#2b0a56,#0ea5e9,#22c55e,#f59e0b,#ef4444,#7c0a20);"></div>
+                        <div id="cmap-preview" role="img" aria-label="Colormap preview" style="height:4px;border-radius:2px;background:linear-gradient(to right,#2b0a56,#0ea5e9,#22c55e,#f59e0b,#ef4444,#7c0a20);"></div>
                         <div id="cmap-range" style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:1px;"></div>
                     </div>
                     <div class="ctrl-row" id="temp-cmap-row" style="display:none;">
@@ -4309,14 +4311,14 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     </div>
                     <div class="ctrl-row">
                         <label>V-Scale:</label>
-                        <select id="vscale-select" style="min-width:60px;">
+                        <select id="vscale-select" aria-label="Vertical exaggeration" style="min-width:60px;">
                             <option value="0.5">0.5x</option>
                             <option value="1.0" selected>1x</option>
                             <option value="1.5">1.5x</option>
                             <option value="2.0">2x</option>
                         </select>
                         <label>Top:</label>
-                        <select id="ytop-select" style="min-width:70px;">
+                        <select id="ytop-select" aria-label="Y-axis top pressure level" style="min-width:70px;">
                             <option value="100" selected>100 hPa</option>
                             <option value="200">200 hPa</option>
                             <option value="300">300 hPa</option>
@@ -4324,7 +4326,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                             <option value="700">700 hPa</option>
                         </select>
                         <label>Units:</label>
-                        <select id="units-select" style="min-width:50px;">
+                        <select id="units-select" aria-label="Distance units" style="min-width:50px;">
                             <option value="km" selected>km</option>
                             <option value="mi">mi</option>
                         </select>
@@ -4333,14 +4335,14 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <div class="ctrl-section">
                     <div class="ctrl-section-title">Favorites</div>
                     <div class="ctrl-row">
-                        <select id="favorites-select" style="flex:1;">
+                        <select id="favorites-select" aria-label="Saved favorites" style="flex:1;">
                             <option value="">Saved Favorites</option>
                         </select>
                         <button id="save-favorite-btn" class="btn-sm">Save</button>
                     </div>
                 </div>
                 <div class="ctrl-section">
-                    <div class="ctrl-section-title" style="cursor:pointer;display:flex;align-items:center;gap:4px;" onclick="const lib=document.getElementById('preset-lib');const a=document.getElementById('preset-arrow');if(lib){lib.classList.toggle('collapsed');if(a)a.style.transform=lib.classList.contains('collapsed')?'':'rotate(90deg)';}">
+                    <div class="ctrl-section-title" role="button" aria-expanded="false" aria-controls="preset-lib" tabindex="0" style="cursor:pointer;display:flex;align-items:center;gap:4px;" onclick="const lib=document.getElementById('preset-lib');const a=document.getElementById('preset-arrow');if(lib){lib.classList.toggle('collapsed');this.setAttribute('aria-expanded',!lib.classList.contains('collapsed'));if(a)a.style.transform=lib.classList.contains('collapsed')?'':'rotate(90deg)';}">
                         <span id="preset-arrow" style="font-size:10px;transition:transform 0.15s;">&#9654;</span> Transect Presets
                     </div>
                     <div id="preset-lib" class="collapsed"></div>
@@ -4425,7 +4427,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <input id="gif-fhr-max" type="number" placeholder="F end" title="GIF end FHR" aria-label="GIF end forecast hour" class="input-xs">
                     </div>
                     <div class="ctrl-row">
-                        <select id="multi-panel-mode" title="Multi-panel comparison" style="font-size:11px;padding:2px 4px;flex:1;">
+                        <select id="multi-panel-mode" title="Multi-panel comparison" aria-label="Multi-panel comparison mode" style="font-size:11px;padding:2px 4px;flex:1;">
                             <option value="">Multi-Panel</option>
                             <option value="model">Model vs Model</option>
                             <option value="temporal">Temporal (FHRs)</option>
@@ -4566,25 +4568,25 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             <!-- Map Overlay Colorbar Legend -->
             <!-- Map HUD: model + cycle + product indicator -->
             <div id="map-hud" style="position:absolute;top:10px;left:10px;z-index:var(--z-map-hud);display:flex;gap:6px;align-items:center;pointer-events:none;">
-                <span id="hud-model" style="background:var(--hud-model);color:#000;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;letter-spacing:0.5px;"></span>
-                <span id="hud-cycle" style="background:var(--hud-dark);color:#ccc;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;"></span>
+                <span id="hud-model" style="background:var(--hud-model);color:var(--bg);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;letter-spacing:0.5px;"></span>
+                <span id="hud-cycle" style="background:var(--hud-dark);color:var(--muted);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;"></span>
                 <span id="hud-fhr" style="background:var(--hud-dark);color:var(--warning);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;"></span>
-                <span id="hud-overlay" style="display:none;background:var(--hud-overlay);color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;cursor:pointer;" title="Map overlay active (O to toggle)"></span>
+                <span id="hud-overlay" style="display:none;background:var(--hud-overlay);color:var(--text);padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;cursor:pointer;" title="Map overlay active (O to toggle)"></span>
             </div>
             <div id="map-attribution" style="position:absolute;bottom:4px;left:52px;z-index:var(--z-hud);font-size:9px;color:rgba(148,163,184,0.6);pointer-events:none;letter-spacing:0.3px;">wxsection.com &middot; NOAA NWP Data</div>
             <div id="map-coords" style="position:absolute;bottom:4px;right:8px;z-index:var(--z-hud);font-size:10px;color:rgba(148,163,184,0.7);pointer-events:none;font-family:'SF Mono',Consolas,monospace;letter-spacing:0.3px;"></div>
             <div id="overlay-colorbar" style="display:none;position:absolute;bottom:30px;right:10px;z-index:var(--z-map-hud);background:rgba(0,0,0,0.75);border-radius:6px;padding:6px 10px;pointer-events:none;transition:opacity var(--transition-default) ease;">
-                <div style="font-size:10px;color:#ccc;margin-bottom:3px;" id="colorbar-title"></div>
+                <div style="font-size:10px;color:var(--muted);margin-bottom:3px;" id="colorbar-title"></div>
                 <canvas id="colorbar-canvas" width="200" height="14" style="border-radius:2px;display:block;"></canvas>
-                <div style="display:flex;justify-content:space-between;font-size:9px;color:#aaa;margin-top:2px;">
+                <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:2px;">
                     <span id="colorbar-min"></span>
                     <span id="colorbar-units" style="opacity:0.7;"></span>
                     <span id="colorbar-max"></span>
                 </div>
             </div>
             <div id="barb-legend" style="display:none;position:absolute;bottom:30px;left:10px;z-index:var(--z-map-hud);background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);border-radius:6px;padding:6px 10px;pointer-events:none;border:1px solid rgba(255,255,255,0.1);">
-                <div style="font-size:10px;color:#ccc;margin-bottom:4px;font-weight:600;">Wind Barbs</div>
-                <div style="display:flex;gap:10px;align-items:center;font-size:9px;color:#aaa;">
+                <div style="font-size:10px;color:var(--muted);margin-bottom:4px;font-weight:600;">Wind Barbs</div>
+                <div style="display:flex;gap:10px;align-items:center;font-size:9px;color:var(--muted);">
                     <div style="text-align:center;"><svg width="20" height="24" viewBox="0 0 20 24"><line x1="10" y1="22" x2="10" y2="4" stroke="#ccc" stroke-width="1.5"/><line x1="10" y1="4" x2="16" y2="8" stroke="#ccc" stroke-width="1.5"/></svg><div>5 kt</div></div>
                     <div style="text-align:center;"><svg width="20" height="24" viewBox="0 0 20 24"><line x1="10" y1="22" x2="10" y2="4" stroke="#ccc" stroke-width="1.5"/><line x1="10" y1="4" x2="18" y2="8" stroke="#ccc" stroke-width="1.5"/><line x1="10" y1="7" x2="18" y2="11" stroke="#ccc" stroke-width="1.5"/></svg><div>10 kt</div></div>
                     <div style="text-align:center;"><svg width="20" height="24" viewBox="0 0 20 24"><line x1="10" y1="22" x2="10" y2="4" stroke="#ccc" stroke-width="1.5"/><polygon points="10,4 18,8 10,8" fill="#ccc"/></svg><div>50 kt</div></div>
@@ -4693,17 +4695,17 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                                     <div style="font-size:11px;color:var(--muted);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">Real-Time Atmospheric Cross-Sections</div>
                                     <div style="display:flex;gap:16px;justify-content:center;margin-bottom:18px;font-size:12px;color:var(--text);">
                                         <div style="text-align:center;">
-                                            <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#000;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;margin-bottom:4px;">1</div>
+                                            <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--bg);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;margin-bottom:4px;">1</div>
                                             <div>Click point A</div>
                                         </div>
                                         <div style="color:var(--muted);align-self:center;font-size:16px;margin-top:-16px;">&#8594;</div>
                                         <div style="text-align:center;">
-                                            <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#000;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;margin-bottom:4px;">2</div>
+                                            <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--bg);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;margin-bottom:4px;">2</div>
                                             <div>Click point B</div>
                                         </div>
                                         <div style="color:var(--muted);align-self:center;font-size:16px;margin-top:-16px;">&#8594;</div>
                                         <div style="text-align:center;">
-                                            <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#000;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;margin-bottom:4px;">3</div>
+                                            <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--bg);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;margin-bottom:4px;">3</div>
                                             <div>Explore</div>
                                         </div>
                                     </div>
@@ -4753,7 +4755,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                             </div>
                         </div>
                         <div class="xsect-panel" id="panel-diff" style="display:none;">
-                            <div class="xsect-panel-label" style="color:#f59e0b;">Difference</div>
+                            <div class="xsect-panel-label" style="color:var(--warning);">Difference</div>
                             <div class="xsect-panel-body" id="xsect-container-diff">
                                 <canvas id="diff-canvas" style="width:100%;border-radius:4px;"></canvas>
                             </div>
@@ -4843,7 +4845,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <input type="number" id="req-fhr-end" value="18" min="0" max="48" style="width:100%;padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:14px;">
                     </div>
                 </div>
-                <button id="req-submit" style="padding:8px;background:var(--accent,#4a9eff);border:none;border-radius:4px;color:#fff;font-size:14px;cursor:pointer;font-weight:500;margin-top:4px;">Download & Load</button>
+                <button id="req-submit" style="padding:8px;background:var(--accent);border:none;border-radius:4px;color:var(--bg);font-size:14px;cursor:pointer;font-weight:500;margin-top:4px;">Download & Load</button>
             </div>
         </div>
     </div>
@@ -4982,7 +4984,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             if (!startMarker && !endMarker) {
                 // No markers — ready to draw point A
                 mapEl.classList.add('draw-mode');
-                toast.innerHTML = 'Click to place point <b style="color:#38bdf8">A</b><span class="toast-key">Esc to clear</span>';
+                toast.innerHTML = 'Click to place point <b style="color:var(--accent-hover)">A</b><span class="toast-key">Esc to clear</span>';
                 toast.classList.add('visible');
                 // Auto-hide after 6s for returning users
                 clearTimeout(_drawToastTimer);
@@ -5269,8 +5271,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             if (!currentCycle) return;
             const btn = document.getElementById('load-all-btn');
             btn.disabled = true;
-            btn.textContent = 'Loading...';
-            const toast = showToast(`Loading all FHRs for ${currentCycle}...`);
+            btn.innerHTML = '<span class="toast-spinner"></span> Loading...';
+            const toast = showToast(`Loading all FHRs for ${currentCycle}...`, 'loading');
             try {
                 const res = await fetch(`/api/load_cycle?cycle=${currentCycle}${modelParam()}`, {method: 'POST'});
                 const data = await res.json();
@@ -5548,8 +5550,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         function toggleMeasure() {
             measureMode = !measureMode;
             const btn = document.getElementById('measure-btn');
-            btn.style.background = measureMode ? '#f59e0b' : '';
-            btn.style.color = measureMode ? '#000' : '';
+            btn.style.background = measureMode ? 'var(--warning)' : '';
+            btn.style.color = measureMode ? 'var(--bg)' : '';
             if (!measureMode) {
                 clearMeasure();
             } else {
@@ -6233,7 +6235,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         // =========================================================================
         const _overlayTooltip = document.createElement('div');
         _overlayTooltip.id = 'overlay-tooltip';
-        _overlayTooltip.style.cssText = 'position:fixed;z-index:var(--z-hud);pointer-events:none;display:none;background:rgba(15,23,42,0.92);color:#f4f4f4;font-family:system-ui;font-size:12px;padding:6px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);white-space:nowrap;backdrop-filter:blur(4px);box-shadow:0 2px 8px rgba(0,0,0,0.4);';
+        _overlayTooltip.style.cssText = 'position:fixed;z-index:var(--z-hud);pointer-events:none;display:none;background:var(--bg);color:var(--text);font-family:system-ui;font-size:12px;padding:6px 10px;border-radius:6px;border:1px solid var(--border);white-space:nowrap;backdrop-filter:blur(4px);box-shadow:var(--shadow-md);opacity:0.95;';
         document.body.appendChild(_overlayTooltip);
 
         // Grid data cache: binary uint16 grids for instant hover lookup
@@ -6328,7 +6330,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const vals = lookupGridValues(gridData, lat, lng);
                 if (vals) {
                     let html = '';
-                    vals.forEach(v => { html += '<strong>' + v.value + ' ' + v.units + '</strong> <span style="color:#94a3b8;">' + v.name + '</span><br>'; });
+                    vals.forEach(v => { html += '<strong>' + v.value + ' ' + v.units + '</strong> <span style="color:var(--muted);">' + v.name + '</span><br>'; });
                     _overlayTooltip.innerHTML = html;
                     _overlayTooltip.style.display = 'block';
                 } else {
@@ -6337,7 +6339,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             } else {
                 // Grid not yet cached — fetch in background, show coords
                 fetchOverlayGrid(fhr);
-                _overlayTooltip.innerHTML = '<span style="color:#94a3b8;">' + lat.toFixed(2) + ', ' + lng.toFixed(2) + '</span>';
+                _overlayTooltip.innerHTML = '<span style="color:var(--muted);">' + lat.toFixed(2) + ', ' + lng.toFixed(2) + '</span>';
                 _overlayTooltip.style.display = 'block';
             }
         });
@@ -6390,7 +6392,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         };
 
         function showErrorPanel(container, message, retryAction) {
-            const retryBtn = retryAction ? `<button onclick="${retryAction}" style="padding:4px 12px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#000;cursor:pointer;font-size:12px;">Retry</button>` : '';
+            const retryBtn = retryAction ? `<button onclick="${retryAction}" style="padding:4px 12px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:var(--bg);cursor:pointer;font-size:12px;">Retry</button>` : '';
             container.innerHTML = `<div style="color:var(--danger-light);text-align:center;padding:16px;"><div style="margin-bottom:8px;">${message}</div>${retryBtn}</div>`;
         }
 
@@ -7846,7 +7848,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
             const btn = document.getElementById('prerender-btn');
             btn.disabled = true;
-            btn.textContent = 'Rendering...';
+            btn.innerHTML = '<span class="toast-spinner"></span> Rendering...';
 
             const start = startMarker.getLatLng();
             const end = endMarker.getLatLng();
@@ -8593,7 +8595,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const pt = { lat: e.lngLat.lat, lng: e.lngLat.lng };
                 measurePoints.push(pt);
                 const el = document.createElement('div');
-                el.style.cssText = 'width:10px;height:10px;border-radius:50%;background:#f59e0b;border:2px solid #fff;';
+                el.style.cssText = 'width:10px;height:10px;border-radius:50%;background:var(--warning);border:2px solid var(--text);';
                 const marker = new mapboxgl.Marker({ element: el }).setLngLat([pt.lng, pt.lat]).addTo(map);
                 measureMarkers.push(marker);
                 if (measurePoints.length >= 2) updateMeasureLine();
@@ -8716,10 +8718,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         function poiPopupHtml(poi) {
             const safeLabel = (poi.label || '').replace(/"/g, '&quot;');
             const idx = poiMarkers.indexOf(poi);
-            return '<div style="min-width:150px;background:#1e293b;color:#f4f4f4;">' +
-                '<input class="poi-label-input" data-poi-idx="' + idx + '" type="text" value="' + safeLabel + '" placeholder="Label (e.g. Camp Fire)" style="width:100%;box-sizing:border-box;padding:3px 6px;border:1px solid #475569;border-radius:4px;font-size:12px;background:#334155;color:#f4f4f4;">' +
+            return '<div style="min-width:150px;background:var(--panel);color:var(--text);">' +
+                '<input class="poi-label-input" data-poi-idx="' + idx + '" type="text" value="' + safeLabel + '" placeholder="Label (e.g. Camp Fire)" style="width:100%;box-sizing:border-box;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--card);color:var(--text);">' +
                 '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">' +
-                '<span style="font-size:10px;color:#94a3b8">Enter to apply</span>' +
+                '<span style="font-size:10px;color:var(--muted)">Enter to apply</span>' +
                 '<button class="poi-remove-btn" data-poi-idx="' + idx + '" style="font-size:10px;color:var(--danger-light);background:none;border:1px solid var(--danger-light);border-radius:3px;padding:1px 6px;cursor:pointer">Remove</button>' +
                 '</div></div>';
         }
@@ -9135,8 +9137,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 cursor = document.createElement('div');
                 cursor.id = 'xs-cursor';
                 cursor.style.cssText = 'position:absolute;pointer-events:none;opacity:0;transition:opacity 0.15s;z-index:5;' +
-                    'background:rgba(15,23,42,0.85);backdrop-filter:blur(4px);padding:3px 8px;border-radius:6px;' +
-                    'font-size:10px;color:#f4f4f4;white-space:nowrap;border:1px solid rgba(255,255,255,0.1);';
+                    'background:var(--bg);backdrop-filter:blur(4px);padding:3px 8px;border-radius:6px;' +
+                    'font-size:10px;color:var(--text);white-space:nowrap;border:1px solid var(--border);';
                 img.parentElement.appendChild(cursor);
             }
             img.addEventListener('mousemove', e => {
@@ -9233,6 +9235,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 if (oldImg && oldImg.src && oldImg.src.startsWith('blob:')) URL.revokeObjectURL(oldImg.src);
                 const img = document.createElement('img');
                 img.id = 'xsect-img';
+                img.alt = `${style} cross-section F${String(activeFhr).padStart(2,'0')}`;
                 img.onload = () => {
                     img.classList.add('loaded');
                     // Update peek image for collapsed panel
@@ -9252,6 +9255,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const renderLabel = renderMs < 1000 ? renderMs + 'ms' : (renderMs / 1000).toFixed(1) + 's';
                 meta.textContent = formatTransectMeta(start.lat, start.lng, end.lat, end.lng) + ' \u00b7 ' + renderLabel;
                 container.appendChild(meta);
+                // Announce to screen readers
+                const sr = document.getElementById('sr-live');
+                if (sr) sr.textContent = `Cross-section rendered: ${style} F${String(activeFhr).padStart(2,'0')} in ${renderLabel}`;
                 // Mini-map inset showing transect location on CONUS
                 addMiniMap(container, start, end);
                 // Product info badge (top-left of image)
@@ -9281,7 +9287,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     visibleItems.forEach(([key, name]) => {
                         const pill = document.createElement('span');
                         const isActive = key === style;
-                        pill.style.cssText = `padding:1px 6px;border-radius:8px;font-size:9px;cursor:pointer;transition:all 0.12s;background:${isActive ? 'var(--accent)' : 'var(--card)'};color:${isActive ? '#000' : 'var(--muted)'};border:1px solid ${isActive ? 'var(--accent)' : 'transparent'};font-weight:${isActive ? '600' : '400'};`;
+                        pill.style.cssText = `padding:1px 6px;border-radius:8px;font-size:9px;cursor:pointer;transition:all 0.12s;background:${isActive ? 'var(--accent)' : 'var(--card)'};color:${isActive ? 'var(--bg)' : 'var(--muted)'};border:1px solid ${isActive ? 'var(--accent)' : 'transparent'};font-weight:${isActive ? '600' : '400'};`;
                         if (!isActive) {
                             pill.onmouseenter = () => { pill.style.background = 'var(--surface)'; pill.style.color = 'var(--text)'; };
                             pill.onmouseleave = () => { pill.style.background = 'var(--card)'; pill.style.color = 'var(--muted)'; };
@@ -9525,17 +9531,17 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     </div>
                     <div style="display:flex;gap:12px;justify-content:center;margin-bottom:20px;">
                         <div style="text-align:center;flex:1;max-width:120px;">
-                            <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);color:#000;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;margin-bottom:6px;">1</div>
+                            <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);color:var(--bg);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;margin-bottom:6px;">1</div>
                             <div style="font-size:12px;font-weight:600;color:var(--text);">Click point A</div>
                             <div style="font-size:11px;color:var(--muted);margin-top:2px;">Start of transect</div>
                         </div>
                         <div style="text-align:center;flex:1;max-width:120px;">
-                            <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);color:#000;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;margin-bottom:6px;">2</div>
+                            <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);color:var(--bg);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;margin-bottom:6px;">2</div>
                             <div style="font-size:12px;font-weight:600;color:var(--text);">Click point B</div>
                             <div style="font-size:11px;color:var(--muted);margin-top:2px;">End of transect</div>
                         </div>
                         <div style="text-align:center;flex:1;max-width:120px;">
-                            <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);color:#000;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;margin-bottom:6px;">3</div>
+                            <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);color:var(--bg);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;margin-bottom:6px;">3</div>
                             <div style="font-size:12px;font-weight:600;color:var(--text);">Explore</div>
                             <div style="font-size:11px;color:var(--muted);margin-top:2px;">Change products, FHRs, models</div>
                         </div>
@@ -9837,11 +9843,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     .setHTML(
                         '<div style="font-family:system-ui;min-width:180px;">' +
                         '<strong style="font-size:14px;">' + p.name + '</strong><br>' +
-                        '<span style="font-size:11px;color:#94a3b8;">' + regionLabel + elevText + '</span>' +
+                        '<span style="font-size:11px;color:var(--muted);">' + regionLabel + elevText + '</span>' +
                         wuiText +
                         '<br><br>' +
-                        '<button data-action="profile" data-key="' + p.key + '" style="background:#0ea5e9;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;margin-right:4px;">Profile</button>' +
-                        '<button data-action="section" data-key="' + p.key + '" style="background:#334155;color:#f1f5f9;border:1px solid #475569;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">Set X-Sect</button>' +
+                        '<button data-action="profile" data-key="' + p.key + '" style="background:var(--accent);color:var(--bg);border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;margin-right:4px;">Profile</button>' +
+                        '<button data-action="section" data-key="' + p.key + '" style="background:var(--card);color:var(--text);border:1px solid var(--border);padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">Set X-Sect</button>' +
                         '</div>'
                     ).addTo(map);
                 // Wire up data-action buttons in popup
@@ -9920,7 +9926,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 html += `<div style="margin-bottom:8px;"><div style="font-size:10px;font-weight:600;color:${REGION_COLORS[r]};text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">${REGION_LABELS[r]} (${cities.length})</div>`;
                 cities.sort((a, b) => a.name.localeCompare(b.name));
                 cities.forEach(c => {
-                    const wuiBadge = c.wui_exposure ? `<span style="font-size:9px;padding:0 4px;border-radius:4px;background:${c.wui_exposure === 'extreme' ? '#ef444422' : c.wui_exposure === 'high' ? '#f5960b22' : '#64748b22'};color:${c.wui_exposure === 'extreme' ? '#fca5a5' : c.wui_exposure === 'high' ? '#fbbf24' : '#94a3b8'};margin-left:4px;">${c.wui_exposure}</span>` : '';
+                    const wuiBadge = c.wui_exposure ? `<span style="font-size:9px;padding:0 4px;border-radius:4px;background:${c.wui_exposure === 'extreme' ? '#ef444422' : c.wui_exposure === 'high' ? '#f5960b22' : '#64748b22'};color:${c.wui_exposure === 'extreme' ? 'var(--danger-light)' : c.wui_exposure === 'high' ? 'var(--warning)' : 'var(--muted)'};margin-left:4px;">${c.wui_exposure}</span>` : '';
                     html += `<div class="city-item" onclick="loadCityProfile('${c.key}')">
                         <span class="city-name">${c.name}</span>
                         <span class="city-meta">${c.elevation_ft ? c.elevation_ft + ' ft' : ''}${wuiBadge}</span>
@@ -10000,7 +10006,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 }
 
                 if (p.historical_fires && p.historical_fires.length) {
-                    html += `<div style="margin-bottom:10px;"><div style="font-size:11px;font-weight:600;color:#ef4444;text-transform:uppercase;margin-bottom:4px;">Historical Fires</div>`;
+                    html += `<div style="margin-bottom:10px;"><div style="font-size:11px;font-weight:600;color:var(--danger);text-transform:uppercase;margin-bottom:4px;">Historical Fires</div>`;
                     p.historical_fires.forEach(f => {
                         if (typeof f === 'string') {
                             html += `<div style="font-size:12px;padding:3px 0;">${f}</div>`;
@@ -10136,19 +10142,19 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     const cycleKey = evt.archive_cycle || evt.cycle_key;
                     const offset = evt.fhr_offset || 0;
                     sectionsHtml = evt.coordinates.suggested_sections.map((s, i) => {
-                        return '<button class="evt-section-btn" data-cycle="' + cycleKey + '" data-sidx="' + i + '" data-offset="' + offset + '" style="background:#334155;color:#f1f5f9;border:1px solid #475569;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:11px;margin:2px;">' + (s.label || 'Load') + '</button>';
+                        return '<button class="evt-section-btn" data-cycle="' + cycleKey + '" data-sidx="' + i + '" data-offset="' + offset + '" style="background:var(--card);color:var(--text);border:1px solid var(--border);padding:3px 8px;border-radius:4px;cursor:pointer;font-size:11px;margin:2px;">' + (s.label || 'Load') + '</button>';
                     }).join('');
                 }
 
-                const heroInfo = p.hero_product ? '<br><span style="font-size:10px;background:#0ea5e9;color:#fff;padding:1px 6px;border-radius:4px;font-weight:600;">Best: ' + p.hero_product + ' F' + String(p.hero_fhr || 0).padStart(2,'0') + '</span>' : '';
-                const descText = p.description ? '<br><span style="font-size:11px;color:#94a3b8;">' + p.description.substring(0, 180) + '</span>' : '';
+                const heroInfo = p.hero_product ? '<br><span style="font-size:10px;background:var(--accent);color:var(--bg);padding:1px 6px;border-radius:4px;font-weight:600;">Best: ' + p.hero_product + ' F' + String(p.hero_fhr || 0).padStart(2,'0') + '</span>' : '';
+                const descText = p.description ? '<br><span style="font-size:11px;color:var(--muted);">' + p.description.substring(0, 180) + '</span>' : '';
 
                 const popup = new mapboxgl.Popup({ offset: 10 })
                     .setLngLat(coords)
                     .setHTML(
                         '<div style="font-family:system-ui;min-width:220px;">' +
                         '<strong style="font-size:13px;">' + p.name + '</strong><br>' +
-                        '<span style="font-size:11px;color:#94a3b8;">' + (p.date_local || p.cycle_key) + ' &middot; ' + (p.category || '') + '</span>' +
+                        '<span style="font-size:11px;color:var(--muted);">' + (p.date_local || p.cycle_key) + ' &middot; ' + (p.category || '') + '</span>' +
                         heroInfo + descText +
                         (sectionsHtml ? '<br><div style="margin-top:6px;">' + sectionsHtml + '</div>' : '') +
                         '</div>'
@@ -10284,13 +10290,6 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 filtered = filtered.filter(e => (e.name || '').toLowerCase().includes(q) || (e.notes || '').toLowerCase().includes(q));
             }
 
-            const categoryColors = {
-                'fire-ca': '#f97316', 'fire-pnw': '#22c55e', 'fire-co': '#3b82f6',
-                'fire-sw': '#ef4444', 'hurricane': '#06b6d4', 'tornado': '#a855f7',
-                'derecho': '#eab308', 'hail': '#d946ef', 'ar': '#0ea5e9',
-                'winter': '#94a3b8', 'other': '#64748b',
-            };
-
             let html = '';
             filtered.forEach(evt => {
                 const hasCoords = evt.coordinates && evt.coordinates.center;
@@ -10315,6 +10314,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
 
         // Populate category filter pills + dropdown
+        const categoryColors = {
+            'fire-ca': '#f97316', 'fire-pnw': '#22c55e', 'fire-co': '#3b82f6',
+            'fire-sw': '#ef4444', 'hurricane': '#06b6d4', 'tornado': '#a855f7',
+            'derecho': '#eab308', 'hail': '#d946ef', 'ar': '#0ea5e9',
+            'winter': '#94a3b8', 'other': '#64748b',
+        };
         const catIcons = {
             'fire-ca': String.fromCodePoint(0x1F525), 'fire-pnw': String.fromCodePoint(0x1F525), 'fire-co': String.fromCodePoint(0x1F525),
             'fire-sw': String.fromCodePoint(0x1F525), 'hurricane': String.fromCodePoint(0x1F300), 'tornado': String.fromCodePoint(0x1F32A),
@@ -10327,12 +10332,6 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             if (!sel) return;
             const cats = {};
             allEvents.forEach(e => { cats[e.category] = (cats[e.category] || 0) + 1; });
-            const catColors = {
-                'fire-ca': '#f97316', 'fire-pnw': '#22c55e', 'fire-co': '#3b82f6',
-                'fire-sw': '#ef4444', 'hurricane': '#06b6d4', 'tornado': '#a855f7',
-                'derecho': '#eab308', 'hail': '#d946ef', 'ar': '#0ea5e9',
-                'winter': '#94a3b8', 'other': '#64748b',
-            };
             // Add "All" pill
             if (pillsEl) {
                 pillsEl.innerHTML = '';
@@ -10344,7 +10343,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 allPill.onclick = () => selectEventCatPill('');
                 pillsEl.appendChild(allPill);
                 Object.keys(cats).sort().forEach(cat => {
-                    const color = catColors[cat] || '#64748b';
+                    const color = categoryColors[cat] || '#64748b';
                     const icon = catIcons[cat] || '';
                     const pill = document.createElement('span');
                     pill.className = 'event-cat-pill';
@@ -10366,10 +10365,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         function selectEventCatPill(cat) {
             const sel = document.getElementById('event-category-filter');
             if (sel) { sel.value = cat; sel.dispatchEvent(new Event('change')); }
-            const catColors2 = { 'fire-ca': '#f97316', 'fire-pnw': '#22c55e', 'fire-co': '#3b82f6', 'fire-sw': '#ef4444', 'hurricane': '#06b6d4', 'tornado': '#a855f7', 'derecho': '#eab308', 'hail': '#d946ef', 'ar': '#0ea5e9', 'winter': '#94a3b8' };
             document.querySelectorAll('.event-cat-pill').forEach(p => {
                 const isActive = p.dataset.cat === cat;
-                const c = catColors2[p.dataset.cat] || '#0ea5e9';
+                const c = categoryColors[p.dataset.cat] || '#0ea5e9';
                 p.classList.toggle('active', isActive);
                 p.style.opacity = isActive ? '1' : '0.7';
                 p.style.background = isActive ? c + '22' : 'transparent';
@@ -10395,13 +10393,6 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             bgGrad.addColorStop(1, 'rgba(15,23,42,0.8)');
             ctx.fillStyle = bgGrad;
             ctx.fillRect(0, 0, w, h);
-
-            const catColors = {
-                'fire-ca': '#f97316', 'fire-pnw': '#22c55e', 'fire-co': '#3b82f6',
-                'fire-sw': '#ef4444', 'hurricane': '#06b6d4', 'tornado': '#a855f7',
-                'derecho': '#eab308', 'hail': '#d946ef', 'ar': '#0ea5e9',
-                'winter': '#94a3b8', 'other': '#64748b',
-            };
 
             // Parse dates from cycle_key (YYYYMMDD_HHz)
             const parsed = allEvents.map(evt => {
@@ -10439,7 +10430,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             }
 
             // Draw event dots — stack vertically by category to avoid overlap
-            const catList = Object.keys(catColors);
+            const catList = Object.keys(categoryColors);
             const rows = {};
             parsed.forEach(p => {
                 const cat = p.evt.category || 'other';
@@ -10457,7 +10448,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             canvas._dots = [];
 
             activeCats.forEach((cat, ci) => {
-                const color = catColors[cat] || '#64748b';
+                const color = categoryColors[cat] || '#64748b';
                 const cy = activeCats.length === 1 ? (yStart + yEnd) / 2 : yStart + ci * yStep;
                 rows[cat].forEach(p => {
                     const x = pad + ((p.date - minDate) / totalMs) * (w - pad * 2);
@@ -10536,12 +10527,6 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const evt = allEvents.find(e => e.cycle_key === cycleKey);
             if (!evt) return;
 
-            const categoryColors = {
-                'fire-ca': '#f97316', 'fire-pnw': '#22c55e', 'fire-co': '#3b82f6',
-                'fire-sw': '#ef4444', 'hurricane': '#06b6d4', 'tornado': '#a855f7',
-                'derecho': '#eab308', 'hail': '#d946ef', 'ar': '#0ea5e9',
-                'winter': '#94a3b8', 'other': '#64748b',
-            };
             const catColor = categoryColors[evt.category] || '#64748b';
             const hasCoords = evt.coordinates && evt.coordinates.center;
             const hasHero = evt.hero_product && evt.hero_fhr !== undefined && evt.hero_fhr !== null;
