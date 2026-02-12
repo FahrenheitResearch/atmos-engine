@@ -3242,6 +3242,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .toast.loading { border-left: 3px solid var(--warning); }
         .toast.success { border-left: 3px solid var(--success); }
         .toast.error { border-left: 3px solid #ef4444; }
+        .toast.info { border-left: 3px solid var(--accent); }
         @keyframes slideUp {
             from { transform: translateY(20px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
@@ -5240,7 +5241,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            const icon = type === 'loading' ? '⏳' : (type === 'success' ? '✓' : '✗');
+            const icon = type === 'loading' ? '⏳' : type === 'success' ? '✓' : type === 'info' ? 'ℹ' : '✗';
             toast.innerHTML = `<span>${icon} ${message}</span>`;
             container.appendChild(toast);
 
@@ -5285,7 +5286,20 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         function updateTempCmapVisibility() {
             if (tempCmapRow) tempCmapRow.style.display = styleSelect.value === 'temp' ? '' : 'none';
         }
-        styleSelect.onchange = () => { updateTempCmapVisibility(); updateAnomalyVisibility(); generateCrossSection(); };
+        // Build style description lookup from grouped data
+        const styleDescriptions = {};
+        if (styleGroups) styleGroups.forEach(([, items]) => items.forEach(([k, , d]) => { if (d) styleDescriptions[k] = d; }));
+        let styleToastTimer = null;
+        styleSelect.onchange = () => {
+            updateTempCmapVisibility(); updateAnomalyVisibility(); generateCrossSection();
+            // Show product description toast
+            const desc = styleDescriptions[styleSelect.value];
+            if (desc) {
+                if (styleToastTimer) clearTimeout(styleToastTimer);
+                const toast = showToast(desc, 'info');
+                styleToastTimer = setTimeout(() => { if (toast && toast.remove) toast.remove(); }, 3000);
+            }
+        };
         tempCmapSelect.onchange = generateCrossSection;
 
         // =========================================================================
@@ -6912,9 +6926,56 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             }
         }
         // Right-click to place POI (desktop)
+        // Right-click context menu
+        let ctxMenu = null;
+        function showMapContextMenu(lat, lng, x, y) {
+            hideMapContextMenu();
+            ctxMenu = document.createElement('div');
+            ctxMenu.id = 'map-ctx-menu';
+            ctxMenu.style.cssText = `position:fixed;left:${x}px;top:${y}px;z-index:9999;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:4px 0;min-width:180px;box-shadow:0 4px 16px rgba(0,0,0,0.4);font-size:12px;`;
+            const items = [
+                { label: 'Set start point (A)', icon: 'A', action: () => { clearXSMarkers(); startMarker = setupStartMarker(lat, lng); } },
+                { label: 'Set end point (B)', icon: 'B', action: () => { if (startMarker) { if (endMarker) endMarker.remove(); endMarker = setupEndMarker(lat, lng); updateLine(); generateCrossSection(); } else { showToast('Set start point first', 'error'); } } },
+                { label: 'Add POI marker', icon: '+', action: () => addPoi(lat, lng) },
+                null, // divider
+                { label: 'Copy coords', icon: '\u00b7', action: () => { navigator.clipboard.writeText(lat.toFixed(5) + ', ' + lng.toFixed(5)).then(() => showToast('Coordinates copied', 'success')); } },
+            ];
+            items.forEach(item => {
+                if (!item) {
+                    const hr = document.createElement('div');
+                    hr.style.cssText = 'height:1px;background:var(--border);margin:4px 0;';
+                    ctxMenu.appendChild(hr);
+                    return;
+                }
+                const row = document.createElement('div');
+                row.style.cssText = 'padding:6px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;';
+                row.onmouseenter = () => row.style.background = 'var(--card)';
+                row.onmouseleave = () => row.style.background = '';
+                row.innerHTML = `<span style="width:18px;text-align:center;font-weight:600;color:var(--accent);font-size:11px;">${item.icon}</span><span>${item.label}</span>`;
+                row.onclick = () => { hideMapContextMenu(); item.action(); };
+                ctxMenu.appendChild(row);
+            });
+            // Add coord display at bottom
+            const coord = document.createElement('div');
+            coord.style.cssText = 'padding:4px 12px;font-size:10px;color:var(--muted);border-top:1px solid var(--border);margin-top:4px;';
+            coord.textContent = `${lat.toFixed(4)}\u00b0N, ${Math.abs(lng).toFixed(4)}\u00b0${lng >= 0 ? 'E' : 'W'}`;
+            ctxMenu.appendChild(coord);
+            document.body.appendChild(ctxMenu);
+            // Keep menu on screen
+            requestAnimationFrame(() => {
+                const rect = ctxMenu.getBoundingClientRect();
+                if (rect.right > window.innerWidth) ctxMenu.style.left = (window.innerWidth - rect.width - 8) + 'px';
+                if (rect.bottom > window.innerHeight) ctxMenu.style.top = (window.innerHeight - rect.height - 8) + 'px';
+            });
+        }
+        function hideMapContextMenu() {
+            if (ctxMenu) { ctxMenu.remove(); ctxMenu = null; }
+        }
+        document.addEventListener('click', hideMapContextMenu);
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') hideMapContextMenu(); });
         map.on('contextmenu', e => {
             e.preventDefault();
-            addPoi(e.lngLat.lat, e.lngLat.lng);
+            showMapContextMenu(e.lngLat.lat, e.lngLat.lng, e.point.x + map.getCanvas().getBoundingClientRect().left, e.point.y + map.getCanvas().getBoundingClientRect().top);
         });
         // + POI button (mobile-friendly tap mode)
         document.getElementById('poi-btn').onclick = () => {
