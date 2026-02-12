@@ -2796,6 +2796,27 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .api-row { display: flex; gap: 4px; align-items: center; }
         .setting-hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
         .ctrl-row label input[type="checkbox"] { margin-right: 4px; }
+        /* Guide modal content */
+        .guide-header { text-align: center; margin-bottom: 16px; }
+        .guide-header-title { font-size: 16px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+        .guide-header-sub { font-size: 12px; color: var(--muted); }
+        .guide-steps { display: flex; gap: 12px; justify-content: center; margin-bottom: 20px; }
+        .guide-step { text-align: center; flex: 1; max-width: 120px; }
+        .guide-step-num {
+            width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: var(--bg);
+            display: inline-flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 16px; margin-bottom: 6px;
+        }
+        .guide-step-label { font-size: 12px; font-weight: 600; color: var(--text); }
+        .guide-step-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+        .guide-card {
+            background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+            padding: 12px 16px; margin-bottom: 12px;
+        }
+        .guide-card-title { font-size: 12px; font-weight: 600; color: var(--accent); margin-bottom: 8px; }
+        .guide-card-body { font-size: 12px; color: var(--text); line-height: 1.8; }
+        .guide-product-group { margin-bottom: 16px; }
+        .guide-product-group h3 { color: var(--accent); font-size: 14px; margin: 12px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
         /* Map HUD */
         .map-hud {
             position: absolute; top: 10px; left: 10px; z-index: var(--z-map-hud);
@@ -9781,30 +9802,30 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             setTimeout(() => { body.style.transition = 'opacity 0.2s ease, transform 0.2s ease'; body.style.opacity = '1'; body.style.transform = 'translateY(0)'; }, 20);
             if (tab === 'getting-started') {
                 body.innerHTML = `
-                    <div style="text-align:center;margin-bottom:16px;">
-                        <div style="font-size:16px;font-weight:700;color:var(--accent);margin-bottom:4px;">wxsection.com</div>
-                        <div style="font-size:12px;color:var(--muted);">Instant atmospheric cross-sections from 6 NWP models</div>
+                    <div class="guide-header">
+                        <div class="guide-header-title">wxsection.com</div>
+                        <div class="guide-header-sub">Instant atmospheric cross-sections from 6 NWP models</div>
                     </div>
-                    <div style="display:flex;gap:12px;justify-content:center;margin-bottom:20px;">
-                        <div style="text-align:center;flex:1;max-width:120px;">
-                            <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);color:var(--bg);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;margin-bottom:6px;">1</div>
-                            <div style="font-size:12px;font-weight:600;color:var(--text);">Click point A</div>
-                            <div style="font-size:11px;color:var(--muted);margin-top:2px;">Start of transect</div>
+                    <div class="guide-steps">
+                        <div class="guide-step">
+                            <div class="guide-step-num">1</div>
+                            <div class="guide-step-label">Click point A</div>
+                            <div class="guide-step-desc">Start of transect</div>
                         </div>
-                        <div style="text-align:center;flex:1;max-width:120px;">
-                            <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);color:var(--bg);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;margin-bottom:6px;">2</div>
-                            <div style="font-size:12px;font-weight:600;color:var(--text);">Click point B</div>
-                            <div style="font-size:11px;color:var(--muted);margin-top:2px;">End of transect</div>
+                        <div class="guide-step">
+                            <div class="guide-step-num">2</div>
+                            <div class="guide-step-label">Click point B</div>
+                            <div class="guide-step-desc">End of transect</div>
                         </div>
-                        <div style="text-align:center;flex:1;max-width:120px;">
-                            <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);color:var(--bg);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;margin-bottom:6px;">3</div>
-                            <div style="font-size:12px;font-weight:600;color:var(--text);">Explore</div>
-                            <div style="font-size:11px;color:var(--muted);margin-top:2px;">Change products, FHRs, models</div>
+                        <div class="guide-step">
+                            <div class="guide-step-num">3</div>
+                            <div class="guide-step-label">Explore</div>
+                            <div class="guide-step-desc">Change products, FHRs, models</div>
                         </div>
                     </div>
-                    <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:12px;">
-                        <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:8px;">Key Features</div>
-                        <div style="font-size:12px;color:var(--text);line-height:1.8;">
+                    <div class="guide-card">
+                        <div class="guide-card-title">Key Features</div>
+                        <div class="guide-card-body">
                             <div><b>6 models</b> \u2014 HRRR (3km), GFS (0.25\u00b0), RRFS (3km), NAM (12km), RAP (13km), NAM-Nest (3km)</div>
                             <div><b>21 products</b> \u2014 Temperature, wind, fire weather, theta-e, vorticity, smoke, and more</div>
                             <div><b>Sub-second renders</b> \u2014 Mmap-on-NVMe cache architecture for instant response</div>
@@ -9815,8 +9836,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                             <div><b>GIF generation</b> \u2014 Animated cross-section loops with custom FHR ranges</div>
                         </div>
                     </div>
-                    <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 16px;">
-                        <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:8px;">Quick Shortcuts</div>
+                    <div class="guide-card">
+                        <div class="guide-card-title">Quick Shortcuts</div>
                         <div class="shortcut-grid" style="gap:4px 12px;">
                             <kbd class="kbd">\u2190 / \u2192</kbd><span>Step through forecast hours</span>
                             <kbd class="kbd">Space</kbd><span>Play/pause animation</span>
@@ -9827,8 +9848,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     </div>`;
             } else if (tab === 'products') {
                 body.innerHTML = styleGuide.map(group => `
-                    <div style="margin-bottom:16px;">
-                        <h3 style="color:var(--accent);font-size:14px;margin:12px 0 8px;text-transform:uppercase;letter-spacing:1px;">${group.category}</h3>
+                    <div class="guide-product-group">
+                        <h3>${group.category}</h3>
                         ${group.styles.map(s => `
                             <div class="param-card" style="cursor:pointer" onclick="document.getElementById('style-select').value='${s.key}';document.getElementById('explainer-modal').classList.remove('visible');updateCmapPreview();generateCrossSection();">
                                 <div class="param-header"><span class="param-name">${s.name}</span></div>
