@@ -268,7 +268,7 @@ Shows model name, active product badge (with colormap chip), and FHR with valid 
 ### Playback Frame Counter
 During animation playback, shows frame position (e.g., "3/48") next to the slider. Play button toggles between play and pause icons with matching tooltip text.
 
-### Keyboard Shortcuts (18 bindings)
+### Keyboard Shortcuts (25 key bindings, 18 actions)
 - Left/Right arrow (J/K): step FHR
 - Space: play/pause
 - Home/End: first/last FHR
@@ -280,9 +280,11 @@ During animation playback, shows frame position (e.g., "3/48") next to the slide
 - C: compare mode
 - S: swap A/B endpoints
 - F: fullscreen cross-section
-- Esc: clear cross-section line / exit fullscreen
+- T: toggle 3D terrain
+- M: measure distance on map
+- Esc: clear cross-section line / exit mode
 - ?: show shortcuts help modal
-All action buttons include keyboard shortcut hints in their tooltips.
+All action buttons include `.kbd-hint` shortcut badge indicators.
 
 ### FHR Hover Thumbnails
 When hovering over a loaded (green) FHR chip for 300ms, a thumbnail preview of the cross-section at that forecast hour appears above the chip. Uses the existing frame cache for instant response. Thumbnails are cached as blob URLs client-side to avoid redundant fetches. Only triggers for loaded FHRs with an active cross-section line.
@@ -339,9 +341,56 @@ Color-coded category pills (fire-ca, hurricane, tornado, derecho, hail, ar, wint
 ### Accessibility
 All interactive controls have `aria-label` attributes: playback buttons, FHR slider, overlay toggles/selects, search inputs, GIF controls, event filter, toolbar buttons. Product picker has `role="listbox"` with `role="option"` items and full keyboard navigation.
 
+### Cross-Section Image Zoom & Pan
+Mouse wheel zoom (up to 8x) centered on cursor position. Drag to pan when zoomed. Controls: +/- buttons and 1:1 reset in top-right corner. Auto-resets zoom on new image load. Download button in top-left action bar.
+
+### FHR Slider Enhancements
+- **Tick marks**: Major interval labels (F06/F12/F18/F24/F36/F48) below slider, auto-adjusting interval (6h for <24h range, 12h for >24h)
+- **Progress fill**: Gradient fill from accent to gray tracks playback position
+- **FHR chip tooltips**: All chips show valid time on hover (e.g., "F12 — 00Z Thu 13 (viewing · Shift+click to unload)")
+
+### Toast Notification System
+- Type-specific auto-dismiss: success 3s, info 5s, error 8s, loading stays until removed
+- Animated progress bar at bottom shows time remaining
+- Click any toast to dismiss immediately
+- Smooth fade-out animation on dismiss
+
+### Product Picker Search
+Text search input at top of product dropdown. Filters products by name, description, or key as you type. Combined with existing category filter chips. Auto-focuses when dropdown opens. Escape clears search and closes dropdown.
+
+### Overlay Fade Transitions
+Smooth 400ms raster-opacity fade in/out when toggling map overlay on/off (instead of instant show/hide). Uses Mapbox `raster-opacity-transition` property.
+
+### Overlay URL State Persistence
+Overlay state (on/off, product, opacity) saved to URL parameters for link sharing. Parameters: `overlay=1`, `overlay_product=surface_analysis`, `overlay_opacity=70`. Restored from URL on page load alongside other state (transect, model, style).
+
+### Comparison Panel Badge Labels
+Rich labels in compare mode show model, product, cycle, and FHR as color-coded badges. Differences between panels highlighted in amber (e.g., different cycle or FHR gets amber badge vs standard gray/blue).
+
+### Model Load State Indicators
+Model pills show data load state via colored dot: green = 10+ FHRs loaded, amber = partial (<10 FHRs), gray = empty. Updated every few seconds via `/api/models` polling.
+
+### 3D Terrain
+Mapbox DEM tiles (`mapbox-terrain-dem-v1`) with configurable exaggeration (1-3x slider). Auto-tilts map to 45° pitch when enabled. Keyboard shortcut [T]. Re-enables terrain after basemap style change.
+
+### Map Measurement Tool
+Multi-point click measurement. GeoJSON line + symbol layers show segment distances and total (km + mi). Toggle with Measure button or [M] key. Escape clears measurement. Haversine distance calculation.
+
+### Wind Barb Legend
+SVG-based legend showing 5kt (half barb), 10kt (full barb), 50kt (flag) symbols. Auto-shows for composite overlay products (surface_analysis, fire_weather, etc.). Hidden for single-field overlays and when overlay is off.
+
+### Geocoder Search
+Mapbox GL Geocoder plugin in top-left map corner (collapsed icon mode). Dark theme CSS. Bounded to CONUS (bbox: -170,15 to -50,75). No custom marker — just navigates to location.
+
+### Event Timeline Canvas
+HTML5 canvas timeline visualization showing all 88 events as color-coded dots by category. Year gridlines. Click a dot to show event details. DPR-aware rendering. Part of the Events tab.
+
+### Context Menu Enhancements
+Right-click context menu includes: Set start A, Set end B, Add POI, Copy coords, Center map here, Zoom in here. Custom positioning avoids screen edge overflow.
+
 ## API Endpoint Count
 
-- **57 total endpoints** (34 v1 agent-friendly + 23 legacy/internal)
+- **58 total endpoints** (34 v1 agent-friendly + 24 legacy/internal)
 - **52 MCP tools** (private stdio server)
 - **53 MCP tools** (public SSE server, +3 city browsing tools)
 - **21 cross-section products** (13 with anomaly support)
