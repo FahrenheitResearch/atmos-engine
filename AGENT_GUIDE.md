@@ -43,7 +43,7 @@
 
 wxsection.com is an atmospheric cross-section visualization tool. AI agents can use it to:
 
-- **Generate cross-sections** from HRRR (3km), GFS (0.25deg), and RRFS (3km) weather models
+- **Generate cross-sections** from 6 NWP models: HRRR (3km), GFS (0.25deg), RRFS (3km), NAM (12km), RAP (13km), NAM-Nest (3km)
 - **Get raw numerical data** (temperature, wind, humidity, etc.) as JSON arrays for computation
 - **Browse 88 historical weather events** (fires, hurricanes, tornadoes, derechos, winter storms)
 - **Ingest external data** — METARs, RAWS stations, SPC products, NWS alerts, elevation, drought
@@ -85,7 +85,7 @@ Three access layers, same capabilities:
               │   Dashboard API     │
               │   localhost:5565    │
               ├─────────────────────┤
-              │ HRRR · GFS · RRFS  │
+              │ HRRR · GFS · RRFS · NAM · RAP · NAM-Nest │
               │ 40 pressure levels  │
               │ 20 products         │
               │ 88 events           │
@@ -291,7 +291,7 @@ List available model cycles with forecast hours.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `model` | string | `hrrr` | `hrrr`, `gfs`, or `rrfs` |
+| `model` | string | `hrrr` | `hrrr`, `gfs`, `rrfs`, `nam`, `rap`, or `nam_nest` |
 
 #### `list_products`
 List available visualization products with descriptions and units.
@@ -310,7 +310,7 @@ Generate a PNG cross-section between two points. Returns base64-encoded image + 
 | `end_lat` | float | — | End latitude |
 | `end_lon` | float | — | End longitude |
 | `product` | string | `temperature` | See [Products](#products) |
-| `model` | string | `hrrr` | `hrrr`, `gfs`, or `rrfs` |
+| `model` | string | `hrrr` | `hrrr`, `gfs`, `rrfs`, `nam`, `rap`, or `nam_nest` |
 | `cycle` | string | `latest` | Cycle key or `latest` |
 | `fhr` | int | `0` | Forecast hour (0–48) |
 | `y_axis` | string | `pressure` | `pressure` (hPa) or `height` (km) |
@@ -327,7 +327,7 @@ Generate an animated GIF of a cross-section across multiple forecast hours. Same
 | `end_lat` | float | -- | End latitude |
 | `end_lon` | float | -- | End longitude |
 | `product` | string | `temperature` | See [Products](#products) |
-| `model` | string | `hrrr` | `hrrr`, `gfs`, or `rrfs` |
+| `model` | string | `hrrr` | `hrrr`, `gfs`, `rrfs`, `nam`, `rap`, or `nam_nest` |
 | `cycle` | string | `latest` | Cycle key or `latest` (auto-resolves) |
 | `fhr_min` | int | `0` | First forecast hour in the animation |
 | `fhr_max` | int | `18` | Last forecast hour in the animation |
@@ -622,7 +622,7 @@ Returns: Array of base64-encoded images with heading/direction metadata.
 
 ### cross_section
 
-**`tools/agent_tools/cross_section.py`** (302 lines) — Generate and analyze HRRR/GFS/RRFS cross-sections.
+**`tools/agent_tools/cross_section.py`** (302 lines) — Generate and analyze cross-sections from all 6 models.
 
 #### CrossSectionTool
 

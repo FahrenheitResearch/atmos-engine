@@ -5,7 +5,7 @@
 > behavior may change. No uptime SLA. If you build something on this, reach out
 > so we know not to break you.
 
-Generate atmospheric cross-section images from HRRR, GFS, and RRFS weather models between any two points. Returns publication-quality PNG images.
+Generate atmospheric cross-section images from 6 NWP models (HRRR, GFS, RRFS, NAM, RAP, NAM-Nest) between any two points. Returns publication-quality PNG images.
 
 **Base URL:** `https://wxsection.com`
 
@@ -45,7 +45,7 @@ Returns a PNG image of a vertical atmospheric cross-section.
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `product` | string | `temperature` | Atmospheric product to visualize (see [Products](#products)) |
-| `model` | string | `hrrr` | Weather model: `hrrr`, `gfs`, or `rrfs` |
+| `model` | string | `hrrr` | Weather model: `hrrr`, `gfs`, `rrfs`, `nam`, `rap`, or `nam_nest` |
 | `cycle` | string | `latest` | Model cycle key (e.g. `20260205_19z`) or `latest` |
 | `fhr` | int | `0` | Forecast hour (0-48 for synoptic HRRR, 0-18 for others) |
 | `y_axis` | string | `pressure` | Vertical axis: `pressure` (hPa) or `height` (km) |
