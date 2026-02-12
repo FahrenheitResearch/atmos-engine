@@ -6854,6 +6854,18 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         // Category accent colors for product picker
         const ppGroupColors = { 'Core': '#60a5fa', 'Thermodynamics': '#f97316', 'Moisture': '#22c55e', 'Dynamics': '#a78bfa', 'Cloud & Precip': '#94a3b8', 'Fire & Smoke': '#ef4444' };
 
+        // Recently used products (persisted in localStorage)
+        const MAX_RECENT_PRODUCTS = 5;
+        function getRecentProducts() {
+            try { return JSON.parse(localStorage.getItem('recentProducts') || '[]'); } catch { return []; }
+        }
+        function addRecentProduct(key) {
+            let recent = getRecentProducts().filter(k => k !== key);
+            recent.unshift(key);
+            if (recent.length > MAX_RECENT_PRODUCTS) recent = recent.slice(0, MAX_RECENT_PRODUCTS);
+            try { localStorage.setItem('recentProducts', JSON.stringify(recent)); } catch {}
+        }
+
         // Build dropdown items from styleGroups
         let ppFilterCat = '';
         let ppSearchText = '';
@@ -6895,12 +6907,41 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 chipRow.appendChild(chip);
             });
             ppDropdown.appendChild(chipRow);
+            // Recent products section (only when no category filter / search)
+            const recentKeys = getRecentProducts();
             const srch = ppSearchText.toLowerCase().trim();
             function ppHighlight(text) {
                 if (!srch || !text) return text;
                 const i = text.toLowerCase().indexOf(srch);
                 if (i === -1) return text;
                 return text.slice(0, i) + '<mark>' + text.slice(i, i + srch.length) + '</mark>' + text.slice(i + srch.length);
+            }
+            if (!ppFilterCat && !srch && recentKeys.length > 0) {
+                const recentLabel = document.createElement('div');
+                recentLabel.className = 'pp-group-label';
+                recentLabel.style.background = 'rgba(14,165,233,0.08)';
+                recentLabel.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-right:4px;vertical-align:middle;"></span>Recent';
+                ppDropdown.appendChild(recentLabel);
+                const allItems = styleGroups.flatMap(([, items]) => items);
+                recentKeys.forEach(key => {
+                    const match = allItems.find(([k]) => k === key);
+                    if (!match) return;
+                    const [val, name, desc] = match;
+                    const item = document.createElement('div');
+                    item.className = 'pp-item' + (styleSelect.value === val ? ' active' : '');
+                    item.setAttribute('role', 'option');
+                    item.tabIndex = -1;
+                    item.dataset.value = val;
+                    const grad = cmapGradients[val] || cmapGradients.temp;
+                    item.innerHTML = `<span class="pp-chip" style="background:${grad}"></span>`
+                        + `<div class="pp-item-text"><div class="pp-item-name">${name}</div></div>`;
+                    item.onclick = () => {
+                        styleSelect.value = val;
+                        styleSelect.dispatchEvent(new Event('change'));
+                        ppDropdown.classList.remove('open');
+                    };
+                    ppDropdown.appendChild(item);
+                });
             }
             styleGroups.filter(([gn]) => !ppFilterCat || gn === ppFilterCat).forEach(([groupName, items]) => {
                 const filteredItems = srch ? items.filter(([val, name, desc]) =>
@@ -11717,7 +11758,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
         }
         // Save on change: style, model, basemap, y_top, units
-        styleSelect.addEventListener('change', () => savePrefs({ style: styleSelect.value }));
+        styleSelect.addEventListener('change', () => { savePrefs({ style: styleSelect.value }); addRecentProduct(styleSelect.value); });
         document.getElementById('tile-layer-select')?.addEventListener('change', function() { savePrefs({ basemap: this.value }); });
         document.getElementById('ytop-select')?.addEventListener('change', function() { savePrefs({ y_top: this.value }); });
         document.getElementById('units-select')?.addEventListener('change', function() { savePrefs({ units: this.value }); });
