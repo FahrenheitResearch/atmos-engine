@@ -4218,7 +4218,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             <!-- TAB: Events -->
             <div class="tab-content" id="tab-events">
                 <div id="event-list-view">
-                    <canvas id="event-timeline" width="360" height="48" style="width:100%;height:48px;border-radius:6px;background:var(--bg);margin-bottom:8px;cursor:pointer;"></canvas>
+                    <canvas id="event-timeline" width="360" height="48" style="width:100%;height:48px;border-radius:6px;background:var(--bg);margin-bottom:8px;cursor:pointer;border:1px solid var(--border);"></canvas>
                     <input type="text" id="event-search" placeholder="Search events..." aria-label="Search events" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 12px;font-size:13px;margin-bottom:8px;">
                     <div id="event-cat-pills" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;"></div>
                     <div class="ctrl-row" style="margin-bottom:8px;">
@@ -4253,7 +4253,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             <!-- TAB: Settings -->
             <div class="tab-content" id="tab-settings">
                 <div class="ctrl-section">
-                    <div class="ctrl-section-title">Map Style</div>
+                    <div class="ctrl-section-title">&#127758; Map Style</div>
                     <div class="ctrl-row">
                         <label>Basemap:</label>
                         <select id="tile-layer-select" style="flex:1;">
@@ -4271,7 +4271,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     </div>
                 </div>
                 <div class="ctrl-section">
-                    <div class="ctrl-section-title">Map Markers</div>
+                    <div class="ctrl-section-title">&#128205; Map Markers</div>
                     <div class="ctrl-row">
                         <label><input type="checkbox" id="toggle-city-markers" style="margin-right:4px;">Show city markers</label>
                     </div>
@@ -4283,7 +4283,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     </div>
                 </div>
                 <div class="ctrl-section mobile-only-setting" style="display:none;">
-                    <div class="ctrl-section-title">Layout</div>
+                    <div class="ctrl-section-title">&#128240; Layout</div>
                     <div class="ctrl-row">
                         <label>Menu position:</label>
                         <select id="menu-position-select" style="flex:1;">
@@ -4293,6 +4293,17 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     </div>
                     <div style="font-size:11px;color:var(--muted);margin-top:4px;">
                         Use "Top" if your browser has a bottom URL bar (e.g. Safari on iPhone).
+                    </div>
+                </div>
+                <div class="ctrl-section">
+                    <div class="ctrl-section-title">&#9889; API</div>
+                    <div style="font-size:11px;color:var(--muted);line-height:1.5;">
+                        <div style="margin-bottom:4px;">Free REST API &mdash; no key required</div>
+                        <div style="display:flex;gap:4px;align-items:center;">
+                            <code style="font-size:10px;background:var(--bg);padding:2px 6px;border-radius:3px;color:var(--accent);flex:1;overflow:hidden;text-overflow:ellipsis;">/api/v1/cross-section</code>
+                            <button onclick="navigator.clipboard.writeText(location.origin + '/api/v1/cross-section');showToast('Copied API URL','success');" style="font-size:9px;padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;">Copy</button>
+                        </div>
+                        <div style="margin-top:4px;font-size:10px;"><a href="/api/v1/products" target="_blank" style="color:var(--accent);text-decoration:none;">Browse products</a> &middot; <a href="/api/v1/status" target="_blank" style="color:var(--accent);text-decoration:none;">Server status</a></div>
                     </div>
                 </div>
                 <div class="ctrl-section" style="margin-top:auto;">
@@ -10001,6 +10012,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             ctx.scale(dpr, dpr);
             ctx.clearRect(0, 0, w, h);
 
+            // Subtle gradient background
+            const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+            bgGrad.addColorStop(0, 'rgba(30,41,59,0.6)');
+            bgGrad.addColorStop(1, 'rgba(15,23,42,0.8)');
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, w, h);
+
             const catColors = {
                 'fire-ca': '#f97316', 'fire-pnw': '#22c55e', 'fire-co': '#3b82f6',
                 'fire-sw': '#ef4444', 'hurricane': '#06b6d4', 'tornado': '#a855f7',
@@ -10102,12 +10120,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const mx = e.clientX - rect.left;
                 const my = e.clientY - rect.top;
                 const dots = _timelineCanvas._dots || [];
-                let hit = false;
+                let closest = null, closestDist = Infinity;
                 dots.forEach(d => {
-                    if (Math.hypot(d.x - mx, d.y - my) < d.r + 4) hit = true;
+                    const dist = Math.hypot(d.x - mx, d.y - my);
+                    if (dist < d.r + 4 && dist < closestDist) { closest = d; closestDist = dist; }
                 });
-                _timelineCanvas.style.cursor = hit ? 'pointer' : 'default';
-                _timelineCanvas.title = hit ? '' : '';
+                _timelineCanvas.style.cursor = closest ? 'pointer' : 'default';
+                _timelineCanvas.title = closest ? `${closest.evt.name || closest.evt.cycle_key} (${closest.evt.category})${closest.evt.date_local ? ' \u2014 ' + closest.evt.date_local : ''}` : '';
             });
         }
 
