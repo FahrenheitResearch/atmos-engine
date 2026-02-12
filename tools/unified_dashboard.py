@@ -2886,6 +2886,16 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             text-align: center;
             padding: 20px;
         }
+        .quick-start-btn {
+            padding: 5px 12px; font-size: 11px; border-radius: 6px;
+            background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3);
+            color: #93c5fd; cursor: pointer; transition: all 0.15s;
+            font-family: system-ui, sans-serif; white-space: nowrap;
+        }
+        .quick-start-btn:hover {
+            background: rgba(59,130,246,0.3); border-color: rgba(59,130,246,0.5);
+            color: #bfdbfe; transform: translateY(-1px);
+        }
         .loading-spinner {
             display: flex;
             flex-direction: column;
@@ -3968,11 +3978,17 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <div class="xsect-panel" id="panel-primary">
                             <div class="xsect-panel-label" id="panel-primary-label"></div>
                             <div class="xsect-panel-body" id="xsect-container">
-                                <div id="instructions" style="text-align:center;padding:24px;max-width:380px;">
+                                <div id="instructions" style="text-align:center;padding:24px;max-width:420px;">
                                     <div style="font-size:22px;font-weight:700;color:var(--accent);margin-bottom:6px;letter-spacing:-0.5px;">wxsection</div>
-                                    <div style="font-size:11px;color:var(--muted);margin-bottom:12px;letter-spacing:0.5px;text-transform:uppercase;">Real-Time Atmospheric Cross-Sections</div>
-                                    <div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:12px;">
-                                        Click two points on the map to see a vertical slice through the atmosphere.
+                                    <div style="font-size:11px;color:var(--muted);margin-bottom:14px;letter-spacing:0.5px;text-transform:uppercase;">Real-Time Atmospheric Cross-Sections</div>
+                                    <div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:16px;">
+                                        Click two points on the map &mdash; or try a featured transect:
+                                    </div>
+                                    <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:16px;">
+                                        <button class="quick-start-btn" onclick="quickStart(39.7,-105.5,39.7,-104.0,'temperature')" title="See the dramatic terrain drop from the Rockies to Denver">Denver Front Range</button>
+                                        <button class="quick-start-btn" onclick="quickStart(45.70,-122.00,45.60,-121.50,'wind_speed')" title="Classic wind corridor through the Columbia Gorge">Columbia Gorge</button>
+                                        <button class="quick-start-btn" onclick="quickStart(37.0,-121.0,37.0,-118.0,'fire_wx')" title="Cross the Sierra Nevada crest near Yosemite">Sierra Nevada</button>
+                                        <button class="quick-start-btn" onclick="quickStart(35.0,-101.0,35.0,-97.0,'theta_e')" title="Southern Plains dryline boundary">Great Plains Dryline</button>
                                     </div>
                                     <div style="font-size:11px;color:var(--muted);line-height:1.7;">
                                         <b style="color:var(--text);">6 models</b> &middot; HRRR 3km, GFS, RRFS, NAM, RAP, NAM-Nest<br>
@@ -4983,7 +4999,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 prefetchAllFrames(fhrs);
 
                 const speedSel = document.getElementById('gif-speed');
-                const interval = speedSel ? parseInt(speedSel.value) || 250 : 250;
+                const speedMult = speedSel ? parseFloat(speedSel.value) || 1 : 1;
+                const interval = Math.round(250 / speedMult);  // 1x=250ms, 0.5x=500ms, 0.25x=1000ms
 
                 loopTimer = setInterval(() => {
                     const loadedFhrs = getLoadedFHRs();
@@ -6891,6 +6908,20 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     })
                     .catch(e => { if (e.name !== 'AbortError') console.warn('Live drag:', e); });
             }, LIVE_DRAG_DEBOUNCE_MS);
+        }
+
+        // =========================================================================
+        // Quick Start — one-click featured transects from landing page
+        // =========================================================================
+        function quickStart(lat1, lon1, lat2, lon2, style) {
+            clearXSMarkers();
+            startMarker = setupStartMarker(lat1, lon1);
+            endMarker = setupEndMarker(lat2, lon2);
+            updateLine();
+            fitBoundsLL([[lat1, lon1], [lat2, lon2]], 50);
+            const sel = document.getElementById('style-select');
+            if (sel && style) { sel.value = style; sel.dispatchEvent(new Event('change')); }
+            generateCrossSection();
         }
 
         // =========================================================================

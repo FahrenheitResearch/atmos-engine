@@ -7,7 +7,7 @@ Multi-model atmospheric cross-section generator. Users draw a line on a map, get
 ## Architecture Summary
 
 ```
-tools/unified_dashboard.py         — Flask server + Mapbox GL JS frontend + 57 API endpoints (~11,800 lines)
+tools/unified_dashboard.py         — Flask server + Mapbox GL JS frontend + 57 API endpoints (~11,950 lines)
 core/cross_section_interactive.py  — Rendering engine (matplotlib, 0.5s warm renders) (~3,435 lines)
 core/map_overlay.py                — Map overlay composites (fill + contours + wind barbs) (~1,133 lines)
 tools/auto_update.py               — GRIB download daemon (slot-based concurrent) (~929 lines)
@@ -49,7 +49,7 @@ restart_dashboard.py               — Production startup (handles env vars, por
 python restart_dashboard.py
 
 # Or manually:
-python tools/unified_dashboard.py --port 5565 --models hrrr,gfs,rrfs
+python tools/unified_dashboard.py --port 5565 --models hrrr,gfs,rrfs,nam,rap,nam_nest
 
 # Start auto-update daemon (MUST run from hrrr-maps/ directory, or set XSECT_OUTPUTS_DIR)
 python tools/auto_update.py --models hrrr,gfs,rrfs --hrrr-slots 6 --gfs-slots 2 --rrfs-slots 4

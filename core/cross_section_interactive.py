@@ -3077,7 +3077,7 @@ class InteractiveCrossSection:
                                        colors='none', hatches=['xxx'], alpha=0)
                         except:
                             pass
-                shading_label = "\U0001f525 Fire Wx"
+                shading_label = "Fire Wx (RH + Wind)"
         else:
             # Default to theta shading
             if theta is not None:
