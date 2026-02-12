@@ -19,7 +19,7 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 | `core/map_overlay.py` | ~1,133 | Map overlay rendering. Reprojection (KDTree for curvilinear, bilinear for GFS), composite assembly (fill + contours + barbs), PNG/binary output |
 | `model_config.py` | ~320 | Model registry. 6 models (HRRR/GFS/RRFS/NAM/RAP/NAM-Nest) metadata, grid specs, download URLs, forecast hour lists |
 
-### Server + UI (1 file, ~14,508 lines)
+### Server + UI (1 file, ~14,656 lines)
 
 | File | Lines | What It Does |
 |------|-------|-------------|
@@ -37,7 +37,7 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
   - Frontend JS (~3,900 lines): model pills (partial/loaded indicators), FHR slider with tick marks + progress fill, FHR hover thumbnails, hero cross-section loader, smart product suggestions, visual product picker with category filter chips + text search, keyboard shortcuts (22 bindings), URL state (y_axis + overlay deep-link), user prefs, local timezone, GIF, events with emoji category pills + timeline canvas (hover tooltips), cities, transect preset library (18 in 4 categories + 36 in presets dropdown), quick-start loading (glow animation), guide modal (icons + fade transitions), recent transects, all-models compare (draggable divider), draw-mode feedback, distance/bearing label, XS hover readout + zoom/pan, playback prefetch (chip glow), comparison diff view with badge labels, context menu (fade-in animation), measurement tool, map coords readout, CONUS mini-map, geocoder search, image download export, overlay HUD badge, model-colored HUD, product strip hover states, settings API section
 - Lines 11130: Flask routes start — `/` serves HTML, `/og-preview.png` serves branded preview
 - Lines 11130-14370: All API route handlers (58 endpoints + og-preview)
-- Lines 14370-14508: Startup — argument parsing, preload, rescan thread, server launch
+- Lines 14510-14656: Startup — argument parsing, preload, rescan thread, server launch
 
 ### Download System (2 files, ~1,240 lines)
 
@@ -268,7 +268,7 @@ Shows model name, active product badge (with colormap chip), and FHR with valid 
 ### Playback Frame Counter
 During animation playback, shows frame position (e.g., "3/48") next to the slider. Play button toggles between play and pause icons with matching tooltip text.
 
-### Keyboard Shortcuts (25 key bindings, 18 actions)
+### Keyboard Shortcuts (28 key bindings, 20 actions)
 - Left/Right arrow (J/K): step FHR
 - Space: play/pause
 - Home/End: first/last FHR
@@ -277,6 +277,8 @@ During animation playback, shows frame position (e.g., "3/48") next to the slide
 - Y: cycle y-axis (pressure/height/isentropic)
 - A: toggle anomaly mode
 - O: toggle map overlay
+- Shift+O: toggle overlay loop
+- { / }: cycle overlay product
 - C: compare mode
 - S: swap A/B endpoints
 - F: fullscreen cross-section
@@ -420,6 +422,49 @@ Inactive product pills in the quick-switch strip highlight on hover (background 
 
 ### Control Section Hover Accent
 Control sections (.ctrl-section) get a subtle left border accent in translucent cyan on hover, providing visual feedback for which section the user is interacting with.
+
+### CSS Design System Tokens (Extended)
+Root variables now include `--radius-sm/md/lg/pill` (4/6/8/12px), `--shadow-sm/md/lg/xl`, and `--danger-light` (#f87171). Border-radius and box-shadow in CSS classes use these variables instead of hardcoded values. Transitions reference `--transition-fast/default/slow`.
+
+### Dynamic Page Title
+Browser tab title updates to show current state: "HRRR 20260212_06z F03 | wxsection.com". Updated every 500ms via `updateHUD()`.
+
+### Accessibility Features
+- `:focus-visible` outline (cyan accent ring) for keyboard navigation
+- `aria-live` region announces toast messages to screen readers
+- Playback controls wrapped in `role="group"` with `aria-label`
+- `prefers-reduced-motion` media query disables all animations
+- Print stylesheet hides UI chrome and formats cross-section for paper
+
+### Model Pill Per-Color Coding
+Active model pill uses the model's unique color (from `MODEL_COLORS`) instead of generic accent blue. HRRR=cyan, GFS=purple, RRFS=green, NAM=orange, RAP=yellow, NAM-Nest=pink. Includes a pop animation on activation.
+
+### FHR Chip Valid Time Tooltips
+Loaded FHR chips show valid time on hover via `title` attribute (e.g. "Forecast Hour 3 (09:00 UTC Wed)").
+
+### Overlay Keyboard Shortcuts
+`Shift+O` toggles overlay loop, `{` and `}` cycle overlay products. Documented in shortcut help overlay.
+
+### Share URL Full State
+Share URL now includes `vscale`, `ytop`, `units` parameters in addition to model, style, FHR, cycle, y_axis, overlay state. Fully reproducible cross-sections when shared.
+
+### Error Recovery (Retry Buttons)
+Error states in city profile, multi-panel comparison, and all showcase features (quad-plot, temporal evolution, playback) now include a Retry button.
+
+### Showcase Notes Dismiss
+The analysis notes bar in showcase mode has a dismiss X button, allowing users to close it without exiting showcase mode.
+
+### Activity Panel Auto-Open
+Submitting an archive download request auto-expands the progress/activity panel so users see download progress immediately.
+
+### Tablet Breakpoint
+Intermediate breakpoint at 769-1024px (tablet landscape): narrower sidebar panel (340px), smaller chips and toggle buttons.
+
+### Scroll-Snap for FHR Chips
+`.chip-group` uses `scroll-snap-type: x proximity` and `.chip` uses `scroll-snap-align: start` for smoother mobile FHR scrolling.
+
+### GIF Progress Feedback
+GIF button shows frame count during generation ("GIF 18f..."). Success toast includes frame count: "GIF saved (18 frames, 2.1 MB, 8.3s)".
 
 ## API Endpoint Count
 
