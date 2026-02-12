@@ -19,11 +19,11 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 | `core/map_overlay.py` | ~1,133 | Map overlay rendering. Reprojection (KDTree for curvilinear, bilinear for GFS), composite assembly (fill + contours + barbs), PNG/binary output |
 | `model_config.py` | ~320 | Model registry. 6 models (HRRR/GFS/RRFS/NAM/RAP/NAM-Nest) metadata, grid specs, download URLs, forecast hour lists |
 
-### Server + UI (1 file, ~12,370 lines)
+### Server + UI (1 file, ~12,580 lines)
 
 | File | Lines | What It Does |
 |------|-------|-------------|
-| `tools/unified_dashboard.py` | ~12,370 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 57 API endpoints (34 v1 + 23 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects |
+| `tools/unified_dashboard.py` | ~12,580 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 57 API endpoints (34 v1 + 23 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects |
 
 **Key sections in unified_dashboard.py:**
 - Lines 1-1018: Imports, constants, overlay cache, helper functions, model config dicts
@@ -253,14 +253,17 @@ Includes coordinate display at bottom. Auto-positions to stay on screen.
 ### Product Description Toasts
 Selecting a new product style shows a brief info toast with the product's description (e.g., "Equivalent potential temperature — instability analysis"). Auto-dismisses after 3 seconds.
 
+### Visual Product Picker
+Custom dropdown panel replaces flat `<select>` for the 20 cross-section products. Shows products organized by category (Core, Thermodynamics, Moisture, Dynamics, Cloud & Precip, Fire & Smoke) with colormap gradient chips and descriptions. Supports keyboard navigation (arrow keys, Enter, Escape). Hidden `<select>` stays in sync for all existing code references.
+
 ### Colormap Preview Bar
-A 4px gradient bar below the style dropdown shows the color scheme of the currently selected product. Updates on style change. Defined in `cmapGradients` object (20 products).
+A 4px gradient bar below the product picker shows the color scheme of the currently selected product. Updates on style change. Defined in `cmapGradients` object (20 products). Value range labels below the bar show min/max values (e.g., "0 kt → 80 kt" for wind speed). Defined in `cmapRanges` object.
 
 ### Transect Metadata Overlay
 Floating pill on the cross-section image showing: model name, transect distance (km/mi), bearing, valid time, and render time (e.g., "1.4s").
 
 ### Bottom Status Bar
-Shows product name + FHR with valid time. Updates on each cross-section generation. For events, shows event name with star icon.
+Shows model name, active product badge (with colormap chip), and FHR with valid time. Updates on each cross-section generation. Loading spinner shows product name (e.g., "Rendering Fire Weather..."). For events, shows event name with star icon.
 
 ### Playback Frame Counter
 During animation playback, shows frame position (e.g., "3/48") next to the slider. Play button toggles between play and pause icons with matching tooltip text.
@@ -293,11 +296,14 @@ Help button opens a 3-tab modal:
 Auto-refresh checks for new model cycles every 3 minutes. Shows toast with model name and cycle label (e.g., "New HRRR cycle: 20260212 12Z").
 
 ### Quick Analysis Workflows
-7 one-click workflow presets (sidebar buttons): Fire Weather, Severe, Upper Air, Moisture, Jet Stream, Surface, Model Compare, Time Series. Each sets style + overlay product + y_top.
+8 one-click workflow presets in a 4-column grid (sidebar buttons): Fire Weather, Severe, Upper Air, Moisture, Jet Stream, Surface, Model Compare, Time Series. Each sets style + overlay product + y_top.
 
 ### Share & Save Buttons
 - Share: copies current URL (with all state) to clipboard
 - Save: downloads current cross-section PNG with descriptive filename
+
+### Accessibility
+All interactive controls have `aria-label` attributes: playback buttons, FHR slider, overlay toggles/selects, search inputs, GIF controls, event filter, toolbar buttons. Product picker has `role="listbox"` with `role="option"` items and full keyboard navigation.
 
 ## API Endpoint Count
 
