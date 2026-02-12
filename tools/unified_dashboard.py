@@ -3629,6 +3629,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             from { opacity: 0; transform: translateY(-8px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-4px); }
+            40%, 80% { transform: translateX(4px); }
+        }
         .progress-item:last-child { border-bottom: none; }
         .progress-item.done { opacity: 0.5; }
 
@@ -3725,7 +3730,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .param-card {
             background: var(--card); border: 1px solid var(--border);
             border-radius: var(--radius-lg); padding: 14px; margin-bottom: 12px;
+            cursor: pointer; transition: border-color var(--transition-fast);
         }
+        .param-card:hover { border-color: var(--accent); }
         .param-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
         .param-name { font-weight: 600; color: var(--accent); font-size: 15px; }
         .param-desc { color: var(--muted); font-size: 13px; line-height: 1.5; }
@@ -8279,21 +8286,27 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 `&y_axis=${currentYAxis}&y_top=${ytop}&units=${units}` +
                 `&temp_cmap=${tempCmap}${mpPoiParams}`;
 
+            function mpValidationError(msg) {
+                mpStatus.textContent = msg;
+                mpStatus.style.display = '';
+                mpStatus.style.color = '#f87171';
+                mpStatus.style.animation = 'shake 0.3s ease';
+                setTimeout(() => { mpStatus.style.animation = ''; }, 400);
+                setTimeout(() => { if (mpStatus.textContent === msg) { mpStatus.style.display = 'none'; mpStatus.style.color = 'var(--accent)'; } }, 3000);
+            }
             // Mode-specific params
             if (multiPanelMode === 'model') {
                 const chips = document.querySelectorAll('#mp-model-checkboxes .mp-chip.selected');
                 const models = Array.from(chips).map(c => c.dataset.value);
                 if (models.length < 2) {
-                    mpStatus.textContent = 'Select at least 2 models';
-                    mpStatus.style.display = '';
+                    mpValidationError('Select at least 2 models');
                     return;
                 }
                 params += `&models=${models.join(',')}`;
             } else if (multiPanelMode === 'temporal') {
                 const fhrsStr = document.getElementById('mp-fhrs-input').value.trim();
                 if (!fhrsStr) {
-                    mpStatus.textContent = 'Enter comma-separated FHRs';
-                    mpStatus.style.display = '';
+                    mpValidationError('Enter comma-separated FHRs');
                     return;
                 }
                 params += `&fhrs=${fhrsStr}`;
@@ -8301,16 +8314,14 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const chips = document.querySelectorAll('#mp-product-checkboxes .mp-chip.selected');
                 const products = Array.from(chips).map(c => c.dataset.value);
                 if (products.length < 2) {
-                    mpStatus.textContent = 'Select at least 2 products';
-                    mpStatus.style.display = '';
+                    mpValidationError('Select at least 2 products');
                     return;
                 }
                 params += `&products=${products.join(',')}`;
             } else if (multiPanelMode === 'cycle') {
                 const mpCycle = document.getElementById('mp-cycle-select').value;
                 if (!mpCycle) {
-                    mpStatus.textContent = 'Select a comparison cycle';
-                    mpStatus.style.display = '';
+                    mpValidationError('Select a comparison cycle');
                     return;
                 }
                 params += `&cycles=${currentCycle},${mpCycle}&cycle_match=${multiPanelCycleMatch}`;
