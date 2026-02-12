@@ -4127,6 +4127,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                                         <button class="quick-start-btn" onclick="quickStart(44.0,-123.5,44.0,-121.0,'wind_speed')" title="McKenzie Pass corridor \u2014 critical Oregon fire weather terrain">Oregon Cascades</button>
                                         <button class="quick-start-btn" onclick="quickStart(34.2,-118.8,34.2,-117.5,'rh')" title="Santa Ana wind corridor across LA metro">LA Basin</button>
                                     </div>
+                                    <div id="recent-transects" style="display:none;margin-bottom:12px;">
+                                        <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Recent transects:</div>
+                                        <div id="recent-transects-list" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;"></div>
+                                    </div>
                                     <div id="landing-stats" style="font-size:11px;color:var(--muted);line-height:1.7;">
                                         <b style="color:var(--text);">6 models</b> &middot; HRRR 3km, GFS, RRFS, NAM, RAP, NAM-Nest<br>
                                         <b style="color:var(--text);">20 products</b> &middot; Temperature, wind, fire weather, moisture, dynamics<br>
@@ -7354,6 +7358,52 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
 
         // =========================================================================
+        // Recent Transects (localStorage)
+        // =========================================================================
+        const RECENT_KEY = 'wxs-recent-transects';
+        const MAX_RECENT = 5;
+
+        function getRecentTransects() {
+            try { return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); } catch { return []; }
+        }
+
+        function saveRecentTransect(lat1, lon1, lat2, lon2, style) {
+            const recents = getRecentTransects();
+            // Create a label from coordinates
+            const label = `${lat1.toFixed(1)},${lon1.toFixed(1)} → ${lat2.toFixed(1)},${lon2.toFixed(1)}`;
+            // Avoid duplicates (same coords within 0.1 deg)
+            const isDupe = recents.some(r =>
+                Math.abs(r.lat1 - lat1) < 0.1 && Math.abs(r.lon1 - lon1) < 0.1 &&
+                Math.abs(r.lat2 - lat2) < 0.1 && Math.abs(r.lon2 - lon2) < 0.1);
+            if (isDupe) return;
+            recents.unshift({ lat1, lon1, lat2, lon2, style, label, ts: Date.now() });
+            if (recents.length > MAX_RECENT) recents.length = MAX_RECENT;
+            localStorage.setItem(RECENT_KEY, JSON.stringify(recents));
+        }
+
+        function renderRecentTransects() {
+            const container = document.getElementById('recent-transects');
+            const list = document.getElementById('recent-transects-list');
+            if (!container || !list) return;
+            const recents = getRecentTransects();
+            if (recents.length === 0) { container.style.display = 'none'; return; }
+            container.style.display = '';
+            list.innerHTML = '';
+            recents.forEach(r => {
+                const btn = document.createElement('button');
+                btn.className = 'quick-start-btn';
+                btn.style.fontSize = '10px';
+                btn.style.padding = '3px 8px';
+                const styleName = styleSelect.querySelector(`option[value="${r.style}"]`)?.textContent || r.style;
+                btn.textContent = `${r.label} (${styleName})`;
+                btn.title = `${styleName}: ${r.label}`;
+                btn.onclick = () => quickStart(r.lat1, r.lon1, r.lat2, r.lon2, r.style);
+                list.appendChild(btn);
+            });
+        }
+        renderRecentTransects();
+
+        // =========================================================================
         // Cross-Section Generation
         // =========================================================================
         async function generateCrossSection() {
@@ -7415,13 +7465,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const renderLabel = renderMs < 1000 ? renderMs + 'ms' : (renderMs / 1000).toFixed(1) + 's';
                 meta.textContent = formatTransectMeta(start.lat, start.lng, end.lat, end.lng) + ' \u00b7 ' + renderLabel;
                 container.appendChild(meta);
-                // Update bottom status with style name
-                const statusEl = document.getElementById('bottom-status');
-                if (statusEl && !statusEl.querySelector('.event-star')) {
-                    const styleSel = document.getElementById('style-select');
-                    const styleName = styleSel?.selectedOptions[0]?.textContent || style;
-                    statusEl.innerHTML = `<span>${styleName}</span> <span class="fhr-label" id="active-fhr">${fhrWithTime(activeFhr)}</span>`;
-                }
+                // Update bottom status with active FHR
+                const fhrEl = document.getElementById('active-fhr');
+                if (fhrEl) fhrEl.textContent = fhrWithTime(activeFhr);
+                // Save to recent transects
+                saveRecentTransect(start.lat, start.lng, end.lat, end.lng, style);
                 // Auto-open bottom panel when cross-section generated
                 if (bottomState === 'collapsed') setBottomState('half');
             } catch (err) {
