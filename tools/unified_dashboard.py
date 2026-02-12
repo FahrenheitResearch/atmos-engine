@@ -2951,6 +2951,50 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             color: var(--accent);
             font-size: 12px;
             font-weight: 500;
+        }
+        /* Skeleton loading for cross-section */
+        .xsect-skeleton {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16/7;
+            background: var(--card);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .xsect-skeleton::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+            animation: skeleton-shimmer 1.5s ease-in-out infinite;
+        }
+        @keyframes skeleton-shimmer { to { left: 100%; } }
+        .xsect-skeleton .skel-label {
+            position: absolute;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            color: var(--accent);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .xsect-skeleton .skel-label .skel-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+            animation: skel-pulse 1s ease-in-out infinite;
+        }
+        @keyframes skel-pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+        .xsect-skeleton .skel-topo {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 40%;
+            background: linear-gradient(180deg, transparent 0%, rgba(14,165,233,0.05) 100%);
+            clip-path: polygon(0% 100%, 5% 80%, 15% 65%, 25% 70%, 35% 50%, 45% 55%, 55% 40%, 65% 45%, 75% 35%, 85% 50%, 95% 60%, 100% 100%);
+        }
             animation: pulse 1.5s ease-in-out infinite;
         }
         .loading-text {
@@ -7251,6 +7295,53 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             return `${currentModel.toUpperCase()} ${km.toFixed(0)} km (${mi.toFixed(0)} mi) \u00b7 ${bearing.toFixed(0)}\u00b0 ${dir}${vtStr}`;
         }
 
+        // Smart product suggestions based on transect geography
+        function getSmartSuggestions(lat1, lon1, lat2, lon2, currentStyle) {
+            const midLat = (lat1 + lat2) / 2;
+            const midLon = (lon1 + lon2) / 2;
+            const suggestions = [];
+            const excluded = modelExcludedStyles[currentModel] || new Set();
+            const add = (key, name, reason) => {
+                if (key !== currentStyle && !excluded.has(key) && !suggestions.find(s => s.key === key))
+                    suggestions.push({ key, name, reason });
+            };
+            // Mountain/terrain transects (Rockies, Cascades, Sierra)
+            const crossesMountains = (lon1 < -104 && lon2 > -106) || (lon1 < -121 && lon2 > -123) ||
+                (lon1 < -118 && lon2 > -120) || Math.abs(lat1 - lat2) > 3;
+            if (crossesMountains) {
+                add('wind_speed', 'Wind', 'Mountain wind patterns');
+                add('lapse_rate', 'Lapse Rate', 'Mountain wave stability');
+                add('isentropic_ascent', 'Isen. Ascent', 'Orographic forcing');
+            }
+            // Fire-prone regions (CA, PNW, CO, SW)
+            if ((midLat > 32 && midLat < 48 && midLon < -104) ||
+                (midLat > 30 && midLat < 38 && midLon > -110 && midLon < -95)) {
+                add('fire_wx', 'Fire Wx', 'Fire-prone region');
+                add('vpd', 'VPD', 'Vegetation moisture stress');
+                add('rh', 'RH', 'Fire weather humidity');
+            }
+            // Great Plains / dryline territory
+            if (midLat > 30 && midLat < 42 && midLon > -104 && midLon < -95) {
+                add('theta_e', '\u03b8e', 'Dryline/instability');
+                add('shear', 'Shear', 'Severe weather shear');
+                add('omega', '\u03c9', 'Vertical motion');
+            }
+            // Coastal / moisture transport
+            if (midLon < -120 || midLon > -82 || midLat < 30) {
+                add('moisture_transport', 'Moisture', 'Atmospheric river signature');
+                add('rh', 'RH', 'Coastal moisture patterns');
+            }
+            // Cold season (Nov-Mar) — look for icing, wetbulb
+            const month = new Date().getMonth();
+            if (month >= 10 || month <= 2) {
+                add('icing', 'Icing', 'Winter icing hazard');
+                add('wetbulb', 'Wetbulb', 'Precipitation type');
+            }
+            // Always suggest temperature if not selected
+            add('temp', 'Temp', 'Fundamental thermal structure');
+            return suggestions.slice(0, 3);
+        }
+
         function buildMarkersParam() {
             if (poiMarkers.length === 0) return '';
             const arr = poiMarkers.map(p => {
@@ -7576,7 +7667,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const container = document.getElementById('xsect-container');
             const style = document.getElementById('style-select').value;
             const styleName = styleSelect.selectedOptions[0]?.textContent || style;
-            container.innerHTML = `<div class="loading-spinner"><div class="spinner-ring"></div><div class="spinner-text">Rendering ${styleName}...</div></div>`;
+            container.innerHTML = `<div class="xsect-skeleton"><div class="skel-topo"></div><div class="skel-label"><span class="skel-dot"></span>Rendering ${styleName}...</div></div>`;
 
             const start = startMarker.getLatLng();
             const end = endMarker.getLatLng();
@@ -7639,6 +7730,23 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     groupIdx++;
                 });
                 container.appendChild(strip);
+                // Smart product suggestions based on transect location
+                const suggestions = getSmartSuggestions(start.lat, start.lng, end.lat, end.lng, style);
+                if (suggestions.length > 0) {
+                    const sugRow = document.createElement('div');
+                    sugRow.style.cssText = 'display:flex;gap:4px;align-items:center;justify-content:center;padding:2px 8px;flex-wrap:wrap;';
+                    sugRow.innerHTML = '<span style="font-size:9px;color:var(--muted);opacity:0.7;">Try:</span>';
+                    suggestions.forEach(s => {
+                        const btn = document.createElement('span');
+                        const grad = cmapGradients[s.key] || '';
+                        btn.style.cssText = `padding:1px 6px;border-radius:8px;font-size:9px;cursor:pointer;color:var(--accent);border:1px solid rgba(14,165,233,0.3);transition:all 0.1s;display:inline-flex;align-items:center;gap:3px;`;
+                        btn.innerHTML = (grad ? `<span style="width:8px;height:5px;border-radius:1px;background:${grad};display:inline-block;"></span>` : '') + s.name;
+                        btn.title = s.reason;
+                        btn.onclick = () => { styleSelect.value = s.key; styleSelect.dispatchEvent(new Event('change')); };
+                        sugRow.appendChild(btn);
+                    });
+                    container.appendChild(sugRow);
+                }
                 // Update bottom status with active FHR
                 const fhrEl = document.getElementById('active-fhr');
                 if (fhrEl) fhrEl.textContent = fhrWithTime(activeFhr);
