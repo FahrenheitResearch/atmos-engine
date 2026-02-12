@@ -2705,6 +2705,38 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .event-cat-pill.active { opacity: 1; }
         .event-cat-pill:not(.active) { opacity: 0.7; }
         .event-cat-pill:not(.active):hover { opacity: 1; }
+        .hero-preview {
+            margin-bottom: 12px; border-radius: 8px; overflow: hidden; cursor: pointer;
+            display: none; position: relative; box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            border: 1px solid var(--border); transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .hero-preview:hover { transform: scale(1.01); box-shadow: 0 6px 24px rgba(0,0,0,0.5); }
+        .landing { text-align: center; padding: 24px; max-width: 460px; }
+        .landing-title { font-size: 22px; font-weight: 700; color: var(--accent); margin-bottom: 4px; letter-spacing: -0.5px; }
+        .landing-subtitle { font-size: 11px; color: var(--muted); margin-bottom: 16px; letter-spacing: 0.5px; text-transform: uppercase; }
+        .landing-steps { display: flex; gap: 16px; justify-content: center; margin-bottom: 18px; font-size: 12px; color: var(--text); }
+        .landing-step { text-align: center; }
+        .landing-step-num {
+            width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--bg);
+            display: inline-flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 13px; margin-bottom: 4px;
+        }
+        .landing-arrow { color: var(--muted); align-self: center; font-size: 16px; margin-top: -16px; }
+        .landing-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; font-size: 10px; color: var(--muted); text-align: center; }
+        .landing-stat { background: var(--card); border-radius: 6px; padding: 8px 6px; }
+        .landing-stat-num { font-size: 18px; font-weight: 700; color: var(--accent); }
+        .landing-stat-label { font-weight: 600; color: var(--text); font-size: 11px; }
+        .landing-stat-sub { margin-top: 2px; }
+        .hero-preview-img { width: 100%; display: block; border-radius: 8px; opacity: 0; transition: opacity 0.4s; }
+        .hero-preview-label {
+            position: absolute; bottom: 0; left: 0; right: 0; padding: 4px 10px;
+            background: linear-gradient(transparent, rgba(15,23,42,0.9));
+            font-size: 10px; color: var(--muted); text-align: right;
+        }
+        .landing-cycle { margin-top: 10px; font-size: 10px; color: var(--muted); opacity: 0.7; }
+        .landing-prompt { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+        .landing-quickstarts { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 16px; }
+        .landing-recent { margin-bottom: 12px; }
         /* Focus-visible for keyboard accessibility */
         :focus-visible {
             outline: 2px solid var(--accent);
@@ -4813,27 +4845,27 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                                 <div class="zoom-controls" id="xsect-actions" style="display:none;top:8px;left:8px;right:auto;">
                                     <button id="xsect-download-btn" title="Download cross-section PNG" style="font-size:12px;">&#8681;</button>
                                 </div>
-                                <div id="instructions" style="text-align:center;padding:24px;max-width:460px;">
-                                    <div style="font-size:22px;font-weight:700;color:var(--accent);margin-bottom:4px;letter-spacing:-0.5px;">wxsection</div>
-                                    <div style="font-size:11px;color:var(--muted);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">Real-Time Atmospheric Cross-Sections</div>
-                                    <div style="display:flex;gap:16px;justify-content:center;margin-bottom:18px;font-size:12px;color:var(--text);">
-                                        <div style="text-align:center;">
-                                            <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--bg);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;margin-bottom:4px;">1</div>
+                                <div id="instructions" class="landing">
+                                    <div class="landing-title">wxsection</div>
+                                    <div class="landing-subtitle">Real-Time Atmospheric Cross-Sections</div>
+                                    <div class="landing-steps">
+                                        <div class="landing-step">
+                                            <div class="landing-step-num">1</div>
                                             <div>Click point A</div>
                                         </div>
-                                        <div style="color:var(--muted);align-self:center;font-size:16px;margin-top:-16px;">&#8594;</div>
-                                        <div style="text-align:center;">
-                                            <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--bg);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;margin-bottom:4px;">2</div>
+                                        <div class="landing-arrow">&#8594;</div>
+                                        <div class="landing-step">
+                                            <div class="landing-step-num">2</div>
                                             <div>Click point B</div>
                                         </div>
-                                        <div style="color:var(--muted);align-self:center;font-size:16px;margin-top:-16px;">&#8594;</div>
-                                        <div style="text-align:center;">
-                                            <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--bg);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;margin-bottom:4px;">3</div>
+                                        <div class="landing-arrow">&#8594;</div>
+                                        <div class="landing-step">
+                                            <div class="landing-step-num">3</div>
                                             <div>Explore</div>
                                         </div>
                                     </div>
-                                    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Or try a featured transect:</div>
-                                    <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:16px;">
+                                    <div class="landing-prompt">Or try a featured transect:</div>
+                                    <div class="landing-quickstarts">
                                         <button class="quick-start-btn" onclick="quickStart(39.7,-105.5,39.7,-104.0,'temperature')" title="Dramatic terrain drop from the Rockies to Denver"><span class="qs-chip" data-style="temp"></span>Denver Front Range</button>
                                         <button class="quick-start-btn" onclick="quickStart(45.70,-122.00,45.60,-121.50,'wind_speed')" title="Classic wind corridor through the Columbia Gorge"><span class="qs-chip" data-style="wind_speed"></span>Columbia Gorge</button>
                                         <button class="quick-start-btn" onclick="quickStart(37.0,-121.0,37.0,-118.0,'fire_wx')" title="Cross the Sierra Nevada crest near Yosemite"><span class="qs-chip" data-style="fire_wx"></span>Sierra Nevada</button>
@@ -4841,32 +4873,32 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                                         <button class="quick-start-btn" onclick="quickStart(44.0,-123.5,44.0,-121.0,'wind_speed')" title="McKenzie Pass corridor \u2014 critical Oregon fire weather terrain"><span class="qs-chip" data-style="wind_speed"></span>Oregon Cascades</button>
                                         <button class="quick-start-btn" onclick="quickStart(34.2,-118.8,34.2,-117.5,'rh')" title="Santa Ana wind corridor across LA metro"><span class="qs-chip" data-style="rh"></span>LA Basin</button>
                                     </div>
-                                    <div id="recent-transects" style="display:none;margin-bottom:12px;">
-                                        <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Recent transects:</div>
-                                        <div id="recent-transects-list" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;"></div>
+                                    <div id="recent-transects" class="landing-recent" style="display:none;">
+                                        <div class="landing-prompt" style="margin-bottom:6px;">Recent transects:</div>
+                                        <div id="recent-transects-list" class="landing-quickstarts"></div>
                                     </div>
-                                    <div id="hero-preview" style="margin-bottom:12px;border-radius:8px;overflow:hidden;cursor:pointer;display:none;position:relative;box-shadow:0 4px 20px rgba(0,0,0,0.4);border:1px solid var(--border);transition:transform 0.2s ease,box-shadow 0.2s ease;" onmouseenter="this.style.transform='scale(1.01)';this.style.boxShadow='0 6px 24px rgba(0,0,0,0.5)';" onmouseleave="this.style.transform='';this.style.boxShadow='0 4px 20px rgba(0,0,0,0.4)';" title="Click to load this transect">
-                                        <img id="hero-preview-img" style="width:100%;display:block;border-radius:8px;opacity:0;transition:opacity 0.4s;" alt="Sample cross-section">
-                                        <div id="hero-preview-label" style="position:absolute;bottom:0;left:0;right:0;padding:4px 10px;background:linear-gradient(transparent,rgba(15,23,42,0.9));font-size:10px;color:var(--muted);text-align:right;">Sample &mdash; click to explore</div>
+                                    <div id="hero-preview" class="hero-preview" title="Click to load this transect">
+                                        <img id="hero-preview-img" class="hero-preview-img" alt="Sample cross-section">
+                                        <div id="hero-preview-label" class="hero-preview-label">Sample &mdash; click to explore</div>
                                     </div>
-                                    <div id="landing-stats" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:10px;color:var(--muted);text-align:center;">
-                                        <div style="background:var(--card);border-radius:6px;padding:8px 6px;">
-                                            <div style="font-size:18px;font-weight:700;color:var(--accent);">6</div>
-                                            <div style="font-weight:600;color:var(--text);font-size:11px;">Models</div>
-                                            <div style="margin-top:2px;">HRRR &middot; GFS &middot; RRFS<br>NAM &middot; RAP &middot; NAM-Nest</div>
+                                    <div id="landing-stats" class="landing-stats">
+                                        <div class="landing-stat">
+                                            <div class="landing-stat-num">6</div>
+                                            <div class="landing-stat-label">Models</div>
+                                            <div class="landing-stat-sub">HRRR &middot; GFS &middot; RRFS<br>NAM &middot; RAP &middot; NAM-Nest</div>
                                         </div>
-                                        <div style="background:var(--card);border-radius:6px;padding:8px 6px;">
-                                            <div style="font-size:18px;font-weight:700;color:var(--accent);">21</div>
-                                            <div style="font-weight:600;color:var(--text);font-size:11px;">Products</div>
-                                            <div style="margin-top:2px;">Temperature &middot; Wind<br>Fire Wx &middot; Moisture</div>
+                                        <div class="landing-stat">
+                                            <div class="landing-stat-num">21</div>
+                                            <div class="landing-stat-label">Products</div>
+                                            <div class="landing-stat-sub">Temperature &middot; Wind<br>Fire Wx &middot; Moisture</div>
                                         </div>
-                                        <div style="background:var(--card);border-radius:6px;padding:8px 6px;">
-                                            <div style="font-size:18px;font-weight:700;color:var(--accent);">~0.5s</div>
-                                            <div style="font-weight:600;color:var(--text);font-size:11px;">Render</div>
-                                            <div style="margin-top:2px;">&#8592;&#8594; FHR &middot; Space: play<br>?: keyboard help</div>
+                                        <div class="landing-stat">
+                                            <div class="landing-stat-num">~0.5s</div>
+                                            <div class="landing-stat-label">Render</div>
+                                            <div class="landing-stat-sub">&#8592;&#8594; FHR &middot; Space: play<br>?: keyboard help</div>
                                         </div>
                                     </div>
-                                    <div id="landing-cycle" style="margin-top:10px;font-size:10px;color:var(--muted);opacity:0.7;"></div>
+                                    <div id="landing-cycle" class="landing-cycle"></div>
                                 </div>
                             </div>
                         </div>
