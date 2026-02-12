@@ -10,7 +10,7 @@ The platform is **agent-native**: everything the web UI can do is also available
 
 ```
 tools/unified_dashboard.py      Flask server + Mapbox GL JS frontend + 57 API endpoints (~12,340 lines)
-core/cross_section_interactive.py   Rendering engine (matplotlib, 0.5s warm renders) (~3,435 lines)
+core/cross_section_interactive.py   Rendering engine (matplotlib, 0.5s warm renders) (~3,515 lines)
 core/map_overlay.py             Map overlay composites (fill + contours + wind barbs) (~1,133 lines)
 tools/auto_update.py            GRIB download daemon (slot-based concurrent) (~913 lines)
 smart_hrrr/orchestrator.py      Parallel download with multi-layer validation (~311 lines)

@@ -3770,7 +3770,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <button id="clear-btn" style="padding:3px 8px;font-size:12px;" title="Clear cross-section line (Esc)">Clear</button>
                         <button id="poi-btn" style="padding:3px 8px;font-size:12px;" title="Place POI marker (or right-click map)">+ POI</button>
                         <button id="load-all-btn" style="padding:3px 8px;font-size:12px;">Load All</button>
-                        <button id="gif-btn" style="padding:3px 8px;font-size:12px;">GIF</button>
+                        <button id="gif-btn" style="padding:3px 8px;font-size:12px;" title="Generate animated GIF of cross-section loop">GIF</button>
                         <button id="compare-btn" style="padding:3px 8px;font-size:12px;" title="Compare two cycles side-by-side (C)">Compare</button>
                         <button id="share-btn" style="padding:3px 8px;font-size:12px;" title="Copy shareable link to clipboard">Share</button>
                         <button id="save-btn" style="padding:3px 8px;font-size:12px;" title="Download cross-section as PNG">Save</button>
@@ -7241,24 +7241,28 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 `&anomaly=${anomalyMode ? 1 : 0}${modelParam()}` +
                 (fhrMin ? `&fhr_min=${fhrMin}` : '') + (fhrMax ? `&fhr_max=${fhrMax}` : '');
             try {
+                const t0 = performance.now();
                 const res = await fetch(url);
                 if (!res.ok) {
                     try {
                         const err = await res.json();
-                        alert(err.error || 'GIF generation failed');
+                        showToast(err.error || 'GIF generation failed', 'error');
                     } catch(e) {
-                        alert('GIF generation failed (server error)');
+                        showToast('GIF generation failed (server error)', 'error');
                     }
                     return;
                 }
                 const blob = await res.blob();
+                const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(blob);
                 a.download = `xsect_${currentCycle}_${style}.gif`;
                 a.click();
                 URL.revokeObjectURL(a.href);
+                const sizeMB = (blob.size / 1048576).toFixed(1);
+                showToast('GIF saved (' + sizeMB + ' MB, ' + elapsed + 's)', 'success');
             } catch (err) {
-                alert('GIF generation failed: ' + err.message);
+                showToast('GIF generation failed: ' + err.message, 'error');
             } finally {
                 btn.disabled = false;
                 btn.textContent = 'GIF';

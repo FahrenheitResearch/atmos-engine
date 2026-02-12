@@ -11,11 +11,11 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 
 ## File Map (Where Everything Lives)
 
-### Core Engine (3 files, ~4,800 lines)
+### Core Engine (3 files, ~4,970 lines)
 
 | File | Lines | What It Does |
 |------|-------|-------------|
-| `core/cross_section_interactive.py` | ~3,435 | **The heart.** GRIB extraction, mmap cache, KDTree interp, all 20 product renderers, GFS CONUS subset, smoke lazy-load, comparison panels |
+| `core/cross_section_interactive.py` | ~3,515 | **The heart.** GRIB extraction, mmap cache, KDTree interp, all 20 product renderers, GFS CONUS subset, smoke lazy-load, comparison panels |
 | `core/map_overlay.py` | ~1,133 | Map overlay rendering. Reprojection (KDTree for curvilinear, bilinear for GFS), composite assembly (fill + contours + barbs), PNG/binary output |
 | `model_config.py` | ~320 | Model registry. 6 models (HRRR/GFS/RRFS/NAM/RAP/NAM-Nest) metadata, grid specs, download URLs, forecast hour lists |
 
