@@ -93,8 +93,8 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 
 | File | What It Does |
 |------|-------------|
-| `tools/mcp_server.py` | Private MCP (stdio, 52 tools, local only) |
-| `tools/mcp_public.py` | Public MCP (SSE, 53 tools, port 5566, API key auth via SHA-256 hashes in `data/mcp_api_keys.json`) |
+| `tools/mcp_server.py` | Private MCP (stdio, 62 tools, local only) |
+| `tools/mcp_public.py` | Public MCP (SSE, 60 tools, port 5566, API key auth via SHA-256 hashes in `data/mcp_api_keys.json`) |
 | `tools/mcp_helpers.py` | Shared helpers: `_api_get`, `_ext_fetch_json`, `_ext_fetch_text` |
 
 ## Supported Models
@@ -553,8 +553,8 @@ Anomaly toggle button color centralized to CSS variable `--anomaly: #FF6D00` ins
 ## API Endpoint Count
 
 - **58 total endpoints** (34 v1 agent-friendly + 24 legacy/internal)
-- **52 MCP tools** (private stdio server)
-- **53 MCP tools** (public SSE server, +3 city browsing tools)
+- **62 MCP tools** (private stdio server)
+- **60 MCP tools** (public SSE server)
 - **21 cross-section products** (13 with anomaly support)
 - **8 map overlay composites** + 21 individual overlay fields
 

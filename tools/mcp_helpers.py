@@ -43,6 +43,35 @@ def _api_get(path: str, params: dict = None, raw: bool = False,
         return {"error": str(e)}
 
 
+def _api_post(path: str, params: dict = None, body: dict = None,
+              api_base: str = None) -> dict:
+    """POST to the dashboard HTTP API. Returns parsed JSON."""
+    base = api_base or API_BASE
+    url = f"{base}{path}"
+    if params:
+        params = {k: v for k, v in params.items() if v is not None}
+        if params:
+            url += "?" + urlencode(params)
+    data = json.dumps(body or {}).encode("utf-8")
+    try:
+        req = Request(url, data=data, headers={
+            "User-Agent": USER_AGENT,
+            "Content-Type": "application/json",
+        })
+        with urlopen(req, timeout=120) as resp:
+            return json.loads(resp.read())
+    except HTTPError as e:
+        resp_body = e.read().decode("utf-8", errors="replace")
+        try:
+            return json.loads(resp_body)
+        except json.JSONDecodeError:
+            return {"error": f"HTTP {e.code}: {resp_body[:500]}"}
+    except URLError as e:
+        return {"error": f"Cannot reach API at {base}: {e.reason}. Is the dashboard running?"}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 def _ext_fetch_json(url: str, timeout: int = 30, headers: dict = None) -> dict:
     """Fetch JSON from an external URL."""
     hdrs = {"User-Agent": USER_AGENT}

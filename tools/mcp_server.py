@@ -103,12 +103,17 @@ mcp = FastMCP(
 # Helpers (shared implementation in mcp_helpers.py)
 # ---------------------------------------------------------------------------
 
-from tools.mcp_helpers import _api_get as _api_get_shared
+from tools.mcp_helpers import _api_get as _api_get_shared, _api_post as _api_post_shared
 
 
 def _api_get(path: str, params: dict = None, raw: bool = False) -> dict | bytes:
     """GET from the dashboard HTTP API. Returns parsed JSON or raw bytes."""
     return _api_get_shared(path, params, raw=raw, api_base=API_BASE)
+
+
+def _api_post(path: str, params: dict = None, body: dict = None) -> dict:
+    """POST to the dashboard HTTP API. Returns parsed JSON."""
+    return _api_post_shared(path, params, body=body, api_base=API_BASE)
 
 
 # ---------------------------------------------------------------------------
@@ -1819,6 +1824,207 @@ def get_swarm_status() -> str:
     """
     from tools.agent_tools.wfo_swarm.scheduler import get_swarm_status as _status
     return json.dumps(_status(), indent=2, default=str)
+
+
+# ---------------------------------------------------------------------------
+# Data Management Tools
+# ---------------------------------------------------------------------------
+
+@mcp.tool()
+def load_forecast_hour(model: str = "hrrr", cycle: str = "latest", fhr: int = 0) -> str:
+    """Load a specific forecast hour into memory for fast rendering.
+
+    Args:
+        model: Weather model ('hrrr', 'gfs', 'rrfs', 'nam', 'rap', 'nam_nest').
+        cycle: Cycle key (e.g. '20260212_12z') or 'latest'.
+        fhr: Forecast hour to load.
+
+    Returns:
+        JSON with load status and timing.
+    """
+    result = _api_post("/api/load", params={"cycle": cycle, "fhr": str(fhr), "model": model})
+    return json.dumps(result, indent=2)
+
+
+@mcp.tool()
+def load_cycle(model: str = "hrrr", cycle: str = "latest") -> str:
+    """Load all forecast hours for a cycle into memory.
+
+    Args:
+        model: Weather model ('hrrr', 'gfs', 'rrfs', 'nam', 'rap', 'nam_nest').
+        cycle: Cycle key (e.g. '20260212_12z') or 'latest'.
+
+    Returns:
+        JSON with cycle load status.
+    """
+    result = _api_post("/api/load_cycle", params={"cycle": cycle, "model": model})
+    return json.dumps(result, indent=2)
+
+
+@mcp.tool()
+def unload_forecast_hour(model: str = "hrrr", cycle: str = "latest", fhr: int = 0) -> str:
+    """Unload a forecast hour from memory to free RAM.
+
+    Args:
+        model: Weather model.
+        cycle: Cycle key.
+        fhr: Forecast hour to unload.
+
+    Returns:
+        JSON confirming unload.
+    """
+    result = _api_post("/api/unload", params={"cycle": cycle, "fhr": str(fhr), "model": model})
+    return json.dumps(result, indent=2)
+
+
+@mcp.tool()
+def request_archive_download(
+    model: str = "hrrr", date: str = "", hour: int = 0,
+    fhr_start: int = 0, fhr_end: int = 18,
+) -> str:
+    """Request download of an archived model cycle from NOAA servers.
+
+    Use this to access historical data not currently on disk. The download
+    runs in the background — use get_progress() to track status.
+
+    Args:
+        model: Weather model ('hrrr', 'gfs', 'rrfs', 'nam', 'rap', 'nam_nest').
+        date: Date string YYYYMMDD (e.g. '20250107' for LA fires).
+        hour: Cycle hour UTC (0-23).
+        fhr_start: First forecast hour to download (default 0).
+        fhr_end: Last forecast hour to download (default 18).
+
+    Returns:
+        JSON with download session ID for progress tracking.
+    """
+    result = _api_post("/api/request_cycle", params={
+        "model": model, "date": date, "hour": str(hour),
+        "fhr_start": str(fhr_start), "fhr_end": str(fhr_end),
+    })
+    return json.dumps(result, indent=2)
+
+
+@mcp.tool()
+def get_progress(op_id: str = "") -> str:
+    """Get progress of all active operations (downloads, prerenders, loads).
+
+    Args:
+        op_id: Optional operation ID to filter. If empty, returns all active ops.
+
+    Returns:
+        JSON dict of operation IDs to progress info (step, total, pct, eta, done).
+    """
+    result = _api_get("/api/progress")
+    if op_id and isinstance(result, dict):
+        filtered = {k: v for k, v in result.items() if op_id in k}
+        return json.dumps(filtered, indent=2)
+    return json.dumps(result, indent=2)
+
+
+@mcp.tool()
+def cancel_operation(op_id: str) -> str:
+    """Cancel a running operation (download, prerender, etc.).
+
+    Args:
+        op_id: Operation ID from get_progress().
+
+    Returns:
+        JSON confirming cancellation.
+    """
+    result = _api_post("/api/cancel", params={"op_id": op_id})
+    return json.dumps(result, indent=2)
+
+
+@mcp.tool()
+def get_overlay_value(
+    lat: float, lon: float, model: str = "hrrr", cycle: str = "latest",
+    fhr: int = 0, product: str = "", field: str = "", level: int = 0,
+) -> str:
+    """Query the data value at a specific lat/lon point from a map overlay field.
+
+    Use this to extract precise numerical values from any model field at any point —
+    like reading a value off a weather map.
+
+    Args:
+        lat: Latitude of query point.
+        lon: Longitude of query point.
+        model: Weather model.
+        cycle: Cycle key or 'latest'.
+        fhr: Forecast hour.
+        product: Composite product name (e.g. 'surface_analysis') — overrides field/level.
+        field: Individual field ID (e.g. 't2m', 'wind_speed_10m'). Use list_map_fields().
+        level: Pressure level hPa (for isobaric fields).
+
+    Returns:
+        JSON with field value, units, and metadata at the queried point.
+    """
+    params = {
+        "lat": str(lat), "lon": str(lon), "model": model,
+        "cycle": cycle, "fhr": str(fhr),
+    }
+    if product:
+        params["product"] = product
+    if field:
+        params["field"] = field
+    if level:
+        params["level"] = str(level)
+    result = _api_get("/api/v1/map-overlay/value", params)
+    return json.dumps(result, indent=2)
+
+
+@mcp.tool()
+def list_cities(region: str = "") -> str:
+    """List all cities with fire weather profiles (232 cities across 6 regions).
+
+    Args:
+        region: Filter by region: 'california', 'pnw_rockies', 'colorado_basin',
+                'southwest', 'southern_plains', 'southeast_misc'. Empty for all.
+
+    Returns:
+        JSON with city count, regions, and array of cities with coordinates,
+        elevation, WUI class, and danger quadrants.
+    """
+    result = _api_get("/api/v1/cities", {"region": region} if region else None)
+    return json.dumps(result, indent=2)
+
+
+@mcp.tool()
+def get_city_profile(city_key: str) -> str:
+    """Get complete fire weather profile for a city.
+
+    Returns terrain notes, danger quadrants, key features, evacuation routes,
+    historical fires, WUI class, ignition sources, and more.
+
+    Args:
+        city_key: City identifier (e.g. 'paradise_ca', 'amarillo_tx').
+                  Use list_cities() to see all available keys.
+    """
+    result = _api_get(f"/api/v1/cities/{city_key}")
+    return json.dumps(result, indent=2)
+
+
+@mcp.tool()
+def search_cities(query: str = "", lat: float = 0, lon: float = 0, radius_km: float = 100) -> str:
+    """Search cities by name/keyword or proximity to coordinates.
+
+    Args:
+        query: Text search in city key and terrain notes (e.g. 'canyon', 'evacuation').
+        lat: Latitude for proximity search (use with lon).
+        lon: Longitude for proximity search (use with lat).
+        radius_km: Search radius in km (default 100).
+
+    Returns:
+        Matching cities with key, coordinates, distance (if geo search), and summary.
+    """
+    params = {}
+    if query:
+        params["q"] = query
+    if lat and lon:
+        params["lat"] = str(lat)
+        params["lon"] = str(lon)
+        params["radius_km"] = str(radius_km)
+    result = _api_get("/api/v1/cities/search", params)
+    return json.dumps(result, indent=2)
 
 
 # ---------------------------------------------------------------------------

@@ -17,8 +17,8 @@ smart_hrrr/orchestrator.py      Parallel download with multi-layer validation (~
 model_config.py                 Model registry (6 models: HRRR/GFS/RRFS/NAM/RAP/NAM-Nest) (~320 lines)
 tools/agent_tools/              Agent research platform (12 modules + 8 data files, ~57,500 lines)
 tools/agent_tools/wfo_swarm/    Oregon WFO agent swarm pilot (7 zones, 154 agents, ~3,120 lines)
-tools/mcp_server.py             MCP server — private (52 tools, stdio)
-tools/mcp_public.py             MCP server — public (53 tools, SSE, API key auth)
+tools/mcp_server.py             MCP server — private (62 tools, stdio)
+tools/mcp_public.py             MCP server — public (60 tools, SSE, API key auth)
 ```
 
 ### What Makes It Fast

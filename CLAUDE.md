@@ -15,8 +15,8 @@ model_config.py                    — Model registry (6 models: HRRR/GFS/RRFS/N
 smart_hrrr/orchestrator.py         — Parallel GRIB download with multi-layer validation (~311 lines)
 tools/agent_tools/                 — Agent research platform (12 modules + 8 data files, ~57,500 lines)
 tools/agent_tools/wfo_swarm/       — Oregon WFO agent swarm pilot (7 zones, 154 agents, ~3,120 lines)
-tools/mcp_server.py                — MCP server — private (52 tools, stdio)
-tools/mcp_public.py                — MCP server — public (53 tools, SSE, API key auth)
+tools/mcp_server.py                — MCP server — private (62 tools, stdio)
+tools/mcp_public.py                — MCP server — public (60 tools, SSE, API key auth)
 restart_dashboard.py               — Production startup (handles env vars, port conflicts, archive dirs)
 ```
 
@@ -101,8 +101,8 @@ MIN_GRIB_SIZE = 500_000     # Download validation minimum (500KB)
 ## API Counts
 
 - **58 total endpoints** (34 v1 agent-friendly + 24 legacy/internal)
-- **52 MCP tools** (private stdio server)
-- **53 MCP tools** (public SSE server, +3 city browsing tools)
+- **62 MCP tools** (private stdio server)
+- **60 MCP tools** (public SSE server)
 - **21 cross-section products** (13 with anomaly support)
 - **8 map overlay composites** + 21 individual overlay fields
 
