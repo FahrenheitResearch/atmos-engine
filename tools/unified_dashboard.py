@@ -2889,10 +2889,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         /* Map legends */
         .map-legend {
             position: absolute; bottom: 30px; z-index: var(--z-map-hud);
-            background: rgba(0,0,0,0.75); border-radius: 6px; padding: 6px 10px; pointer-events: none;
+            background: rgba(0,0,0,0.8); border-radius: 8px; padding: 8px 12px; pointer-events: none;
+            border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 2px 8px rgba(0,0,0,0.3);
         }
         .map-legend-right { right: 10px; transition: opacity var(--transition-default) ease; }
-        .map-legend-left { left: 10px; backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.1); }
+        .map-legend-left { left: 10px; backdrop-filter: blur(6px); border-color: rgba(255,255,255,0.12); }
         .map-legend-title { font-size: 10px; color: var(--muted); margin-bottom: 3px; }
         .map-legend-labels { display: flex; justify-content: space-between; font-size: 9px; color: var(--muted); margin-top: 2px; }
         .barb-legend-items { display: flex; gap: 10px; align-items: center; font-size: 9px; color: var(--muted); }
