@@ -4493,7 +4493,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                                         <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Recent transects:</div>
                                         <div id="recent-transects-list" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;"></div>
                                     </div>
-                                    <div id="hero-preview" style="margin-bottom:12px;border-radius:8px;overflow:hidden;cursor:pointer;display:none;position:relative;" title="Click to load this transect">
+                                    <div id="hero-preview" style="margin-bottom:12px;border-radius:8px;overflow:hidden;cursor:pointer;display:none;position:relative;box-shadow:0 4px 20px rgba(0,0,0,0.4);border:1px solid var(--border);transition:transform 0.2s ease,box-shadow 0.2s ease;" onmouseenter="this.style.transform='scale(1.01)';this.style.boxShadow='0 6px 24px rgba(0,0,0,0.5)';" onmouseleave="this.style.transform='';this.style.boxShadow='0 4px 20px rgba(0,0,0,0.4)';" title="Click to load this transect">
                                         <img id="hero-preview-img" style="width:100%;display:block;border-radius:8px;opacity:0;transition:opacity 0.4s;" alt="Sample cross-section">
                                         <div id="hero-preview-label" style="position:absolute;bottom:0;left:0;right:0;padding:4px 10px;background:linear-gradient(transparent,rgba(15,23,42,0.9));font-size:10px;color:var(--muted);text-align:right;">Sample &mdash; click to explore</div>
                                     </div>
@@ -5073,6 +5073,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const shouldBeActive = tc.id === 'tab-' + tabId;
                 if (shouldBeActive && !tc.classList.contains('active')) {
                     tc.classList.add('active');
+                    tc.scrollTop = 0; // Scroll to top on tab switch
                     tc.style.opacity = '0'; tc.style.transform = 'translateY(4px)';
                     requestAnimationFrame(() => { tc.style.opacity = ''; tc.style.transform = ''; });
                 } else if (!shouldBeActive) {
@@ -9012,6 +9013,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const btn = document.getElementById('gif-btn');
             btn.disabled = true;
             btn.textContent = 'GIF...';
+            btn.style.animation = 'qs-pulse 1.5s ease-in-out infinite';
             const start = startMarker.getLatLng();
             const end = endMarker.getLatLng();
             const style = document.getElementById('style-select').value;
@@ -9053,6 +9055,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             } finally {
                 btn.disabled = false;
                 btn.textContent = 'GIF';
+                btn.style.animation = '';
             }
         };
 
