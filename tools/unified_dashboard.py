@@ -3004,16 +3004,23 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
         .chip:hover { border-color: var(--accent); color: var(--text); }
         .chip.loaded {
-            background: rgba(76, 175, 80, 0.15);
-            color: #4caf50;
-            border-color: #4caf50;
+            background: rgba(76, 175, 80, 0.12);
+            color: #66bb6a;
+            border-color: rgba(76, 175, 80, 0.5);
         }
-        .chip.loaded:hover { background: rgba(76, 175, 80, 0.3); }
+        .chip.loaded::before {
+            content: '\2713';
+            font-size: 8px;
+            margin-right: 2px;
+            opacity: 0.7;
+        }
+        .chip.loaded:hover { background: rgba(76, 175, 80, 0.25); border-color: #66bb6a; }
         .chip.active {
             background: var(--accent);
             color: #000;
             border-color: var(--accent);
             font-weight: 700;
+            box-shadow: 0 0 8px rgba(77,166,255,0.3);
         }
         .chip.active.playing {
             animation: chip-glow 0.8s ease-in-out infinite alternate;
