@@ -3960,7 +3960,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             position: absolute;
             top: 12px;
             left: 50%;
-            transform: translateX(-50%);
+            transform: translateX(-50%) translateY(-8px);
             z-index: var(--z-handle);
             background: rgba(15, 23, 42, 0.88);
             backdrop-filter: blur(8px);
@@ -3978,6 +3978,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
         #map-toast.visible {
             opacity: 1;
+            transform: translateX(-50%) translateY(0);
         }
         #map-toast .toast-key {
             display: inline-block;
