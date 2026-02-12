@@ -2598,6 +2598,34 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             min-width: 120px;
         }
         select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 4px;
+            border-radius: 2px;
+            background: var(--card);
+            outline: none;
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: 2px solid var(--panel);
+            cursor: pointer;
+            transition: transform var(--transition-fast);
+        }
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+        input[type="range"]::-moz-range-thumb {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: 2px solid var(--panel);
+            cursor: pointer;
+        }
 
         /* ===== Forecast Hour Chips ===== */
         .chip-group {
@@ -6134,7 +6162,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         document.getElementById('overlay-opacity').oninput = function() {
             document.getElementById('overlay-opacity-val').textContent = this.value + '%';
             modelMapOverlay.setOpacity(parseInt(this.value) / 100);
+            this.style.background = `linear-gradient(to right, var(--accent) ${this.value}%, var(--card) ${this.value}%)`;
         };
+        // Initialize slider fill
+        { const s = document.getElementById('overlay-opacity'); s.style.background = `linear-gradient(to right, var(--accent) ${s.value}%, var(--card) ${s.value}%)`; }
         document.getElementById('overlay-loop').onclick = function() {
             modelMapOverlay.toggleLoop();
         };
