@@ -7703,6 +7703,14 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const renderLabel = renderMs < 1000 ? renderMs + 'ms' : (renderMs / 1000).toFixed(1) + 's';
                 meta.textContent = formatTransectMeta(start.lat, start.lng, end.lat, end.lng) + ' \u00b7 ' + renderLabel;
                 container.appendChild(meta);
+                // Product info badge (top-left of image)
+                const desc = styleDescriptions[style];
+                if (desc) {
+                    const infoBadge = document.createElement('div');
+                    infoBadge.style.cssText = 'position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);padding:3px 10px;border-radius:8px;font-size:9px;color:rgba(255,255,255,0.7);max-width:220px;pointer-events:none;z-index:1;line-height:1.4;';
+                    infoBadge.textContent = desc;
+                    container.appendChild(infoBadge);
+                }
                 // Quick product strip below image
                 const strip = document.createElement('div');
                 strip.id = 'product-strip';
