@@ -2737,6 +2737,55 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .landing-prompt { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
         .landing-quickstarts { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 16px; }
         .landing-recent { margin-bottom: 12px; }
+        /* Map HUD */
+        .map-hud {
+            position: absolute; top: 10px; left: 10px; z-index: var(--z-map-hud);
+            display: flex; gap: 6px; align-items: center; pointer-events: none;
+        }
+        .hud-badge { padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+        .hud-model { background: var(--hud-model); color: var(--bg); font-weight: 700; letter-spacing: 0.5px; }
+        .hud-cycle { background: var(--hud-dark); color: var(--muted); font-weight: 500; }
+        .hud-fhr { background: var(--hud-dark); color: var(--warning); font-weight: 600; }
+        .hud-overlay { background: var(--hud-overlay); color: var(--text); font-size: 10px; font-weight: 600; cursor: pointer; }
+        /* Map legends */
+        .map-legend {
+            position: absolute; bottom: 30px; z-index: var(--z-map-hud);
+            background: rgba(0,0,0,0.75); border-radius: 6px; padding: 6px 10px; pointer-events: none;
+        }
+        .map-legend-right { right: 10px; transition: opacity var(--transition-default) ease; }
+        .map-legend-left { left: 10px; backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.1); }
+        .map-legend-title { font-size: 10px; color: var(--muted); margin-bottom: 3px; }
+        .map-legend-labels { display: flex; justify-content: space-between; font-size: 9px; color: var(--muted); margin-top: 2px; }
+        .barb-legend-items { display: flex; gap: 10px; align-items: center; font-size: 9px; color: var(--muted); }
+        .barb-legend-items > div { text-align: center; }
+        .map-attribution {
+            position: absolute; bottom: 4px; left: 52px; z-index: var(--z-hud);
+            font-size: 9px; color: rgba(148,163,184,0.6); pointer-events: none; letter-spacing: 0.3px;
+        }
+        .map-coords {
+            position: absolute; bottom: 4px; right: 8px; z-index: var(--z-hud);
+            font-size: 10px; color: rgba(148,163,184,0.7); pointer-events: none;
+            font-family: 'SF Mono', Consolas, monospace; letter-spacing: 0.3px;
+        }
+        /* Modal form */
+        .modal-form { display: flex; flex-direction: column; gap: 10px; }
+        .form-label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 3px; }
+        .form-input {
+            width: 100%; padding: 6px 8px; background: var(--bg);
+            border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 14px;
+        }
+        .form-row { display: flex; gap: 8px; align-items: end; }
+        .form-submit {
+            padding: 8px; background: var(--accent); border: none; border-radius: 4px;
+            color: var(--bg); font-size: 14px; cursor: pointer; font-weight: 500; margin-top: 4px;
+        }
+        .form-submit:hover { filter: brightness(1.1); }
+        /* Peek preview */
+        .bottom-peek {
+            position: absolute; top: 0; left: 0; right: 0; height: 48px;
+            overflow: hidden; pointer-events: none; opacity: 0; transition: opacity var(--transition-slow); z-index: 0;
+        }
+        .peek-img { width: 100%; height: auto; object-fit: cover; object-position: center 60%; opacity: 0.15; filter: blur(1px); }
         /* Focus-visible for keyboard accessibility */
         :focus-visible {
             outline: 2px solid var(--accent);
@@ -4722,36 +4771,36 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             <div id="map-toast"></div>
             <!-- Map Overlay Colorbar Legend -->
             <!-- Map HUD: model + cycle + product indicator -->
-            <div id="map-hud" style="position:absolute;top:10px;left:10px;z-index:var(--z-map-hud);display:flex;gap:6px;align-items:center;pointer-events:none;">
-                <span id="hud-model" style="background:var(--hud-model);color:var(--bg);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;letter-spacing:0.5px;"></span>
-                <span id="hud-cycle" style="background:var(--hud-dark);color:var(--muted);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;"></span>
-                <span id="hud-fhr" style="background:var(--hud-dark);color:var(--warning);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;"></span>
-                <span id="hud-overlay" style="display:none;background:var(--hud-overlay);color:var(--text);padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;cursor:pointer;" title="Map overlay active (O to toggle)"></span>
+            <div id="map-hud" class="map-hud">
+                <span id="hud-model" class="hud-badge hud-model"></span>
+                <span id="hud-cycle" class="hud-badge hud-cycle"></span>
+                <span id="hud-fhr" class="hud-badge hud-fhr"></span>
+                <span id="hud-overlay" class="hud-badge hud-overlay" style="display:none;" title="Map overlay active (O to toggle)"></span>
             </div>
-            <div id="map-attribution" style="position:absolute;bottom:4px;left:52px;z-index:var(--z-hud);font-size:9px;color:rgba(148,163,184,0.6);pointer-events:none;letter-spacing:0.3px;">wxsection.com &middot; NOAA NWP Data</div>
-            <div id="map-coords" style="position:absolute;bottom:4px;right:8px;z-index:var(--z-hud);font-size:10px;color:rgba(148,163,184,0.7);pointer-events:none;font-family:'SF Mono',Consolas,monospace;letter-spacing:0.3px;"></div>
-            <div id="overlay-colorbar" style="display:none;position:absolute;bottom:30px;right:10px;z-index:var(--z-map-hud);background:rgba(0,0,0,0.75);border-radius:6px;padding:6px 10px;pointer-events:none;transition:opacity var(--transition-default) ease;">
-                <div style="font-size:10px;color:var(--muted);margin-bottom:3px;" id="colorbar-title"></div>
+            <div id="map-attribution" class="map-attribution">wxsection.com &middot; NOAA NWP Data</div>
+            <div id="map-coords" class="map-coords"></div>
+            <div id="overlay-colorbar" class="map-legend map-legend-right" style="display:none;">
+                <div class="map-legend-title" id="colorbar-title"></div>
                 <canvas id="colorbar-canvas" width="200" height="14" style="border-radius:2px;display:block;"></canvas>
-                <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:2px;">
+                <div class="map-legend-labels">
                     <span id="colorbar-min"></span>
                     <span id="colorbar-units" style="opacity:0.7;"></span>
                     <span id="colorbar-max"></span>
                 </div>
             </div>
-            <div id="barb-legend" style="display:none;position:absolute;bottom:30px;left:10px;z-index:var(--z-map-hud);background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);border-radius:6px;padding:6px 10px;pointer-events:none;border:1px solid rgba(255,255,255,0.1);">
-                <div style="font-size:10px;color:var(--muted);margin-bottom:4px;font-weight:600;">Wind Barbs</div>
-                <div style="display:flex;gap:10px;align-items:center;font-size:9px;color:var(--muted);">
-                    <div style="text-align:center;"><svg width="20" height="24" viewBox="0 0 20 24"><line x1="10" y1="22" x2="10" y2="4" stroke="#ccc" stroke-width="1.5"/><line x1="10" y1="4" x2="16" y2="8" stroke="#ccc" stroke-width="1.5"/></svg><div>5 kt</div></div>
-                    <div style="text-align:center;"><svg width="20" height="24" viewBox="0 0 20 24"><line x1="10" y1="22" x2="10" y2="4" stroke="#ccc" stroke-width="1.5"/><line x1="10" y1="4" x2="18" y2="8" stroke="#ccc" stroke-width="1.5"/><line x1="10" y1="7" x2="18" y2="11" stroke="#ccc" stroke-width="1.5"/></svg><div>10 kt</div></div>
-                    <div style="text-align:center;"><svg width="20" height="24" viewBox="0 0 20 24"><line x1="10" y1="22" x2="10" y2="4" stroke="#ccc" stroke-width="1.5"/><polygon points="10,4 18,8 10,8" fill="#ccc"/></svg><div>50 kt</div></div>
+            <div id="barb-legend" class="map-legend map-legend-left" style="display:none;">
+                <div class="map-legend-title" style="margin-bottom:4px;font-weight:600;">Wind Barbs</div>
+                <div class="barb-legend-items">
+                    <div><svg width="20" height="24" viewBox="0 0 20 24"><line x1="10" y1="22" x2="10" y2="4" stroke="#ccc" stroke-width="1.5"/><line x1="10" y1="4" x2="16" y2="8" stroke="#ccc" stroke-width="1.5"/></svg><div>5 kt</div></div>
+                    <div><svg width="20" height="24" viewBox="0 0 20 24"><line x1="10" y1="22" x2="10" y2="4" stroke="#ccc" stroke-width="1.5"/><line x1="10" y1="4" x2="18" y2="8" stroke="#ccc" stroke-width="1.5"/><line x1="10" y1="7" x2="18" y2="11" stroke="#ccc" stroke-width="1.5"/></svg><div>10 kt</div></div>
+                    <div><svg width="20" height="24" viewBox="0 0 20 24"><line x1="10" y1="22" x2="10" y2="4" stroke="#ccc" stroke-width="1.5"/><polygon points="10,4 18,8 10,8" fill="#ccc"/></svg><div>50 kt</div></div>
                 </div>
             </div>
 
             <!-- Bottom Slide-Up Panel -->
             <div id="bottom-panel" class="collapsed">
-                <div id="bottom-peek" style="position:absolute;top:0;left:0;right:0;height:48px;overflow:hidden;pointer-events:none;opacity:0;transition:opacity var(--transition-slow);z-index:0;">
-                    <img id="peek-img" style="width:100%;height:auto;object-fit:cover;object-position:center 60%;opacity:0.15;filter:blur(1px);">
+                <div id="bottom-peek" class="bottom-peek">
+                    <img id="peek-img" class="peek-img">
                 </div>
                 <div id="bottom-handle" role="separator" aria-label="Resize cross-section panel" aria-orientation="horizontal">
                     <div class="drag-indicator"><span></span><span></span><span></span></div>
@@ -4971,14 +5020,14 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <h2 style="font-size:16px;margin:0;">Request Archive Run</h2>
                 <button class="modal-close" id="req-cancel">&times;</button>
             </div>
-            <div style="display:flex;flex-direction:column;gap:10px;">
+            <div class="modal-form">
                 <div>
-                    <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:3px;">Date</label>
-                    <input type="date" id="req-date" style="width:100%;padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:14px;">
+                    <label class="form-label">Date</label>
+                    <input type="date" id="req-date" class="form-input">
                 </div>
                 <div>
-                    <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:3px;">Init Hour (UTC)</label>
-                    <select id="req-hour" style="width:100%;padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:14px;">
+                    <label class="form-label">Init Hour (UTC)</label>
+                    <select id="req-hour" class="form-input">
                         <option value="0">00z</option><option value="1">01z</option><option value="2">02z</option>
                         <option value="3">03z</option><option value="4">04z</option><option value="5">05z</option>
                         <option value="6">06z</option><option value="7">07z</option><option value="8">08z</option>
@@ -4989,18 +5038,18 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <option value="21">21z</option><option value="22">22z</option><option value="23">23z</option>
                     </select>
                 </div>
-                <div style="display:flex;gap:8px;align-items:end;">
+                <div class="form-row">
                     <div style="flex:1;">
-                        <label style="font-size:12px;color:var(--text-dim);display:block;margin-bottom:3px;">FHR Start</label>
-                        <input type="number" id="req-fhr-start" value="0" min="0" max="48" style="width:100%;padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:14px;">
+                        <label class="form-label">FHR Start</label>
+                        <input type="number" id="req-fhr-start" value="0" min="0" max="48" class="form-input">
                     </div>
-                    <span style="padding-bottom:8px;color:var(--text-dim);">to</span>
+                    <span style="padding-bottom:8px;color:var(--muted);">to</span>
                     <div style="flex:1;">
-                        <label style="font-size:12px;color:var(--text-dim);display:block;margin-bottom:3px;">FHR End <span id="req-fhr-max-hint" style="opacity:0.6;">(max 18)</span></label>
-                        <input type="number" id="req-fhr-end" value="18" min="0" max="48" style="width:100%;padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:14px;">
+                        <label class="form-label">FHR End <span id="req-fhr-max-hint" style="opacity:0.6;">(max 18)</span></label>
+                        <input type="number" id="req-fhr-end" value="18" min="0" max="48" class="form-input">
                     </div>
                 </div>
-                <button id="req-submit" style="padding:8px;background:var(--accent);border:none;border-radius:4px;color:var(--bg);font-size:14px;cursor:pointer;font-weight:500;margin-top:4px;">Download & Load</button>
+                <button id="req-submit" class="form-submit">Download & Load</button>
             </div>
         </div>
     </div>
