@@ -2448,8 +2448,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>wxsection.com — Cross-Section Dashboard</title>
+    <title>wxsection.com — Atmospheric Cross-Section Analysis</title>
     <link href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -2480,7 +2481,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             --sidebar-panel-w: 400px;
         }
         body {
-            font-family: system-ui, -apple-system, sans-serif;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
             background: var(--bg);
             color: var(--text);
             height: 100vh;
@@ -2555,6 +2556,76 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             display: flex;
             align-items: center;
         }
+
+        /* ===== Model Pills ===== */
+        .model-pills {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        .model-pill {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            padding: 4px 10px;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted);
+            transition: all 0.15s ease;
+            user-select: none;
+            position: relative;
+        }
+        .model-pill:hover { border-color: var(--accent); color: var(--text); }
+        .model-pill.active {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+        }
+        .model-pill .model-res {
+            font-size: 9px;
+            font-weight: 400;
+            opacity: 0.7;
+        }
+        .model-pill .model-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--border);
+            flex-shrink: 0;
+        }
+        .model-pill .model-dot.loaded { background: var(--success); }
+        .model-pill.active .model-dot.loaded { background: #065f46; }
+
+        /* ===== Quick Workflow Buttons ===== */
+        .workflow-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+        }
+        .workflow-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 4px;
+            cursor: pointer;
+            font-size: 10px;
+            font-weight: 500;
+            color: var(--muted);
+            transition: all 0.15s ease;
+            text-align: center;
+            line-height: 1.2;
+        }
+        .workflow-btn:hover { border-color: var(--accent); color: var(--text); background: rgba(14, 165, 233, 0.1); }
+        .workflow-btn .wf-icon { font-size: 16px; margin-bottom: 1px; }
+        .workflow-btn .wf-label { font-size: 10px; }
 
         /* ===== Toggle Groups ===== */
         .toggle-group {
@@ -3458,14 +3529,41 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             <!-- TAB: Controls -->
             <div class="tab-content active" id="tab-controls">
                 <div class="ctrl-section">
-                    <div class="ctrl-section-title">Model & Run</div>
-                    <div class="ctrl-row">
-                        <label>Model:</label>
-                        <select id="model-select"></select>
-                    </div>
-                    <div class="ctrl-row">
+                    <div class="ctrl-section-title">Model</div>
+                    <div class="model-pills" id="model-pills"></div>
+                    <select id="model-select" style="display:none;"></select>
+                    <div class="ctrl-row" style="margin-top:6px;">
                         <label>Run:</label>
-                        <select id="cycle-select" style="font-size:12px;"></select>
+                        <select id="cycle-select" style="font-size:12px;flex:1;"></select>
+                    </div>
+                </div>
+                <div class="ctrl-section">
+                    <div class="ctrl-section-title">Quick Analysis</div>
+                    <div class="workflow-grid">
+                        <button class="workflow-btn" data-workflow="fire_weather" title="Fire weather analysis: wind speed XS + fire weather overlay">
+                            <span class="wf-icon">&#128293;</span>
+                            <span class="wf-label">Fire Wx</span>
+                        </button>
+                        <button class="workflow-btn" data-workflow="severe" title="Severe weather: CAPE/shear XS + severe overlay">
+                            <span class="wf-icon">&#9889;</span>
+                            <span class="wf-label">Severe</span>
+                        </button>
+                        <button class="workflow-btn" data-workflow="upper_air" title="Upper air: temperature XS + 500mb overlay">
+                            <span class="wf-icon">&#127744;</span>
+                            <span class="wf-label">Upper Air</span>
+                        </button>
+                        <button class="workflow-btn" data-workflow="moisture" title="Moisture analysis: relative humidity XS + moisture overlay">
+                            <span class="wf-icon">&#128167;</span>
+                            <span class="wf-label">Moisture</span>
+                        </button>
+                        <button class="workflow-btn" data-workflow="jet_stream" title="Jet stream: wind speed XS + 250mb jet overlay">
+                            <span class="wf-icon">&#9992;</span>
+                            <span class="wf-label">Jet Stream</span>
+                        </button>
+                        <button class="workflow-btn" data-workflow="surface" title="Surface analysis: temperature XS + surface overlay">
+                            <span class="wf-icon">&#127777;</span>
+                            <span class="wf-label">Surface</span>
+                        </button>
                     </div>
                 </div>
                 <div class="ctrl-section">
@@ -3717,6 +3815,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         <div id="map-area">
             <div id="map"></div>
             <!-- Map Overlay Colorbar Legend -->
+            <!-- Map HUD: model + cycle + product indicator -->
+            <div id="map-hud" style="position:absolute;top:10px;left:10px;z-index:1000;display:flex;gap:6px;align-items:center;pointer-events:none;">
+                <span id="hud-model" style="background:rgba(14,165,233,0.9);color:#000;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;letter-spacing:0.5px;"></span>
+                <span id="hud-cycle" style="background:rgba(0,0,0,0.7);color:#ccc;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;"></span>
+                <span id="hud-fhr" style="background:rgba(0,0,0,0.7);color:var(--warning);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;"></span>
+            </div>
             <div id="overlay-colorbar" style="display:none;position:absolute;bottom:30px;right:10px;z-index:1000;background:rgba(0,0,0,0.75);border-radius:6px;padding:6px 10px;pointer-events:none;">
                 <div style="font-size:10px;color:#ccc;margin-bottom:3px;" id="colorbar-title"></div>
                 <canvas id="colorbar-canvas" width="200" height="14" style="border-radius:2px;display:block;"></canvas>
@@ -3802,9 +3906,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <div class="xsect-panel" id="panel-primary">
                             <div class="xsect-panel-label" id="panel-primary-label"></div>
                             <div class="xsect-panel-body" id="xsect-container">
-                                <div id="instructions">
-                                    Click two points on the map to draw a cross-section line.<br>
-                                    Then select forecast hours to load.
+                                <div id="instructions" style="text-align:center;padding:20px;">
+                                    <div style="font-size:20px;font-weight:700;color:var(--accent);margin-bottom:8px;letter-spacing:-0.5px;">wxsection</div>
+                                    <div style="font-size:13px;color:var(--muted);line-height:1.6;">
+                                        Click two points on the map to draw a cross-section line.<br>
+                                        Use <b style="color:var(--text);">Quick Analysis</b> presets for instant workflow setup.
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -4004,14 +4111,19 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
         function modelParam() { return `&model=${currentModel}`; }
 
-        // Load available models from server and populate dropdown
+        // Load available models from server and populate dropdown + pills
+        let modelMeta = {};  // id -> {name, resolution, loaded_count, ...}
         async function loadModels() {
             try {
                 const res = await fetch('/api/models');
                 const data = await res.json();
                 const select = document.getElementById('model-select');
+                const pillsEl = document.getElementById('model-pills');
                 select.innerHTML = '';
+                pillsEl.innerHTML = '';
                 (data.models || []).forEach(m => {
+                    modelMeta[m.id] = m;
+                    // Hidden select (keeps existing code working)
                     const opt = document.createElement('option');
                     opt.value = m.id;
                     opt.textContent = m.name.toUpperCase();
@@ -4019,27 +4131,96 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     if (m.excluded_styles) {
                         modelExcludedStyles[m.id] = new Set(m.excluded_styles);
                     }
+                    // Visual pill
+                    const pill = document.createElement('div');
+                    pill.className = 'model-pill' + (m.id === currentModel ? ' active' : '');
+                    pill.dataset.model = m.id;
+                    const dot = document.createElement('span');
+                    dot.className = 'model-dot' + (m.loaded_count > 0 ? ' loaded' : '');
+                    dot.id = 'model-dot-' + m.id;
+                    const label = document.createElement('span');
+                    label.textContent = m.id.toUpperCase().replace('_', ' ');
+                    const resSpan = document.createElement('span');
+                    resSpan.className = 'model-res';
+                    resSpan.textContent = m.resolution;
+                    pill.appendChild(dot);
+                    pill.appendChild(label);
+                    pill.appendChild(resSpan);
+                    pill.onclick = () => switchModel(m.id);
+                    pillsEl.appendChild(pill);
                 });
                 if (select.options.length > 0) {
                     currentModel = select.value;
                 }
-                select.onchange = async () => {
-                    currentModel = select.value;
-                    stopPlayback();
-                    invalidatePrerender();
-                    modelMapOverlay.invalidateCache();
-                    updateStyleDropdownForModel();
-                    await loadCycles();
-                    generateCrossSection();
-                    modelMapOverlay.loadFieldsMeta().then(() => modelMapOverlay.update());
-                };
+                select.onchange = async () => switchModel(select.value);
             } catch (e) {
                 console.error('Failed to load models:', e);
-                // Fallback: just show HRRR
                 const select = document.getElementById('model-select');
                 select.innerHTML = '<option value="hrrr">HRRR</option>';
             }
         }
+
+        async function switchModel(modelId) {
+            currentModel = modelId;
+            document.getElementById('model-select').value = modelId;
+            // Update pill active states
+            document.querySelectorAll('.model-pill').forEach(p => {
+                p.classList.toggle('active', p.dataset.model === modelId);
+            });
+            stopPlayback();
+            invalidatePrerender();
+            modelMapOverlay.invalidateCache();
+            updateStyleDropdownForModel();
+            await loadCycles();
+            generateCrossSection();
+            modelMapOverlay.loadFieldsMeta().then(() => modelMapOverlay.update());
+        }
+
+        // Update model pill status dots periodically
+        function updateModelDots() {
+            fetch('/api/models').then(r => r.json()).then(data => {
+                (data.models || []).forEach(m => {
+                    const dot = document.getElementById('model-dot-' + m.id);
+                    if (dot) dot.className = 'model-dot' + (m.loaded_count > 0 ? ' loaded' : '');
+                });
+            }).catch(() => {});
+        }
+
+        // Workflow presets
+        const WORKFLOWS = {
+            fire_weather: { style: 'wind_speed', overlay: 'fire_weather', y_top: '700' },
+            severe: { style: 'composite', overlay: 'severe_weather', y_top: '100' },
+            upper_air: { style: 'temperature', overlay: 'upper_500', y_top: '100' },
+            moisture: { style: 'relative_humidity', overlay: 'moisture', y_top: '300' },
+            jet_stream: { style: 'wind_speed', overlay: 'upper_250', y_top: '100' },
+            surface: { style: 'temperature', overlay: 'surface_analysis', y_top: '500' },
+        };
+        document.querySelectorAll('.workflow-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const wf = WORKFLOWS[btn.dataset.workflow];
+                if (!wf) return;
+                // Set style
+                const styleSelect = document.getElementById('style-select');
+                if (styleSelect.querySelector('option[value="' + wf.style + '"]')) {
+                    styleSelect.value = wf.style;
+                    styleSelect.dispatchEvent(new Event('change'));
+                }
+                // Set y_top
+                if (wf.y_top) {
+                    document.getElementById('ytop-select').value = wf.y_top;
+                }
+                // Enable overlay with product
+                const overlayOn = document.getElementById('overlay-on');
+                if (overlayOn && !overlayOn.classList.contains('active')) overlayOn.click();
+                const overlayProduct = document.getElementById('overlay-product-select');
+                if (overlayProduct && wf.overlay) {
+                    overlayProduct.value = wf.overlay;
+                    overlayProduct.dispatchEvent(new Event('change'));
+                }
+                // Generate if we have a line
+                if (lineExists) generateCrossSection();
+            });
+        });
 
         // Hide styles that aren't available for the current model
         function updateStyleDropdownForModel() {
@@ -5310,7 +5491,22 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 // Silent fail for background refresh
             }
         }
-        setInterval(() => { refreshCycleList(); refreshLoadedStatus(); }, 5000);
+        setInterval(() => { refreshCycleList(); refreshLoadedStatus(); updateModelDots(); }, 5000);
+
+        // === Map HUD updater ===
+        function updateHUD() {
+            const hudModel = document.getElementById('hud-model');
+            const hudCycle = document.getElementById('hud-cycle');
+            const hudFhr = document.getElementById('hud-fhr');
+            if (hudModel) hudModel.textContent = currentModel.toUpperCase().replace('_', ' ');
+            if (hudCycle) {
+                const sel = document.getElementById('cycle-select');
+                const txt = sel && sel.selectedOptions[0] ? sel.selectedOptions[0].textContent : '';
+                hudCycle.textContent = txt;
+            }
+            if (hudFhr) hudFhr.textContent = activeFhr != null ? 'F' + String(activeFhr).padStart(2, '0') : '';
+        }
+        setInterval(updateHUD, 500);
 
         // === Progress Panel ===
         const OP_ICONS = {
