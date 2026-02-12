@@ -2765,6 +2765,23 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .context-hint { padding: 0 16px 3px; font-size: 9px; color: var(--muted); opacity: 0.6; text-align: center; display: none; }
         .playback-btn { padding: 3px 6px; font-size: 12px; min-width: 28px; }
         .play-btn { padding: 3px 8px; font-size: 14px; min-width: 32px; }
+        .mp-label { font-size: 11px; color: var(--muted); }
+        .mp-go-btn { padding: 2px 8px; font-size: 11px; }
+        .mp-status { font-size: 11px; color: var(--accent); padding: 2px 0; }
+        .dismiss-btn {
+            position: absolute; top: 4px; right: 8px; background: none; border: none;
+            color: var(--muted); cursor: pointer; font-size: 14px; padding: 2px 6px;
+        }
+        .dismiss-btn:hover { color: var(--text); }
+        .cmap-wrap { position: relative; margin: -2px 0 4px; }
+        .cmap-preview { height: 4px; border-radius: 2px; }
+        .cmap-range { display: flex; justify-content: space-between; font-size: 9px; color: var(--muted); margin-top: 1px; }
+        .preset-toggle {
+            cursor: pointer; display: flex; align-items: center; gap: 4px;
+        }
+        .preset-arrow { font-size: 10px; transition: transform 0.15s; }
+        .opacity-val { font-size: 11px; min-width: 30px; }
+        .fhr-loaded-count { font-weight: 400; color: var(--accent); font-size: 10px; }
         /* Map HUD */
         .map-hud {
             position: absolute; top: 10px; left: 10px; z-index: var(--z-map-hud);
@@ -4513,9 +4530,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                             <div class="product-picker-dropdown" id="product-picker-dropdown" role="listbox"></div>
                         </div>
                     </div>
-                    <div style="position:relative;margin:-2px 0 4px;">
-                        <div id="cmap-preview" role="img" aria-label="Colormap preview" style="height:4px;border-radius:2px;background:linear-gradient(to right,#2b0a56,#0ea5e9,#22c55e,#f59e0b,#ef4444,#7c0a20);"></div>
-                        <div id="cmap-range" style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:1px;"></div>
+                    <div class="cmap-wrap">
+                        <div id="cmap-preview" class="cmap-preview" role="img" aria-label="Colormap preview" style="background:linear-gradient(to right,#2b0a56,#0ea5e9,#22c55e,#f59e0b,#ef4444,#7c0a20);"></div>
+                        <div id="cmap-range" class="cmap-range"></div>
                     </div>
                     <div class="ctrl-row" id="temp-cmap-row" style="display:none;">
                         <label>Colormap:</label>
@@ -4574,8 +4591,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     </div>
                 </div>
                 <div class="ctrl-section">
-                    <div class="ctrl-section-title" role="button" aria-expanded="false" aria-controls="preset-lib" tabindex="0" style="cursor:pointer;display:flex;align-items:center;gap:4px;" onclick="const lib=document.getElementById('preset-lib');const a=document.getElementById('preset-arrow');if(lib){lib.classList.toggle('collapsed');this.setAttribute('aria-expanded',!lib.classList.contains('collapsed'));if(a)a.style.transform=lib.classList.contains('collapsed')?'':'rotate(90deg)';}">
-                        <span id="preset-arrow" style="font-size:10px;transition:transform 0.15s;">&#9654;</span> Transect Presets
+                    <div class="ctrl-section-title preset-toggle" role="button" aria-expanded="false" aria-controls="preset-lib" tabindex="0" onclick="const lib=document.getElementById('preset-lib');const a=document.getElementById('preset-arrow');if(lib){lib.classList.toggle('collapsed');this.setAttribute('aria-expanded',!lib.classList.contains('collapsed'));if(a)a.style.transform=lib.classList.contains('collapsed')?'':'rotate(90deg)';}">
+                        <span id="preset-arrow" class="preset-arrow">&#9654;</span> Transect Presets
                     </div>
                     <div id="preset-lib" class="collapsed"></div>
                 </div>
@@ -4623,12 +4640,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <div class="ctrl-row">
                             <label>Opacity:</label>
                             <input type="range" id="overlay-opacity" min="0" max="100" value="70" style="flex:1;" aria-label="Overlay opacity">
-                            <span id="overlay-opacity-val" style="font-size:11px;min-width:30px;">70%</span>
+                            <span id="overlay-opacity-val" class="opacity-val">70%</span>
                         </div>
                     </div>
                 </div>
                 <div class="ctrl-section">
-                    <div class="ctrl-section-title">Forecast Hours <span id="fhr-loaded-count" style="font-weight:400;color:var(--accent);font-size:10px;"></span></div>
+                    <div class="ctrl-section-title">Forecast Hours <span id="fhr-loaded-count" class="fhr-loaded-count"></span></div>
                     <div class="chip-scroll-wrap" id="fhr-chips-wrap">
                         <div class="chip-group" id="fhr-chips"></div>
                     </div>
@@ -4868,13 +4885,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     <div id="context-hint" class="context-hint"></div>
                     <!-- Compare controls -->
                     <div id="compare-controls">
-                        <label style="font-size:12px;color:var(--muted);">vs</label>
+                        <label class="mp-label" style="font-size:12px;">vs</label>
                         <select id="compare-cycle-select" style="min-width:120px;"></select>
                         <div class="toggle-group" id="compare-mode-toggle">
                             <button class="toggle-btn active" data-value="same_fhr">Same FHR</button>
                             <button class="toggle-btn" data-value="valid_time">Valid Time</button>
                         </div>
-                        <span id="compare-fhr-label" style="font-size:11px;color:var(--muted);"></span>
+                        <span id="compare-fhr-label" class="mp-label"></span>
                         <button id="compare-diff-btn" class="toggle-btn" title="Show pixel difference between panels" style="margin-left:auto;font-size:11px;padding:2px 8px;">Diff</button>
                     </div>
                     <!-- Multi-panel controls -->
@@ -4884,30 +4901,30 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                             <div id="mp-model-checkboxes" class="mp-chip-row"></div>
                         </div>
                         <div id="mp-temporal-controls" class="mp-mode-section" style="display:none;">
-                            <label style="font-size:11px;color:var(--muted);">FHRs:</label>
+                            <label class="mp-label">FHRs:</label>
                             <input id="mp-fhrs-input" type="text" placeholder="e.g. 0,6,12" class="input-xs" style="width:100px;padding:2px 6px;">
-                            <button id="mp-temporal-go" style="padding:2px 8px;font-size:11px;">Go</button>
+                            <button id="mp-temporal-go" class="mp-go-btn">Go</button>
                         </div>
                         <div id="mp-product-controls" class="mp-mode-section" style="display:none;">
-                            <label style="font-size:11px;color:var(--muted);">Products:</label>
+                            <label class="mp-label">Products:</label>
                             <div id="mp-product-checkboxes" class="mp-chip-row"></div>
                         </div>
                         <div id="mp-cycle-controls" class="mp-mode-section" style="display:none;">
-                            <label style="font-size:11px;color:var(--muted);">vs Cycle:</label>
+                            <label class="mp-label">vs Cycle:</label>
                             <select id="mp-cycle-select" style="min-width:120px;font-size:11px;"></select>
                             <div class="toggle-group" id="mp-cycle-match-toggle">
                                 <button class="toggle-btn active" data-value="same_fhr">Same FHR</button>
                                 <button class="toggle-btn" data-value="valid_time">Valid Time</button>
                             </div>
-                            <button id="mp-cycle-go" style="padding:2px 8px;font-size:11px;">Go</button>
+                            <button id="mp-cycle-go" class="mp-go-btn">Go</button>
                         </div>
-                        <div id="mp-status" style="display:none;font-size:11px;color:var(--accent);padding:2px 0;"></div>
+                        <div id="mp-status" class="mp-status" style="display:none;"></div>
                     </div>
                     <!-- Showcase notes bar -->
                     <div id="showcase-notes" class="showcase-notes-bar" style="display:none;">
                         <div class="notes-title">Analysis</div>
                         <div id="showcase-notes-text"></div>
-                        <button onclick="hideShowcaseNotes()" style="position:absolute;top:4px;right:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 6px;" title="Dismiss">&times;</button>
+                        <button class="dismiss-btn" onclick="hideShowcaseNotes()" title="Dismiss">&times;</button>
                     </div>
                     <!-- Cross-section panels -->
                     <div id="xsect-panels">
