@@ -3697,9 +3697,18 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         #compare-controls .toggle-group { display: flex; gap: 2px; }
         #compare-controls .toggle-btn { font-size: 11px; padding: 2px 8px; }
         #multi-panel-controls {
-            display: none; padding: 4px 16px 8px; gap: 6px; flex-direction: column;
+            display: none; padding: 6px 16px 8px; gap: 6px; flex-direction: column;
+            border-top: 1px solid var(--border);
+            background: rgba(77,166,255,0.03);
         }
-        #multi-panel-controls.visible { display: flex; }
+        #multi-panel-controls.visible {
+            display: flex;
+            animation: mp-slide-in 0.2s ease;
+        }
+        @keyframes mp-slide-in {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
         .mp-mode-section { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
         .mp-chip-row { display: flex; gap: 4px; flex-wrap: wrap; }
         .mp-chip {
@@ -3708,7 +3717,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             transition: background var(--transition-fast), border-color var(--transition-fast);
         }
         .mp-chip:hover { border-color: var(--accent); }
-        .mp-chip.selected { background: var(--accent); color: #000; border-color: var(--accent); }
+        .mp-chip:active { transform: scale(0.93); }
+        .mp-chip.selected { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 500; }
         #multi-panel-controls .toggle-group { display: flex; gap: 2px; }
         #multi-panel-controls .toggle-btn { font-size: 11px; padding: 2px 8px; }
 
