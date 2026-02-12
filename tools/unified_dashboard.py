@@ -8681,7 +8681,16 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const style = document.getElementById('style-select')?.value || 'xsect';
             const model = (currentModel || 'hrrr');
             const fhr = activeFhr !== null ? `F${String(activeFhr).padStart(2,'0')}` : '';
-            a.download = `${model}_${style}_${currentCycle || 'unknown'}_${fhr}.png`;
+            // Use comparison mode info in filename if active
+            const cmpParams = getComparisonParams();
+            let fname;
+            if (cmpParams) {
+                const items = cmpParams.products || cmpParams.models || cmpParams.cycles || [];
+                fname = `comparison_${cmpParams.mode}_${items.slice(0,3).join('-')}_${currentCycle || 'unknown'}_${fhr}.png`;
+            } else {
+                fname = `${model}_${style}_${currentCycle || 'unknown'}_${fhr}.png`;
+            }
+            a.download = fname;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -8692,13 +8701,30 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             if (!startMarker || !endMarker) return;
             const s = startMarker.getLatLng(), e = endMarker.getLatLng();
             const style = document.getElementById('style-select')?.value || 'temperature';
-            const params = new URLSearchParams({
-                start_lat: s.lat.toFixed(4), start_lon: s.lng.toFixed(4),
-                end_lat: e.lat.toFixed(4), end_lon: e.lng.toFixed(4),
-                model: currentModel || 'hrrr', product: style, y_axis: currentYAxis || 'pressure'
-            });
-            if (activeFhr !== null) params.set('fhr', activeFhr);
-            const url = `${location.origin}/api/v1/cross-section?${params}`;
+            const cmpParams = getComparisonParams();
+            let url;
+            if (cmpParams) {
+                // Comparison mode: generate comparison API URL
+                const params = new URLSearchParams({
+                    mode: cmpParams.mode,
+                    start_lat: s.lat.toFixed(4), start_lon: s.lng.toFixed(4),
+                    end_lat: e.lat.toFixed(4), end_lon: e.lng.toFixed(4),
+                    model: currentModel || 'hrrr', product: style, y_axis: currentYAxis || 'pressure'
+                });
+                if (activeFhr !== null) params.set('fhr', activeFhr);
+                if (cmpParams.products) params.set('products', cmpParams.products.join(','));
+                if (cmpParams.models) params.set('models', cmpParams.models.join(','));
+                if (cmpParams.cycles) { params.set('cycles', cmpParams.cycles.join(',')); params.set('cycle_match', cmpParams.cycle_match); }
+                url = `${location.origin}/api/v1/comparison?${params}`;
+            } else {
+                const params = new URLSearchParams({
+                    start_lat: s.lat.toFixed(4), start_lon: s.lng.toFixed(4),
+                    end_lat: e.lat.toFixed(4), end_lon: e.lng.toFixed(4),
+                    model: currentModel || 'hrrr', product: style, y_axis: currentYAxis || 'pressure'
+                });
+                if (activeFhr !== null) params.set('fhr', activeFhr);
+                url = `${location.origin}/api/v1/cross-section?${params}`;
+            }
             navigator.clipboard.writeText(url).then(() => {
                 const btn = document.getElementById('xsect-copylink-btn');
                 btn.textContent = '\u2713';
