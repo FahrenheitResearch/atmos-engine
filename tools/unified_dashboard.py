@@ -11693,7 +11693,7 @@ def main():
     parser.add_argument('--port', type=int, default=5000, help='Server port')
     parser.add_argument('--host', type=str, default='0.0.0.0', help='Server host')
     parser.add_argument('--models', type=str, default='hrrr',
-                        help='Comma-separated list of models to enable (e.g. hrrr,gfs)')
+                        help='Comma-separated list of models to enable (hrrr,gfs,rrfs,nam,rap,nam_nest)')
     parser.add_argument('--grib-workers', type=int, default=_env_int('XSECT_GRIB_WORKERS', 4),
                         help='Workers for uncached GRIB->mmap conversion (default: env XSECT_GRIB_WORKERS or 4)')
     parser.add_argument('--preload-workers', type=int, default=_env_int('XSECT_PRELOAD_WORKERS', 20),
