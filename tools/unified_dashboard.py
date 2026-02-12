@@ -2616,6 +2616,25 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             width: 10px; height: 10px; border-radius: 50%;
             background: var(--warning); border: 2px solid var(--text);
         }
+        /* Cross-section info badge */
+        .xs-info-badge {
+            position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.65);
+            backdrop-filter: blur(4px); padding: 3px 10px; border-radius: 8px;
+            font-size: 9px; color: rgba(255,255,255,0.7); max-width: 220px;
+            pointer-events: none; z-index: 1; line-height: 1.4;
+        }
+        /* Product strip below cross-section */
+        .product-strip {
+            display: flex; gap: 3px; flex-wrap: wrap; justify-content: center;
+            padding: 4px 8px; align-items: center;
+        }
+        .product-strip-pill {
+            padding: 1px 6px; border-radius: 8px; font-size: 9px; cursor: pointer;
+            transition: all var(--transition-fast); border: 1px solid transparent;
+        }
+        .product-strip-pill.active { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+        .product-strip-pill:not(.active) { background: var(--card); color: var(--muted); }
+        .product-strip-pill:not(.active):hover { background: var(--surface); color: var(--text); }
         /* Focus-visible for keyboard accessibility */
         :focus-visible {
             outline: 2px solid var(--accent);
@@ -9300,14 +9319,14 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const desc = styleDescriptions[style];
                 if (desc) {
                     const infoBadge = document.createElement('div');
-                    infoBadge.style.cssText = 'position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);padding:3px 10px;border-radius:8px;font-size:9px;color:rgba(255,255,255,0.7);max-width:220px;pointer-events:none;z-index:1;line-height:1.4;';
+                    infoBadge.className = 'xs-info-badge';
                     infoBadge.textContent = desc;
                     container.appendChild(infoBadge);
                 }
                 // Quick product strip below image
                 const strip = document.createElement('div');
                 strip.id = 'product-strip';
-                strip.style.cssText = 'display:flex;gap:3px;flex-wrap:wrap;justify-content:center;padding:4px 8px;align-items:center;';
+                strip.className = 'product-strip';
                 const excluded = modelExcludedStyles[currentModel] || new Set();
                 let groupIdx = 0;
                 styleGroups.forEach(([groupName, items]) => {
@@ -9322,12 +9341,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     }
                     visibleItems.forEach(([key, name]) => {
                         const pill = document.createElement('span');
-                        const isActive = key === style;
-                        pill.style.cssText = `padding:1px 6px;border-radius:8px;font-size:9px;cursor:pointer;transition:all 0.12s;background:${isActive ? 'var(--accent)' : 'var(--card)'};color:${isActive ? 'var(--bg)' : 'var(--muted)'};border:1px solid ${isActive ? 'var(--accent)' : 'transparent'};font-weight:${isActive ? '600' : '400'};`;
-                        if (!isActive) {
-                            pill.onmouseenter = () => { pill.style.background = 'var(--surface)'; pill.style.color = 'var(--text)'; };
-                            pill.onmouseleave = () => { pill.style.background = 'var(--card)'; pill.style.color = 'var(--muted)'; };
-                        }
+                        pill.className = 'product-strip-pill' + (key === style ? ' active' : '');
                         pill.textContent = name;
                         pill.title = groupName + ': ' + (styleDescriptions[key] || name);
                         pill.onclick = () => { styleSelect.value = key; styleSelect.dispatchEvent(new Event('change')); };
