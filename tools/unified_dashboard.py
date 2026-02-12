@@ -3882,6 +3882,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
         .modal-close:hover { color: var(--text); background: none; }
         .modal-body { padding: 16px 20px; }
+        .guide-tab {
+            flex: 1; padding: 8px 0; font-size: 12px; background: none; border: none;
+            border-bottom: 2px solid transparent; color: var(--muted); cursor: pointer;
+            font-family: inherit; transition: color var(--transition-fast), border-color var(--transition-fast);
+        }
+        .guide-tab.active { border-bottom-color: var(--accent); color: var(--accent); }
 
         .param-card {
             background: var(--card); border: 1px solid var(--border);
@@ -4798,10 +4804,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <h2 id="modal-title">Guide</h2>
                 <button class="modal-close" id="modal-close">&times;</button>
             </div>
-            <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin:-8px 0 8px;">
-                <button class="guide-tab active" data-tab="getting-started" style="flex:1;padding:8px 0;font-size:12px;background:none;border:none;border-bottom:2px solid var(--accent);color:var(--accent);cursor:pointer;font-family:inherit;transition:color 0.15s,border-color 0.15s;">&#9889; Getting Started</button>
-                <button class="guide-tab" data-tab="products" style="flex:1;padding:8px 0;font-size:12px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);cursor:pointer;font-family:inherit;transition:color 0.15s,border-color 0.15s;">&#127912; Products (21)</button>
-                <button class="guide-tab" data-tab="shortcuts" style="flex:1;padding:8px 0;font-size:12px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);cursor:pointer;font-family:inherit;transition:color 0.15s,border-color 0.15s;">&#9000; Shortcuts</button>
+            <div style="display:flex;border-bottom:1px solid var(--border);margin:-8px 0 8px;">
+                <button class="guide-tab active" data-tab="getting-started">&#9889; Getting Started</button>
+                <button class="guide-tab" data-tab="products">&#127912; Products (21)</button>
+                <button class="guide-tab" data-tab="shortcuts">&#9000; Shortcuts</button>
             </div>
             <div class="modal-body" id="modal-body"></div>
         </div>
@@ -9528,10 +9534,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             _guideTab = tab;
             const body = document.getElementById('modal-body');
             document.querySelectorAll('.guide-tab').forEach(t => {
-                const active = t.dataset.tab === tab;
-                t.classList.toggle('active', active);
-                t.style.borderBottomColor = active ? 'var(--accent)' : 'transparent';
-                t.style.color = active ? 'var(--accent)' : 'var(--muted)';
+                t.classList.toggle('active', t.dataset.tab === tab);
             });
             // Fade transition on content switch
             body.style.opacity = '0'; body.style.transform = 'translateY(4px)';
