@@ -2637,6 +2637,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .product-strip-pill.active { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
         .product-strip-pill:not(.active) { background: var(--card); color: var(--muted); }
         .product-strip-pill:not(.active):hover { background: var(--surface); color: var(--text); }
+        .product-strip-pill:active { transform: scale(0.93); }
         /* Smart suggestion row below product strip */
         .suggest-row { display: flex; gap: 4px; align-items: center; justify-content: center; padding: 2px 8px; flex-wrap: wrap; }
         .suggest-row > .suggest-label { font-size: 9px; color: var(--muted); opacity: 0.7; }
@@ -3910,10 +3911,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             justify-content: space-between;
             align-items: center;
             font-size: 13px;
-            transition: background var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+            transition: background var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
             border-left: 2px solid transparent;
         }
-        .city-item:hover { background: var(--card); border-left-color: var(--accent); box-shadow: var(--shadow-sm); }
+        .city-item:hover { background: var(--card); border-left-color: var(--accent); box-shadow: var(--shadow-sm); transform: translateX(2px); }
         .city-item .city-name { font-weight: 500; }
         .city-item .city-meta { font-size: 11px; color: var(--muted); }
         .city-detail-panel {
@@ -3934,11 +3935,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             border-radius: var(--radius-md);
             cursor: pointer;
             font-size: 13px;
-            transition: background var(--transition-fast), box-shadow var(--transition-fast);
+            transition: background var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
             border-left: 3px solid transparent;
             margin-bottom: 4px;
         }
-        .event-item:hover { background: var(--card); box-shadow: var(--shadow-sm); }
+        .event-item:hover { background: var(--card); box-shadow: var(--shadow-sm); transform: translateX(2px); }
         .event-item .event-name { font-weight: 500; }
         .event-item .event-meta { font-size: 11px; color: var(--muted); }
         .event-item.has-coords { border-left-color: var(--accent); }
