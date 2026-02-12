@@ -3214,6 +3214,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         /* ===== Sidebar Controls Tab Styles ===== */
         .ctrl-section {
             margin-bottom: 12px;
+            padding-left: 8px;
+            border-left: 2px solid transparent;
+            transition: border-color 0.15s;
+        }
+        .ctrl-section:hover {
+            border-left-color: rgba(14,165,233,0.3);
         }
         .ctrl-section-title {
             font-size: 11px;
@@ -4348,7 +4354,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     <span id="colorbar-max"></span>
                 </div>
             </div>
-            <div id="barb-legend" style="display:none;position:absolute;bottom:30px;left:10px;z-index:1000;background:rgba(0,0,0,0.75);border-radius:6px;padding:6px 10px;pointer-events:none;">
+            <div id="barb-legend" style="display:none;position:absolute;bottom:30px;left:10px;z-index:1000;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);border-radius:6px;padding:6px 10px;pointer-events:none;border:1px solid rgba(255,255,255,0.1);">
                 <div style="font-size:10px;color:#ccc;margin-bottom:4px;font-weight:600;">Wind Barbs</div>
                 <div style="display:flex;gap:10px;align-items:center;font-size:9px;color:#aaa;">
                     <div style="text-align:center;"><svg width="20" height="24" viewBox="0 0 20 24"><line x1="10" y1="22" x2="10" y2="4" stroke="#ccc" stroke-width="1.5"/><line x1="10" y1="4" x2="16" y2="8" stroke="#ccc" stroke-width="1.5"/></svg><div>5 kt</div></div>
@@ -6765,11 +6771,16 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         setInterval(() => { refreshCycleList(); refreshLoadedStatus(); updateModelDots(); }, 5000);
 
         // === Map HUD updater ===
+        const MODEL_COLORS = { hrrr: '#0ea5e9', gfs: '#8b5cf6', rrfs: '#22c55e', nam: '#f97316', rap: '#eab308', nam_nest: '#ec4899' };
         function updateHUD() {
             const hudModel = document.getElementById('hud-model');
             const hudCycle = document.getElementById('hud-cycle');
             const hudFhr = document.getElementById('hud-fhr');
-            if (hudModel) hudModel.textContent = currentModel.toUpperCase().replace('_', ' ');
+            if (hudModel) {
+                hudModel.textContent = currentModel.toUpperCase().replace('_', ' ');
+                const mc = MODEL_COLORS[currentModel] || '#0ea5e9';
+                hudModel.style.background = mc + 'e6';
+            }
             if (hudCycle) {
                 const sel = document.getElementById('cycle-select');
                 const txt = sel && sel.selectedOptions[0] ? sel.selectedOptions[0].textContent : '';
