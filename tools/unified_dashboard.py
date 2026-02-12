@@ -2645,6 +2645,66 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
         .suggest-pill:hover { background: rgba(14,165,233,0.1); }
         .cmap-chip { width: 8px; height: 5px; border-radius: 1px; display: inline-block; }
+        /* Map context menu */
+        .ctx-menu {
+            position: fixed; z-index: var(--z-tooltip); background: var(--panel);
+            border: 1px solid var(--border); border-radius: 8px; padding: 4px 0;
+            min-width: 180px; box-shadow: 0 4px 16px rgba(0,0,0,0.4); font-size: 12px;
+            opacity: 0; transform: scale(0.95);
+            transition: opacity var(--transition-fast) ease, transform var(--transition-fast) ease;
+        }
+        .ctx-menu.visible { opacity: 1; transform: scale(1); }
+        .ctx-menu-row {
+            padding: 6px 12px; cursor: pointer; display: flex; align-items: center;
+            gap: 8px; transition: background var(--transition-fast); margin: 0 4px; border-radius: 4px;
+        }
+        .ctx-menu-row:hover { background: var(--card); }
+        .ctx-menu-icon { width: 18px; text-align: center; font-weight: 600; color: var(--accent); font-size: 11px; }
+        .ctx-menu-divider { height: 1px; background: var(--border); margin: 4px 0; }
+        .ctx-menu-coord { padding: 4px 12px; font-size: 10px; color: var(--muted); border-top: 1px solid var(--border); margin-top: 4px; }
+        .overlay-tooltip {
+            position: fixed; z-index: var(--z-hud); pointer-events: none; display: none;
+            background: var(--bg); color: var(--text); font-family: system-ui; font-size: 12px;
+            padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border);
+            white-space: nowrap; backdrop-filter: blur(4px); box-shadow: var(--shadow-md); opacity: 0.95;
+        }
+        .pp-search-wrap { position: sticky; top: 0; z-index: 2; background: var(--panel); padding: 4px 8px 0; }
+        .pp-search-input {
+            width: 100%; padding: 4px 8px; font-size: 11px; background: var(--bg);
+            border: 1px solid var(--border); border-radius: 4px; color: var(--text); outline: none; box-sizing: border-box;
+        }
+        .pp-chip-row {
+            display: flex; gap: 3px; padding: 4px 8px; flex-wrap: wrap;
+            border-bottom: 1px solid var(--border); position: sticky; top: 28px; background: var(--panel); z-index: 1;
+        }
+        .fhr-thumb {
+            position: fixed; z-index: var(--z-tooltip); pointer-events: none; border-radius: 8px;
+            overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.7);
+            border: 1px solid var(--border); background: var(--panel); transition: opacity 0.15s;
+        }
+        .xs-minimap {
+            position: absolute; top: 8px; left: 8px; z-index: 2; border-radius: 4px;
+            pointer-events: none; opacity: 0; transition: opacity 0.4s ease;
+        }
+        .xs-cursor {
+            position: absolute; pointer-events: none; opacity: 0; transition: opacity 0.15s; z-index: 5;
+            background: var(--bg); backdrop-filter: blur(4px); padding: 3px 8px; border-radius: 6px;
+            font-size: 10px; color: var(--text); white-space: nowrap; border: 1px solid var(--border);
+        }
+        .pp-cat-chip {
+            font-size: 9px; padding: 1px 6px; border-radius: 8px; cursor: pointer;
+            border: 1px solid currentColor; transition: all var(--transition-fast);
+        }
+        .pp-cat-chip.active { opacity: 1; }
+        .pp-cat-chip:not(.active) { opacity: 0.6; }
+        .pp-cat-chip:not(.active):hover { opacity: 1; }
+        .event-cat-pill {
+            padding: 2px 8px; border-radius: 10px; font-size: 10px; cursor: pointer;
+            border: 1px solid currentColor; transition: all 0.15s;
+        }
+        .event-cat-pill.active { opacity: 1; }
+        .event-cat-pill:not(.active) { opacity: 0.7; }
+        .event-cat-pill:not(.active):hover { opacity: 1; }
         /* Focus-visible for keyboard accessibility */
         :focus-visible {
             outline: 2px solid var(--accent);
@@ -6299,7 +6359,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         // =========================================================================
         const _overlayTooltip = document.createElement('div');
         _overlayTooltip.id = 'overlay-tooltip';
-        _overlayTooltip.style.cssText = 'position:fixed;z-index:var(--z-hud);pointer-events:none;display:none;background:var(--bg);color:var(--text);font-family:system-ui;font-size:12px;padding:6px 10px;border-radius:6px;border:1px solid var(--border);white-space:nowrap;backdrop-filter:blur(4px);box-shadow:var(--shadow-md);opacity:0.95;';
+        _overlayTooltip.className = 'overlay-tooltip';
         document.body.appendChild(_overlayTooltip);
 
         // Grid data cache: binary uint16 grids for instant hover lookup
@@ -6583,12 +6643,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             ppDropdown.innerHTML = '';
             // Search input
             const searchWrap = document.createElement('div');
-            searchWrap.style.cssText = 'position:sticky;top:0;z-index:2;background:var(--panel);padding:4px 8px 0;';
+            searchWrap.className = 'pp-search-wrap';
             const searchInput = document.createElement('input');
             searchInput.type = 'text';
             searchInput.placeholder = 'Search products...';
             searchInput.value = ppSearchText;
-            searchInput.style.cssText = 'width:100%;padding:4px 8px;font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);outline:none;box-sizing:border-box;';
+            searchInput.className = 'pp-search-input';
             searchInput.id = 'pp-search';
             searchInput.oninput = (e) => { e.stopPropagation(); ppSearchText = searchInput.value; buildProductPicker(); };
             searchInput.onkeydown = (e) => { e.stopPropagation(); if (e.key === 'Escape') { ppSearchText = ''; ppDropdown.classList.remove('open'); } };
@@ -6597,11 +6657,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             ppDropdown.appendChild(searchWrap);
             // Category filter chips
             const chipRow = document.createElement('div');
-            chipRow.style.cssText = 'display:flex;gap:3px;padding:4px 8px;flex-wrap:wrap;border-bottom:1px solid var(--border);position:sticky;top:28px;background:var(--panel);z-index:1;';
+            chipRow.className = 'pp-chip-row';
             const allChip = document.createElement('span');
             allChip.textContent = 'All';
             allChip.className = 'pp-cat-chip' + (ppFilterCat === '' ? ' active' : '');
-            allChip.style.cssText = 'font-size:9px;padding:1px 6px;border-radius:8px;cursor:pointer;border:1px solid var(--accent);color:var(--accent);background:' + (ppFilterCat === '' ? 'rgba(14,165,233,0.15)' : 'transparent') + ';';
+            allChip.style.color = 'var(--accent)';
+            allChip.style.background = ppFilterCat === '' ? 'rgba(14,165,233,0.15)' : 'transparent';
             allChip.onclick = (e) => { e.stopPropagation(); ppFilterCat = ''; buildProductPicker(); };
             chipRow.appendChild(allChip);
             styleGroups.forEach(([groupName]) => {
@@ -6610,7 +6671,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const chip = document.createElement('span');
                 chip.textContent = groupName.replace(' & ', '/');
                 chip.className = 'pp-cat-chip' + (isActive ? ' active' : '');
-                chip.style.cssText = `font-size:9px;padding:1px 6px;border-radius:8px;cursor:pointer;border:1px solid ${color};color:${color};opacity:${isActive ? '1' : '0.6'};background:${isActive ? color + '22' : 'transparent'};`;
+                chip.style.color = color;
+                chip.style.background = isActive ? color + '22' : 'transparent';
                 chip.onclick = (e) => { e.stopPropagation(); ppFilterCat = groupName; buildProductPicker(); };
                 chipRow.appendChild(chip);
             });
@@ -7498,7 +7560,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 if (!fhrThumbEl) {
                     fhrThumbEl = document.createElement('div');
                     fhrThumbEl.id = 'fhr-thumb';
-                    fhrThumbEl.style.cssText = 'position:fixed;z-index:var(--z-tooltip);pointer-events:none;border-radius:8px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.7);border:1px solid var(--border);background:var(--panel);transition:opacity 0.15s;';
+                    fhrThumbEl.className = 'fhr-thumb';
                     document.body.appendChild(fhrThumbEl);
                 }
                 const rect = chip.getBoundingClientRect();
@@ -8871,8 +8933,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             hideMapContextMenu();
             ctxMenu = document.createElement('div');
             ctxMenu.id = 'map-ctx-menu';
-            ctxMenu.style.cssText = `position:fixed;left:${x}px;top:${y}px;z-index:var(--z-tooltip);background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:4px 0;min-width:180px;box-shadow:0 4px 16px rgba(0,0,0,0.4);font-size:12px;opacity:0;transform:scale(0.95);transition:opacity 0.12s ease,transform 0.12s ease;`;
-            requestAnimationFrame(() => { ctxMenu.style.opacity = '1'; ctxMenu.style.transform = 'scale(1)'; });
+            ctxMenu.className = 'ctx-menu';
+            ctxMenu.style.left = x + 'px';
+            ctxMenu.style.top = y + 'px';
+            requestAnimationFrame(() => ctxMenu.classList.add('visible'));
             const items = [
                 { label: 'Set start point (A)', icon: 'A', action: () => { clearXSMarkers(); startMarker = setupStartMarker(lat, lng); updateDrawState(); } },
                 { label: 'Set end point (B)', icon: 'B', action: () => { if (startMarker) { if (endMarker) endMarker.remove(); endMarker = setupEndMarker(lat, lng); updateLine(); updateDrawState(); generateCrossSection(); } else { showToast('Set start point first', 'error'); } } },
@@ -8885,21 +8949,19 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             items.forEach(item => {
                 if (!item) {
                     const hr = document.createElement('div');
-                    hr.style.cssText = 'height:1px;background:var(--border);margin:4px 0;';
+                    hr.className = 'ctx-menu-divider';
                     ctxMenu.appendChild(hr);
                     return;
                 }
                 const row = document.createElement('div');
-                row.style.cssText = 'padding:6px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background 0.1s;margin:0 4px;border-radius:4px;';
-                row.onmouseenter = () => row.style.background = 'var(--card)';
-                row.onmouseleave = () => row.style.background = '';
-                row.innerHTML = `<span style="width:18px;text-align:center;font-weight:600;color:var(--accent);font-size:11px;">${item.icon}</span><span>${item.label}</span>`;
+                row.className = 'ctx-menu-row';
+                row.innerHTML = `<span class="ctx-menu-icon">${item.icon}</span><span>${item.label}</span>`;
                 row.onclick = () => { hideMapContextMenu(); item.action(); };
                 ctxMenu.appendChild(row);
             });
             // Add coord display at bottom
             const coord = document.createElement('div');
-            coord.style.cssText = 'padding:4px 12px;font-size:10px;color:var(--muted);border-top:1px solid var(--border);margin-top:4px;';
+            coord.className = 'ctx-menu-coord';
             coord.textContent = `${lat.toFixed(4)}\u00b0N, ${Math.abs(lng).toFixed(4)}\u00b0${lng >= 0 ? 'E' : 'W'}`;
             ctxMenu.appendChild(coord);
             document.body.appendChild(ctxMenu);
@@ -8911,7 +8973,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             });
         }
         function hideMapContextMenu() {
-            if (ctxMenu) { ctxMenu.remove(); ctxMenu = null; }
+            if (ctxMenu) { const el = ctxMenu; el.classList.remove('visible'); ctxMenu = null; setTimeout(() => el.remove(), 120); }
         }
         document.addEventListener('click', hideMapContextMenu);
         document.addEventListener('keydown', e => { if (e.key === 'Escape') hideMapContextMenu(); });
@@ -9144,7 +9206,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const W = 120, H = 75;
             const c = document.createElement('canvas');
             c.width = W; c.height = H;
-            c.style.cssText = 'position:absolute;top:8px;left:8px;z-index:2;border-radius:4px;pointer-events:none;opacity:0;transition:opacity 0.4s ease;';
+            c.className = 'xs-minimap';
             requestAnimationFrame(() => { c.style.opacity = '0.85'; });
             const ctx = c.getContext('2d');
             // Background
@@ -9201,9 +9263,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             if (!cursor) {
                 cursor = document.createElement('div');
                 cursor.id = 'xs-cursor';
-                cursor.style.cssText = 'position:absolute;pointer-events:none;opacity:0;transition:opacity 0.15s;z-index:5;' +
-                    'background:var(--bg);backdrop-filter:blur(4px);padding:3px 8px;border-radius:6px;' +
-                    'font-size:10px;color:var(--text);white-space:nowrap;border:1px solid var(--border);';
+                cursor.className = 'xs-cursor';
                 img.parentElement.appendChild(cursor);
             }
             img.addEventListener('mousemove', e => {
@@ -10394,7 +10454,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 allPill.className = 'event-cat-pill active';
                 allPill.dataset.cat = '';
                 allPill.textContent = `All (${allEvents.length})`;
-                allPill.style.cssText = 'padding:2px 8px;border-radius:10px;font-size:10px;cursor:pointer;border:1px solid var(--accent);color:var(--accent);background:rgba(14,165,233,0.15);';
+                allPill.style.borderColor = 'var(--accent)';
+                allPill.style.color = 'var(--accent)';
+                allPill.style.background = 'rgba(14,165,233,0.15)';
                 allPill.onclick = () => selectEventCatPill('');
                 pillsEl.appendChild(allPill);
                 Object.keys(cats).sort().forEach(cat => {
@@ -10404,7 +10466,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     pill.className = 'event-cat-pill';
                     pill.dataset.cat = cat;
                     pill.textContent = `${icon} ${cat} (${cats[cat]})`;
-                    pill.style.cssText = `padding:2px 8px;border-radius:10px;font-size:10px;cursor:pointer;border:1px solid ${color};color:${color};opacity:0.7;transition:all 0.15s;`;
+                    pill.style.borderColor = color;
+                    pill.style.color = color;
                     pill.onclick = () => selectEventCatPill(cat);
                     pillsEl.appendChild(pill);
                 });
@@ -10424,7 +10487,6 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const isActive = p.dataset.cat === cat;
                 const c = categoryColors[p.dataset.cat] || '#0ea5e9';
                 p.classList.toggle('active', isActive);
-                p.style.opacity = isActive ? '1' : '0.7';
                 p.style.background = isActive ? c + '22' : 'transparent';
             });
         }
