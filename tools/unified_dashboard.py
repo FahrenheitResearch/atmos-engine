@@ -2635,6 +2635,16 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .product-strip-pill.active { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
         .product-strip-pill:not(.active) { background: var(--card); color: var(--muted); }
         .product-strip-pill:not(.active):hover { background: var(--surface); color: var(--text); }
+        /* Smart suggestion row below product strip */
+        .suggest-row { display: flex; gap: 4px; align-items: center; justify-content: center; padding: 2px 8px; flex-wrap: wrap; }
+        .suggest-row > .suggest-label { font-size: 9px; color: var(--muted); opacity: 0.7; }
+        .suggest-pill {
+            padding: 1px 6px; border-radius: 8px; font-size: 9px; cursor: pointer;
+            color: var(--accent); border: 1px solid rgba(14,165,233,0.3);
+            transition: all var(--transition-fast); display: inline-flex; align-items: center; gap: 3px;
+        }
+        .suggest-pill:hover { background: rgba(14,165,233,0.1); }
+        .cmap-chip { width: 8px; height: 5px; border-radius: 1px; display: inline-block; }
         /* Focus-visible for keyboard accessibility */
         :focus-visible {
             outline: 2px solid var(--accent);
@@ -9354,13 +9364,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const suggestions = getSmartSuggestions(start.lat, start.lng, end.lat, end.lng, style);
                 if (suggestions.length > 0) {
                     const sugRow = document.createElement('div');
-                    sugRow.style.cssText = 'display:flex;gap:4px;align-items:center;justify-content:center;padding:2px 8px;flex-wrap:wrap;';
-                    sugRow.innerHTML = '<span style="font-size:9px;color:var(--muted);opacity:0.7;">Try:</span>';
+                    sugRow.className = 'suggest-row';
+                    sugRow.innerHTML = '<span class="suggest-label">Try:</span>';
                     suggestions.forEach(s => {
                         const btn = document.createElement('span');
+                        btn.className = 'suggest-pill';
                         const grad = cmapGradients[s.key] || '';
-                        btn.style.cssText = `padding:1px 6px;border-radius:8px;font-size:9px;cursor:pointer;color:var(--accent);border:1px solid rgba(14,165,233,0.3);transition:all 0.1s;display:inline-flex;align-items:center;gap:3px;`;
-                        btn.innerHTML = (grad ? `<span style="width:8px;height:5px;border-radius:1px;background:${grad};display:inline-block;"></span>` : '') + s.name;
+                        btn.innerHTML = (grad ? `<span class="cmap-chip" style="background:${grad};"></span>` : '') + s.name;
                         btn.title = s.reason;
                         btn.onclick = () => { styleSelect.value = s.key; styleSelect.dispatchEvent(new Event('change')); };
                         sugRow.appendChild(btn);
