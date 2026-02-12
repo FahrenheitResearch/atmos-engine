@@ -411,8 +411,11 @@ Custom properties for consistent design:
 - **Z-index layers**: 18 named layers (`--z-base` through `--z-modal-top`) replacing scattered magic numbers
 - **Operation colors**: `--op-preload/autoload/download/prerender/autoupdate` for progress bars
 - **Region colors**: `--region-california/pnw/colorado/southwest/plains/southeast` for city chips
-- **Danger**: `--danger-light: #f87171` for error text/borders (used via `var(--danger-light)` everywhere)
+- **HUD colors**: `--hud-model/--hud-dark/--hud-overlay` for map HUD badge backgrounds
+- **Status colors**: `--danger`, `--danger-light`, `--anomaly: #FF6D00`
+- **Button sizes**: `.btn-sm` (3px 8px, 12px), `.btn-xs` (2px 6px, 11px), `.input-xs` (50px, 11px, dark bg)
 - Shared `MODEL_COLORS` JS constant for per-model coloring
+- All CSS class definitions use CSS variables for transitions, colors, and z-indices (no hardcoded values)
 
 ### Settings Panel API Section
 Settings tab includes an API quick-reference section with copyable endpoint URL and links to products/status endpoints. Section titles have emoji icons (🌎 Map Style, 📍 Map Markers, ⚡ API).
