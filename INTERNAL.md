@@ -229,6 +229,57 @@ MIN_GRIB_SIZE = 500_000     # Download validation minimum (500KB)
 - Missing: STP, SCP, SHERBS, hodograph tools, sounding/skew-T
 - Could add if demand exists but want to stay slim
 
+## UI Features (unified_dashboard.py Frontend)
+
+### Valid Time Display
+FHR labels throughout the UI show UTC valid time (e.g., "F06 — 18Z Wed 12"). Computed from cycle init time + FHR hours. Appears in:
+- Slider label (bottom panel)
+- Active FHR display (bottom status bar)
+- FHR chip tooltips (hover to see valid time)
+- Map HUD overlay (top-left corner)
+Functions: `getValidTime(fhr)`, `formatValidTime(fhr)`, `fhrLabel(fhr)`, `fhrWithTime(fhr)`
+
+### Cycle Age Indicator
+Shows how old the current model run is (e.g., "3h ago", "2d ago") next to the cycle dropdown. Updates every 10 seconds.
+
+### Right-Click Context Menu
+Right-clicking the map shows a context menu with:
+- Set start point (A)
+- Set end point (B)
+- Add POI marker
+- Copy coordinates to clipboard
+Includes coordinate display at bottom. Auto-positions to stay on screen.
+
+### Product Description Toasts
+Selecting a new product style shows a brief info toast with the product's description (e.g., "Equivalent potential temperature — instability analysis"). Auto-dismisses after 3 seconds.
+
+### Colormap Preview Bar
+A 4px gradient bar below the style dropdown shows the color scheme of the currently selected product. Updates on style change. Defined in `cmapGradients` object (20 products).
+
+### Transect Metadata Overlay
+Floating pill on the cross-section image showing: model name, transect distance (km/mi), bearing, and valid time.
+
+### Bottom Status Bar
+Shows product name + FHR with valid time. Updates on each cross-section generation. For events, shows event name with star icon.
+
+### Keyboard Shortcuts
+- Left/Right arrow: step FHR
+- Space: play/pause
+- 1-6: switch models (HRRR, GFS, RRFS, NAM, RAP, NAM-Nest)
+- O: toggle map overlay
+- Home/End: first/last FHR
+- ?: show shortcuts help
+
+### Quick-Start Transects
+6 preloaded transects on the landing page: Denver Front Range, Columbia Gorge, Sierra Nevada, Great Plains Dryline, Oregon Cascades, LA Basin.
+
+### Quick Analysis Workflows
+7 one-click workflow presets (sidebar buttons): Fire Weather, Severe, Upper Air, Moisture, Jet Stream, Surface, Model Compare, Time Series. Each sets style + overlay product + y_top.
+
+### Share & Save Buttons
+- Share: copies current URL (with all state) to clipboard
+- Save: downloads current cross-section PNG with descriptive filename
+
 ## API Endpoint Count
 
 - **57 total endpoints** (34 v1 agent-friendly + 23 legacy/internal)

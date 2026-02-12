@@ -3651,6 +3651,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <label>Style:</label>
                         <select id="style-select"></select>
                     </div>
+                    <div id="cmap-preview" style="height:4px;border-radius:2px;margin:-2px 0 4px;background:linear-gradient(to right,#2b0a56,#0ea5e9,#22c55e,#f59e0b,#ef4444,#7c0a20);"></div>
                     <div class="ctrl-row" id="temp-cmap-row" style="display:none;">
                         <label>Colormap:</label>
                         <select id="temp-cmap-select">
@@ -5289,9 +5290,39 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         // Build style description lookup from grouped data
         const styleDescriptions = {};
         if (styleGroups) styleGroups.forEach(([, items]) => items.forEach(([k, , d]) => { if (d) styleDescriptions[k] = d; }));
+
+        // Colormap preview gradients for each product
+        const cmapGradients = {
+            temp: 'linear-gradient(to right,#2b0a56,#1e3a8a,#0ea5e9,#22c55e,#f59e0b,#ef4444,#7c0a20)',
+            wind_speed: 'linear-gradient(to right,#e8e8ff,#9999ff,#cc66cc,#ff6666,#ff9933,#ffff00)',
+            rh: 'linear-gradient(to right,#8b6914,#c8a850,#e0d090,#a0c040,#60a020,#208020)',
+            theta_e: 'linear-gradient(to right,#5e4fa2,#3288bd,#66c2a5,#e6f598,#fee08b,#f46d43,#9e0142)',
+            lapse_rate: 'linear-gradient(to right,#2166ac,#92c5de,#f7f7f7,#fddbc7,#b2182b)',
+            wetbulb: 'linear-gradient(to right,#3b4cc0,#7b9ff9,#f7f7f7,#f4a582,#b40426)',
+            vpd: 'linear-gradient(to right,#1a9641,#a6d96a,#fee08b,#fdae61,#d73027)',
+            q: 'linear-gradient(to right,#ffffd9,#c2e699,#78c679,#238b45,#006837)',
+            dewpoint_dep: 'linear-gradient(to right,#1a9850,#91cf60,#fee08b,#d8b365,#8c510a)',
+            moisture_transport: 'linear-gradient(to right,#ffffd9,#c2e699,#78c679,#31688e,#023858)',
+            omega: 'linear-gradient(to right,#b2182b,#ef8a62,#fddbc7,#d1e5f0,#2166ac)',
+            vorticity: 'linear-gradient(to right,#b2182b,#ef8a62,#fddbc7,#d1e5f0,#2166ac)',
+            shear: 'linear-gradient(to right,#fff7ec,#fdbb84,#e34a33,#b30000)',
+            pv: 'linear-gradient(to right,#8c510a,#d8b365,#f5f5f5,#80cdc1,#01665e)',
+            frontogenesis: 'linear-gradient(to right,#2166ac,#67a9cf,#f7f7f7,#ef8a62,#b2182b)',
+            cloud: 'linear-gradient(to right,#f7fbff,#9ecae1,#3182bd,#08306b)',
+            cloud_total: 'linear-gradient(to right,#ffffff,#bdbdbd,#6baed6,#08519c)',
+            icing: 'linear-gradient(to right,#f7fbff,#9ecae1,#4292c6,#084594)',
+            fire_wx: 'linear-gradient(to right,#67001f,#d6604d,#f4a582,#fddbc7,#d1e5f0,#2166ac)',
+            smoke: 'linear-gradient(to right,#f7fbff,#bcbddc,#807dba,#4a1486)',
+            isentropic_ascent: 'linear-gradient(to right,#b2182b,#fddbc7,#f7f7f7,#d1e5f0,#2166ac)',
+        };
+        function updateCmapPreview() {
+            const el = document.getElementById('cmap-preview');
+            if (el) el.style.background = cmapGradients[styleSelect.value] || cmapGradients.temp;
+        }
+        updateCmapPreview();
         let styleToastTimer = null;
         styleSelect.onchange = () => {
-            updateTempCmapVisibility(); updateAnomalyVisibility(); generateCrossSection();
+            updateTempCmapVisibility(); updateAnomalyVisibility(); updateCmapPreview(); generateCrossSection();
             // Show product description toast
             const desc = styleDescriptions[styleSelect.value];
             if (desc) {
