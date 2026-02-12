@@ -3707,7 +3707,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
         #explainer-modal {
             display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.7); z-index: 10001; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+            z-index: 10001; align-items: center; justify-content: center;
         }
         #explainer-modal.visible { display: flex; }
         .modal-content {
@@ -3741,12 +3742,14 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
         #request-modal {
             display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.7); z-index: 10001; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+            z-index: 10001; align-items: center; justify-content: center;
         }
         #request-modal.visible { display: flex; }
         #run-request-modal {
             display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.7); z-index: 10002; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+            z-index: 10002; align-items: center; justify-content: center;
         }
         #run-request-modal.visible { display: flex; }
         .request-form { display: flex; flex-direction: column; gap: 12px; }
@@ -10273,7 +10276,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         closestDist = dist;
                     }
                 });
-                if (closest) showEventDetail(closest.evt.cycle_key);
+                if (closest) {
+                    showEventDetail(closest.evt.cycle_key);
+                    // Scroll event list to selected item
+                    const item = document.querySelector(`.event-item[onclick*="${closest.evt.cycle_key}"]`);
+                    if (item) item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
             });
 
             // Tooltip on hover
@@ -10691,7 +10699,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 `&units=${units}&temp_cmap=${tempCmap}`;
 
             const container = document.getElementById('xsect-container');
-            container.innerHTML = '<div class="loading-text">Generating 4-panel analysis...</div>';
+            container.innerHTML = '<div class="xsect-skeleton"><div class="skel-topo"></div><div class="skel-label"><span class="skel-dot"></span>Generating 4-panel analysis...</div></div>';
             setBottomState('half');
 
             // Hide compare panel
@@ -10765,7 +10773,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 `&y_axis=${currentYAxis}&y_top=${ytop}&units=${units}&temp_cmap=${tempCmap}`;
 
             const container = document.getElementById('xsect-container');
-            container.innerHTML = '<div class="loading-text">Generating temporal evolution...</div>';
+            container.innerHTML = '<div class="xsect-skeleton"><div class="skel-topo"></div><div class="skel-label"><span class="skel-dot"></span>Generating temporal evolution...</div></div>';
             setBottomState('half');
 
             document.getElementById('panel-compare').style.display = 'none';
