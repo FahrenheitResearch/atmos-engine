@@ -2874,6 +2874,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
         }
         #xsect-img.loaded { opacity: 1; }
+        #xsect-meta {
+            position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+            padding: 3px 12px; border-radius: 12px; font-size: 10px;
+            color: rgba(255,255,255,0.75); white-space: nowrap; pointer-events: none;
+            letter-spacing: 0.3px; z-index: 1;
+        }
         #instructions {
             color: var(--muted);
             text-align: center;
@@ -2925,7 +2932,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         #xsect-panels.compare-active .xsect-panel + .xsect-panel { border-left: 1px solid var(--border); }
         .xsect-panel-body {
             flex: 1; display: flex; align-items: center; justify-content: center;
-            padding: 8px; overflow: hidden;
+            padding: 8px; overflow: hidden; position: relative;
         }
         .xsect-panel-body img { max-width: 100%; max-height: 100%; border-radius: 4px; }
 
@@ -4202,6 +4209,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     pill.appendChild(dot);
                     pill.appendChild(label);
                     pill.appendChild(resSpan);
+                    const nProducts = styles.length - (m.excluded_styles ? m.excluded_styles.length : 0);
+                    pill.title = `${m.name} (${m.resolution}) — ${nProducts} products, ${m.cycle_count} cycle${m.cycle_count !== 1 ? 's' : ''} available`;
                     pill.onclick = () => switchModel(m.id);
                     pillsEl.appendChild(pill);
                 });
@@ -6692,6 +6701,23 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         const poiMarkerSize = isMobile ? 20 : 14;
         let poiPlaceMode = false;
 
+        function formatTransectMeta(lat1, lon1, lat2, lon2) {
+            // Haversine distance
+            const R = 6371; // km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
+            const km = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const mi = km * 0.621371;
+            // Bearing
+            const y = Math.sin(dLon) * Math.cos(lat2*Math.PI/180);
+            const x = Math.cos(lat1*Math.PI/180)*Math.sin(lat2*Math.PI/180) - Math.sin(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.cos(dLon);
+            const bearing = ((Math.atan2(y, x) * 180 / Math.PI) + 360) % 360;
+            const dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+            const dir = dirs[Math.round(bearing / 22.5) % 16];
+            return `${km.toFixed(0)} km (${mi.toFixed(0)} mi) · ${bearing.toFixed(0)}\u00b0 ${dir} · ${Math.abs(lat1).toFixed(2)}\u00b0${lat1>=0?'N':'S'}, ${Math.abs(lon1).toFixed(2)}\u00b0${lon1>=0?'E':'W'} \u2192 ${Math.abs(lat2).toFixed(2)}\u00b0${lat2>=0?'N':'S'}, ${Math.abs(lon2).toFixed(2)}\u00b0${lon2>=0?'E':'W'}`;
+        }
+
         function buildMarkersParam() {
             if (poiMarkers.length === 0) return '';
             const arr = poiMarkers.map(p => {
@@ -6905,6 +6931,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 img.src = URL.createObjectURL(blob);
                 container.innerHTML = '';
                 container.appendChild(img);
+                // Transect metadata overlay
+                const meta = document.createElement('div');
+                meta.id = 'xsect-meta';
+                meta.textContent = formatTransectMeta(start.lat, start.lng, end.lat, end.lng);
+                container.appendChild(meta);
                 // Auto-open bottom panel when cross-section generated
                 if (bottomState === 'collapsed') setBottomState('half');
             } catch (err) {
