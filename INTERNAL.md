@@ -19,25 +19,25 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 | `core/map_overlay.py` | ~1,133 | Map overlay rendering. Reprojection (KDTree for curvilinear, bilinear for GFS), composite assembly (fill + contours + barbs), PNG/binary output |
 | `model_config.py` | ~320 | Model registry. 6 models (HRRR/GFS/RRFS/NAM/RAP/NAM-Nest) metadata, grid specs, download URLs, forecast hour lists |
 
-### Server + UI (1 file, ~14,078 lines)
+### Server + UI (1 file, ~14,326 lines)
 
 | File | Lines | What It Does |
 |------|-------|-------------|
-| `tools/unified_dashboard.py` | ~14,078 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 58 API endpoints (34 v1 + 24 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects, og:image preview, FHR hover thumbnails, hero cross-section, smart product suggestions, skeleton loading, draw-mode feedback, distance/bearing line label, mobile panel backdrop, event timeline, comparison diff view, 3D terrain, measurement tool, wind barb legend |
+| `tools/unified_dashboard.py` | ~14,326 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 58 API endpoints (34 v1 + 24 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects, og:image preview, FHR hover thumbnails, hero cross-section, smart product suggestions, skeleton loading, draw-mode feedback, distance/bearing line label, mobile panel backdrop, event timeline, comparison diff view (with badge labels), 3D terrain, measurement tool, wind barb legend, geocoder search, image zoom/pan, product search filter, slider tick marks, download export |
 
 **Key sections in unified_dashboard.py:**
 - Lines 1-1031: Imports, constants, overlay cache, helper functions, model config dicts
 - Lines 1032-1253: `CrossSectionManager` class — init, config, model management
 - Lines 1254-1720: `scan_available_cycles()`, `preload_latest_cycles()`, loading logic
 - Lines 1721-2477: `auto_load_latest()`, orchestration, prerender hooks
-- Lines 2479-10678: HTML template (inline, ~8,200 lines) — the entire frontend
-  - CSS (~1,400 lines): Inter font, model pills, workflow grid, product picker, map HUD, dark theme with cyan accents, skeleton loading, event category pills, draw-mode cursor, toast, mobile backdrop, FHR chip horizontal scroll with fade indicators, keyboard hint badges
-  - HTML body (~1,050 lines): icon sidebar (48px) + expanded panel (400px) + map toast + mobile backdrop + preset library + map + barb legend + bottom slide-up + hero preview + 3D terrain controls
-  - Mapbox GL JS map init + overlay controller (~2,400 lines): starts ~line 4530, double-buffered swap, 3D terrain (Mapbox DEM), measurement tool, distance/bearing label layer
-  - Frontend JS (~3,600 lines): model pills, FHR slider, FHR hover thumbnails, hero cross-section loader, smart product suggestions, visual product picker with category filter chips, keyboard shortcuts (23 bindings), URL state (y_axis + anomaly deep-link), user prefs, local timezone, GIF, events with category pills + timeline canvas, cities, transect preset library (18 in 4 categories + 36 in presets dropdown), quick-start loading, guide modal, recent transects, all-models compare, draw-mode feedback, distance/bearing label, XS hover readout, playback prefetch, comparison diff view, context hints, measurement tool, map coords readout, CONUS mini-map, geocoder search
-- Lines 10679: Flask routes start — `/` serves HTML, `/og-preview.png` serves branded preview
-- Lines 10679-13921: All API route handlers (58 endpoints + og-preview)
-- Lines 13922-14056: Startup — argument parsing, preload, rescan thread, server launch
+- Lines 2479-10948: HTML template (inline, ~8,470 lines) — the entire frontend
+  - CSS (~1,450 lines): Inter font, model pills, workflow grid, product picker, map HUD, dark theme with cyan accents, skeleton loading, event category pills, draw-mode cursor, toast with auto-dismiss progress bars, mobile backdrop, FHR chip horizontal scroll with fade indicators, keyboard hint badges, zoom controls, slider tick marks
+  - HTML body (~1,080 lines): icon sidebar (48px) + expanded panel (400px) + map toast + mobile backdrop + preset library + map + barb legend + bottom slide-up + hero preview + 3D terrain controls + zoom/download actions
+  - Mapbox GL JS map init + overlay controller (~2,400 lines): starts ~line 4530, double-buffered swap with fade transitions, 3D terrain (Mapbox DEM), measurement tool, distance/bearing label layer
+  - Frontend JS (~3,800 lines): model pills, FHR slider with tick marks + progress fill, FHR hover thumbnails, hero cross-section loader, smart product suggestions, visual product picker with category filter chips + text search, keyboard shortcuts (23 bindings), URL state (y_axis + anomaly deep-link), user prefs, local timezone, GIF, events with category pills + timeline canvas, cities, transect preset library (18 in 4 categories + 36 in presets dropdown), quick-start loading, guide modal (complete shortcuts reference), recent transects, all-models compare, draw-mode feedback, distance/bearing label, XS hover readout + zoom/pan, playback prefetch, comparison diff view with badge labels, context hints, measurement tool, map coords readout, CONUS mini-map, geocoder search, image download export
+- Lines 10949: Flask routes start — `/` serves HTML, `/og-preview.png` serves branded preview
+- Lines 10949-14191: All API route handlers (58 endpoints + og-preview)
+- Lines 14192-14326: Startup — argument parsing, preload, rescan thread, server launch
 
 ### Download System (2 files, ~1,240 lines)
 

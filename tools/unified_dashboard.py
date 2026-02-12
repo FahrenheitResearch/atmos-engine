@@ -4390,6 +4390,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                                     <button id="zoom-out-btn" title="Zoom out">&minus;</button>
                                     <button id="zoom-reset-btn" title="Reset zoom" style="font-size:10px;">1:1</button>
                                 </div>
+                                <div class="zoom-controls" id="xsect-actions" style="display:none;top:8px;left:8px;right:auto;">
+                                    <button id="xsect-download-btn" title="Download cross-section PNG" style="font-size:12px;">&#8681;</button>
+                                </div>
                                 <div id="instructions" style="text-align:center;padding:24px;max-width:460px;">
                                     <div style="font-size:22px;font-weight:700;color:var(--accent);margin-bottom:4px;letter-spacing:-0.5px;">wxsection</div>
                                     <div style="font-size:11px;color:var(--muted);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">Real-Time Atmospheric Cross-Sections</div>
@@ -5625,6 +5628,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             function setEnabled(on) {
                 enabled = on;
                 document.getElementById('overlay-controls').style.display = on ? 'block' : 'none';
+                const opacityVal = parseInt(document.getElementById('overlay-opacity')?.value || 70) / 100;
                 if (on) {
                     if (!fieldsMetadata) {
                         Promise.all([loadFieldsMeta(), loadProductsMeta()]).then(() => {
@@ -5632,9 +5636,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                             if (mapStyleLoaded) {
                                 map.setLayoutProperty('weather-overlay-a', 'visibility', 'visible');
                                 map.setLayoutProperty('weather-overlay-b', 'visibility', 'visible');
+                                // Smooth fade-in
+                                map.setPaintProperty('weather-overlay-' + active, 'raster-opacity-transition', { duration: 400, delay: 0 });
+                                map.setPaintProperty('weather-overlay-' + active, 'raster-opacity', opacityVal);
                             }
                             update();
-                            // Prefetch all FHR frames in background for instant slider
                             prefetchAllFrames(getLoadedFHRs());
                         });
                     } else {
@@ -5642,16 +5648,24 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         if (mapStyleLoaded) {
                             map.setLayoutProperty('weather-overlay-a', 'visibility', 'visible');
                             map.setLayoutProperty('weather-overlay-b', 'visibility', 'visible');
+                            map.setPaintProperty('weather-overlay-' + active, 'raster-opacity-transition', { duration: 400, delay: 0 });
+                            map.setPaintProperty('weather-overlay-' + active, 'raster-opacity', opacityVal);
                         }
                         update();
-                        // Prefetch all FHR frames in background for instant slider
                         prefetchAllFrames(getLoadedFHRs());
                     }
                 } else {
                     stopLoop();
                     if (mapStyleLoaded && map.getLayer('weather-overlay-a')) {
-                        map.setLayoutProperty('weather-overlay-a', 'visibility', 'none');
-                        map.setLayoutProperty('weather-overlay-b', 'visibility', 'none');
+                        // Smooth fade-out then hide
+                        map.setPaintProperty('weather-overlay-' + active, 'raster-opacity-transition', { duration: 300, delay: 0 });
+                        map.setPaintProperty('weather-overlay-' + active, 'raster-opacity', 0);
+                        setTimeout(() => {
+                            if (!enabled) {
+                                map.setLayoutProperty('weather-overlay-a', 'visibility', 'none');
+                                map.setLayoutProperty('weather-overlay-b', 'visibility', 'none');
+                            }
+                        }, 350);
                     }
                     document.getElementById('overlay-colorbar').style.display = 'none';
                 }
@@ -7546,10 +7560,26 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         document.getElementById('zoom-out-btn').onclick = () => xsZoomBy(-0.5);
         document.getElementById('zoom-reset-btn').onclick = xsResetZoom;
 
-        // Reset zoom when new image loads
+        // Download button
+        document.getElementById('xsect-download-btn').onclick = function() {
+            const img = document.getElementById('xsect-img');
+            if (!img || !img.src) return;
+            const a = document.createElement('a');
+            a.href = img.src;
+            const style = document.getElementById('style-select')?.value || 'xsect';
+            const model = (currentModel || 'hrrr');
+            const fhr = activeFhr !== null ? `F${String(activeFhr).padStart(2,'0')}` : '';
+            a.download = `${model}_${style}_${currentCycle || 'unknown'}_${fhr}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        };
+
+        // Show actions bar when image is present, reset zoom on new image
         const _xsImgObserver = new MutationObserver(() => {
             const img = document.getElementById('xsect-img');
             if (img && xsZoom > 1) xsResetZoom();
+            document.getElementById('xsect-actions').style.display = img ? 'flex' : 'none';
         });
         _xsImgObserver.observe(document.getElementById('xsect-container'), { childList: true });
 
@@ -7670,21 +7700,26 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
             if (!compareActive) return;
 
-            // Build rich labels: MODEL · Product · Cycle FHR
+            const badge = (text, color) => `<span style="display:inline-block;padding:0 5px;border-radius:3px;font-size:9px;font-weight:600;background:${color}22;color:${color};border:1px solid ${color}44;margin:0 2px;">${text}</span>`;
             const styleName = document.getElementById('style-select').selectedOptions[0]?.textContent || '';
             const modelName = (currentModel || 'hrrr').toUpperCase();
+            const modelColors = { HRRR: '#0ea5e9', GFS: '#8b5cf6', RRFS: '#22c55e', NAM: '#f97316', RAP: '#eab308', 'NAM-NEST': '#ec4899' };
+            const mc = modelColors[modelName] || '#64748b';
 
             const primaryInfo = cycles.find(c => c.key === currentCycle);
             const cycleLabel = primaryInfo ? primaryInfo.label || currentCycle : currentCycle || '';
-            const fhrStr = activeFhr !== null ? ` F${String(activeFhr).padStart(2, '0')}` : '';
-            primaryLabel.textContent = `${modelName} · ${styleName} · ${cycleLabel}${fhrStr}`;
+            const fhrStr = activeFhr !== null ? `F${String(activeFhr).padStart(2, '0')}` : '';
+            primaryLabel.innerHTML = `${badge(modelName, mc)} ${styleName} <span style="opacity:0.5">\u00b7</span> ${badge(cycleLabel, '#64748b')} ${badge(fhrStr, '#0ea5e9')}`;
 
             if (compareCycle) {
                 const cFhr = getCompareFhr();
                 const compareInfo = cycles.find(c => c.key === compareCycle);
                 const cLabel = compareInfo ? compareInfo.label || compareCycle : compareCycle;
-                const cFhrStr = cFhr !== null ? ` F${String(cFhr).padStart(2, '0')}` : '';
-                compareLabel.textContent = `${modelName} · ${styleName} · ${cLabel}${cFhrStr}`;
+                const cFhrStr = cFhr !== null ? `F${String(cFhr).padStart(2, '0')}` : '';
+                // Highlight differences
+                const cycleDiff = compareCycle !== currentCycle;
+                const fhrDiff = cFhr !== activeFhr;
+                compareLabel.innerHTML = `${badge(modelName, mc)} ${styleName} <span style="opacity:0.5">\u00b7</span> ${badge(cLabel, cycleDiff ? '#f59e0b' : '#64748b')} ${badge(cFhrStr, fhrDiff ? '#f59e0b' : '#0ea5e9')}`;
 
                 if (compareMode === 'valid_time' && cFhr !== null && activeFhr !== null) {
                     const primaryInit = parseCycleKey(currentCycle);
