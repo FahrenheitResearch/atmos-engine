@@ -2920,6 +2920,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             background: rgba(59,130,246,0.3); border-color: rgba(59,130,246,0.5);
             color: #bfdbfe; transform: translateY(-1px);
         }
+        .qs-chip {
+            display: inline-block; width: 10px; height: 6px; border-radius: 2px;
+            margin-right: 4px; vertical-align: middle; opacity: 0.9;
+        }
         .loading-spinner {
             display: flex;
             flex-direction: column;
@@ -4122,12 +4126,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                                     </div>
                                     <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Or try a featured transect:</div>
                                     <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:16px;">
-                                        <button class="quick-start-btn" onclick="quickStart(39.7,-105.5,39.7,-104.0,'temperature')" title="Dramatic terrain drop from the Rockies to Denver">Denver Front Range</button>
-                                        <button class="quick-start-btn" onclick="quickStart(45.70,-122.00,45.60,-121.50,'wind_speed')" title="Classic wind corridor through the Columbia Gorge">Columbia Gorge</button>
-                                        <button class="quick-start-btn" onclick="quickStart(37.0,-121.0,37.0,-118.0,'fire_wx')" title="Cross the Sierra Nevada crest near Yosemite">Sierra Nevada</button>
-                                        <button class="quick-start-btn" onclick="quickStart(35.0,-101.0,35.0,-97.0,'theta_e')" title="Southern Plains dryline boundary">Great Plains Dryline</button>
-                                        <button class="quick-start-btn" onclick="quickStart(44.0,-123.5,44.0,-121.0,'wind_speed')" title="McKenzie Pass corridor \u2014 critical Oregon fire weather terrain">Oregon Cascades</button>
-                                        <button class="quick-start-btn" onclick="quickStart(34.2,-118.8,34.2,-117.5,'rh')" title="Santa Ana wind corridor across LA metro">LA Basin</button>
+                                        <button class="quick-start-btn" onclick="quickStart(39.7,-105.5,39.7,-104.0,'temperature')" title="Dramatic terrain drop from the Rockies to Denver"><span class="qs-chip" data-style="temp"></span>Denver Front Range</button>
+                                        <button class="quick-start-btn" onclick="quickStart(45.70,-122.00,45.60,-121.50,'wind_speed')" title="Classic wind corridor through the Columbia Gorge"><span class="qs-chip" data-style="wind_speed"></span>Columbia Gorge</button>
+                                        <button class="quick-start-btn" onclick="quickStart(37.0,-121.0,37.0,-118.0,'fire_wx')" title="Cross the Sierra Nevada crest near Yosemite"><span class="qs-chip" data-style="fire_wx"></span>Sierra Nevada</button>
+                                        <button class="quick-start-btn" onclick="quickStart(35.0,-101.0,35.0,-97.0,'theta_e')" title="Southern Plains dryline boundary"><span class="qs-chip" data-style="theta_e"></span>Great Plains Dryline</button>
+                                        <button class="quick-start-btn" onclick="quickStart(44.0,-123.5,44.0,-121.0,'wind_speed')" title="McKenzie Pass corridor \u2014 critical Oregon fire weather terrain"><span class="qs-chip" data-style="wind_speed"></span>Oregon Cascades</button>
+                                        <button class="quick-start-btn" onclick="quickStart(34.2,-118.8,34.2,-117.5,'rh')" title="Santa Ana wind corridor across LA metro"><span class="qs-chip" data-style="rh"></span>LA Basin</button>
                                     </div>
                                     <div id="recent-transects" style="display:none;margin-bottom:12px;">
                                         <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Recent transects:</div>
@@ -5476,6 +5480,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             fire_wx: ['Extreme', 'Low'], smoke: ['0', '500 \u00b5g/m\u00b3'],
             isentropic_ascent: ['\u2191 Rise', '\u2193 Sink'],
         };
+        // Apply colormap chips to quick-start buttons
+        document.querySelectorAll('.qs-chip[data-style]').forEach(chip => {
+            const grad = cmapGradients[chip.dataset.style];
+            if (grad) chip.style.background = grad;
+        });
         function updateCmapPreview() {
             const el = document.getElementById('cmap-preview');
             if (el) el.style.background = cmapGradients[styleSelect.value] || cmapGradients.temp;
