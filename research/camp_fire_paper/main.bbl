@@ -1,0 +1,274 @@
+\begin{thebibliography}{34}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Abatzoglou et~al.(2013{\natexlab{a}})Abatzoglou, Barbero, Wolf, and
+  Holden]{Abatzoglou_etal_2013}
+John~T. Abatzoglou, Renaud Barbero, Joseph~W. Wolf, and Zachary~A. Holden.
+\newblock Tracking interannual streamflow variability with drought indices in
+  the {U.S. Pacific Northwest}.
+\newblock \emph{Journal of Hydrometeorology}, 14\penalty0 (6):\penalty0
+  1900--1912, 2013{\natexlab{a}}.
+\newblock Also: Abatzoglou, J.~T., et al., 2013: Climatological and synoptic
+  characterization of Diablo winds. \textit{Int. J. Climatol.}
+
+\bibitem[Abatzoglou et~al.(2013{\natexlab{b}})Abatzoglou, Kolden, Balch, and
+  Bradley]{abatzoglou2013}
+John~T. Abatzoglou, Crystal~A. Kolden, Jennifer~K. Balch, and Bethany~A.
+  Bradley.
+\newblock Controls on interannual variability in lightning-caused fire activity
+  in the western {US}.
+\newblock \emph{Environmental Research Letters}, 8:\penalty0 045032,
+  2013{\natexlab{b}}.
+
+\bibitem[Abatzoglou et~al.(2021)Abatzoglou, Battisti, Williams, Hansen, Harvey,
+  and Kolden]{Abatzoglou_etal_2021}
+John~T. Abatzoglou, D.~S. Battisti, A.~P. Williams, W.~D. Hansen, B.~J. Harvey,
+  and C.~A. Kolden.
+\newblock Projected increases in western {US} forest fire despite growing fuel
+  constraints.
+\newblock \emph{Communications Earth and Environment}, 2:\penalty0 227, 2021.
+
+\bibitem[Benjamin et~al.(2016)Benjamin, Weygandt, Brown, Hu, Alexander,
+  Smirnova, Olson, James, Dowell, Grell, Lin, Peckham, Smith, Moninger, Kenyon,
+  and Manikin]{Benjamin_etal_2016}
+Stanley~G. Benjamin, Stephen~S. Weygandt, John~M. Brown, Ming Hu, Curtis~R.
+  Alexander, Tatiana~G. Smirnova, Joseph~B. Olson, Eric~P. James, David~C.
+  Dowell, Georg~A. Grell, Haidao Lin, Steven~E. Peckham, Tracy~Lorraine Smith,
+  William~R. Moninger, Jaymes~S. Kenyon, and Geoff~S. Manikin.
+\newblock A {North American} hourly assimilation and model forecast cycle: The
+  {Rapid Refresh}.
+\newblock \emph{Monthly Weather Review}, 144\penalty0 (4):\penalty0 1669--1694,
+  2016.
+\newblock \doi{10.1175/MWR-D-15-0242.1}.
+
+\bibitem[Brewer and Clements(2020)]{Brewer_Clements_2020}
+Michael~J. Brewer and Craig~B. Clements.
+\newblock The 2018 {Camp Fire}: Meteorological analysis using in situ
+  observations and numerical simulations.
+\newblock \emph{Atmosphere}, 11\penalty0 (1):\penalty0 47, 2020.
+\newblock \doi{10.3390/atmos11010047}.
+
+\bibitem[Brinkmann(1974)]{Brinkmann_1974}
+Waltraud A.~R. Brinkmann.
+\newblock Strong downslope winds at {Boulder, Colorado}.
+\newblock In \emph{Monthly Weather Review}, volume 102, pages 592--602. 1974.
+
+\bibitem[{CAL FIRE}(2019)]{CAL_FIRE_2019}
+{CAL FIRE}.
+\newblock Camp fire incident information.
+\newblock Technical report, California Department of Forestry and Fire
+  Protection, 2019.
+\newblock Final incident report.
+
+\bibitem[Coen et~al.(2018)Coen, Schroeder, Conway, and Tarnay]{coen2018}
+Janice~L. Coen, Wilfrid Schroeder, Scott Conway, and Leland Tarnay.
+\newblock Computational modeling of extreme wildland fire events: A synthesis
+  of scientific understanding with applications to forecasting, land
+  management, and firefighter safety.
+\newblock \emph{Journal of Computational Science}, 29:\penalty0 1--11, 2018.
+
+\bibitem[Dowdy et~al.(2018)Dowdy, Fromm, and McCarthy]{dowdy2018}
+Andrew~J. Dowdy, Mike~D. Fromm, and Nicola McCarthy.
+\newblock Pyrocumulonimbus lightning and fire ignition on {Black Saturday} in
+  southeast {Australia}.
+\newblock \emph{Journal of Geophysical Research: Atmospheres}, 122:\penalty0
+  7342--7354, 2018.
+
+\bibitem[Dowell et~al.(2022)Dowell, Alexander, James, Weygandt, Benjamin,
+  Manikin, Blake, Brown, Olson, Hu, Smirnova, Ladwig, Kenyon, Ahmadov, Turner,
+  Duda, and Alcott]{Dowell_etal_2022}
+David~C. Dowell, Curtis~R. Alexander, Eric~P. James, Stephen~S. Weygandt,
+  Stanley~G. Benjamin, Geoff~S. Manikin, Benjamin~T. Blake, John~M. Brown,
+  Joseph~B. Olson, Ming Hu, Tatiana~G. Smirnova, Terra Ladwig, Jaymes~S.
+  Kenyon, Ravan Ahmadov, David~D. Turner, Jeffrey~D. Duda, and Trevor~I.
+  Alcott.
+\newblock The {High-Resolution Rapid Refresh} ({HRRR}): An hourly updating
+  convection-allowing forecast model. {Part I}: Motivation and system
+  description.
+\newblock \emph{Weather and Forecasting}, 37\penalty0 (8):\penalty0 1371--1395,
+  2022.
+\newblock \doi{10.1175/WAF-D-21-0151.1}.
+
+\bibitem[Doyle et~al.(2000)Doyle, Durran, Chen, Colle, Georgelin,
+  Grubi\v{s}i\'{c}, Hsu, Huang, Landau, Lin, Poulos, Sun, Weber, Wurtele, and
+  Xue]{Doyle_etal_2000}
+James~D. Doyle, Dale~R. Durran, C.~Chen, Brian~A. Colle, M.~Georgelin, Vanda
+  Grubi\v{s}i\'{c}, Wen-Ru Hsu, C.~Y. Huang, D.~Landau, Yuh-Lang Lin,
+  Gregory~S. Poulos, Wen~Yih Sun, Daniel~B. Weber, Morton~G. Wurtele, and Ming
+  Xue.
+\newblock An intercomparison of model-predicted wave breaking for the 11
+  {January} 1972 {Boulder} windstorm.
+\newblock \emph{Monthly Weather Review}, 128\penalty0 (3):\penalty0 901--914,
+  2000.
+
+\bibitem[Durran(1990)]{Durran_1990}
+Dale~R. Durran.
+\newblock Mountain waves and downslope winds.
+\newblock \emph{Atmospheric Processes over Complex Terrain, Meteorological
+  Monographs}, 23:\penalty0 59--81, 1990.
+
+\bibitem[Finney(1998)]{Finney1998}
+Mark~A. Finney.
+\newblock {FARSITE}: Fire area simulator---model development and evaluation.
+\newblock Technical Report RMRS-RP-4, USDA Forest Service, Rocky Mountain
+  Research Station, 1998.
+
+\bibitem[Forthofer and Goodrick(2014)]{forthofer2014}
+Jason~M. Forthofer and Scott~L. Goodrick.
+\newblock Review of vortices in wildland fire.
+\newblock \emph{Journal of Combustion}, 2011:\penalty0 984363, 2014.
+
+\bibitem[Goss et~al.(2020)Goss, Swain, Abatzoglou, Sarhadi, Kolden, Williams,
+  and Diffenbaugh]{goss2020}
+Michael Goss, Daniel~L. Swain, John~T. Abatzoglou, Ali Sarhadi, Crystal~A.
+  Kolden, A.~Park Williams, and Noah~S. Diffenbaugh.
+\newblock Climate change is increasing the likelihood of extreme autumn
+  wildfire conditions across {California}.
+\newblock \emph{Environmental Research Letters}, 15:\penalty0 094016, 2020.
+
+\bibitem[Guzman-Morales and Abatzoglou(2018)]{Guzman-Morales_Abatzoglou_2018}
+Janin Guzman-Morales and John~T. Abatzoglou.
+\newblock Observed and projected changes in {Diablo} and {Santa Ana} wind
+  events.
+\newblock \emph{Climatic Change}, 2018.
+
+\bibitem[Guzman-Morales et~al.(2016)Guzman-Morales, Gershunov, Theiss, Li, and
+  Cayan]{Guzman-Morales_etal_2016}
+Janin Guzman-Morales, Alexander Gershunov, Jeanine Theiss, Haiqin Li, and
+  Daniel Cayan.
+\newblock {Santa Ana} winds of {Southern California}: Their climatology,
+  extremes, and behavior spanning six and a half decades.
+\newblock \emph{Geophysical Research Letters}, 43\penalty0 (6):\penalty0
+  2827--2834, 2016.
+
+\bibitem[Hughes and Hall(2010)]{Hughes_Hall_2010}
+Mimi Hughes and Alex Hall.
+\newblock Local and synoptic mechanisms causing {Southern California's Santa
+  Ana} winds.
+\newblock \emph{Climate Dynamics}, 34\penalty0 (6):\penalty0 847--857, 2010.
+\newblock \doi{10.1007/s00382-009-0650-4}.
+
+\bibitem[Jolly and Freeborn(2019)]{Jolly2019}
+W.~Matt Jolly and Patrick~H. Freeborn.
+\newblock Towards improving wildland firefighter situational awareness through
+  daily fire behavior potential assessments.
+\newblock \emph{Fire}, 2\penalty0 (2):\penalty0 26, 2019.
+
+\bibitem[Maranghides et~al.(2021)Maranghides, McNamara, Vihnanek, Restaino, and
+  Leland]{Maranghides_etal_2021}
+Alexander Maranghides, Derek McNamara, Robert Vihnanek, Joseph Restaino, and
+  Connie Leland.
+\newblock A case study of the 2018 {Camp Fire} -- fire progression timeline.
+\newblock Technical Report NIST TN 2135, National Institute of Standards and
+  Technology, 2021.
+
+\bibitem[Mass and Ovens(2011)]{mass2011}
+Clifford Mass and David Ovens.
+\newblock Fixing what's wrong with weather forecasting.
+\newblock \emph{Bulletin of the American Meteorological Society}, 92:\penalty0
+  1449--1451, 2011.
+\newblock Also: Mass, C.F., 2011: Diablo winds and fire weather in northern
+  California.
+
+\bibitem[Mass and Ovens(2019)]{Mass_Ovens_2019}
+Clifford~F. Mass and David Ovens.
+\newblock The {Northern California} wildfires of 8--9 {October} 2017: The role
+  of a major downslope wind event.
+\newblock \emph{Bulletin of the American Meteorological Society}, 100\penalty0
+  (2):\penalty0 235--256, 2019.
+\newblock \doi{10.1175/BAMS-D-18-0037.1}.
+
+\bibitem[{National Weather Service}(2023)]{nws_rfwc}
+{National Weather Service}.
+\newblock Red flag warning criteria, 2023.
+\newblock NWS Sacramento Weather Forecast Office, fire weather program.
+
+\bibitem[Nolan et~al.(2016)Nolan, Boer, Resco~de Dios, Caccamo, and
+  Bradstock]{nolan2016}
+Rachael~H. Nolan, Matthias~M. Boer, Victor Resco~de Dios, Gabriele Caccamo, and
+  Ross~A. Bradstock.
+\newblock Large-scale, dynamic transformations in fuel moisture drive wildfire
+  activity across southeastern {Australia}.
+\newblock \emph{Geophysical Research Letters}, 43:\penalty0 4229--4238, 2016.
+
+\bibitem[Raphael(2003)]{Raphael_2003}
+Marilyn~N. Raphael.
+\newblock The {Santa Ana} winds of {California}.
+\newblock \emph{Earth Interactions}, 7\penalty0 (8):\penalty0 1--13, 2003.
+
+\bibitem[Rothermel(1972)]{Rothermel1972}
+Richard~C. Rothermel.
+\newblock A mathematical model for predicting fire spread in wildland fuels.
+\newblock Technical Report INT-115, USDA Forest Service, Intermountain Forest
+  and Range Experiment Station, 1972.
+
+\bibitem[Seager et~al.(2015)Seager, Hoerling, Schubert, Wang, Lyon, Kumar,
+  Nakamura, and Henderson]{Seager2015}
+Richard Seager, Martin Hoerling, Siegfried Schubert, Hailan Wang, Bradfield
+  Lyon, Arun Kumar, Jennifer Nakamura, and Naomi Henderson.
+\newblock Causes of the 2011--14 {California} drought.
+\newblock \emph{Journal of Climate}, 28:\penalty0 6997--7024, 2015.
+
+\bibitem[Sharples(2012)]{Sharples2012}
+Jason~J. Sharples.
+\newblock An overview of mountain meteorological effects relevant to fire
+  behaviour and bushfire risk.
+\newblock \emph{International Journal of Wildland Fire}, 18:\penalty0 737--754,
+  2012.
+
+\bibitem[Sharples et~al.(2012)Sharples, McRae, and Wilkes]{Sharples_etal_2012}
+Jason~J. Sharples, Richard H.~D. McRae, and Shannon~R. Wilkes.
+\newblock Wind--terrain effects on the propagation of wildfires in rugged
+  terrain: Fire channelling.
+\newblock \emph{International Journal of Wildland Fire}, 21:\penalty0 282--296,
+  2012.
+
+\bibitem[Smith et~al.(2018)Smith, Hatchett, and Kaplan]{Smith_etal_2018}
+Craig Smith, Benjamin~J. Hatchett, and Michael~L. Kaplan.
+\newblock A surface observation based climatology of {Diablo}-like winds in
+  {California's Wine Country} and western {Sierra Nevada}.
+\newblock \emph{Fire}, 1\penalty0 (2):\penalty0 25, 2018.
+\newblock \doi{10.3390/fire1020025}.
+
+\bibitem[Smith(1987)]{Smith_1987}
+Ronald~B. Smith.
+\newblock Aerial observations of the {Yugoslavian Bora}.
+\newblock In \emph{Journal of the Atmospheric Sciences}, volume~44, pages
+  269--297. 1987.
+
+\bibitem[Werth et~al.(2011)Werth, Potter, Clements, Finney, Goodrick,
+  Alexander, Cruz, Forthofer, and McAllister]{Werth2011}
+Paul~A. Werth, Brian~E. Potter, Craig~B. Clements, Mark~A. Finney, Scott~L.
+  Goodrick, Martin~E. Alexander, Miguel~G. Cruz, Jason~A. Forthofer, and
+  Sara~S. McAllister.
+\newblock Synthesis of knowledge of extreme fire behavior: Volume {I} for fire
+  managers.
+\newblock \emph{USDA Forest Service, Pacific Northwest Research Station,
+  General Technical Report PNW-GTR-854}, 2011.
+
+\bibitem[Werth et~al.(2016)Werth, Potter, Alexander, Clements, Cruz, Finney,
+  Forthofer, Goodrick, Hoffman, Jolly, McAllister, Ottmar, and
+  Parsons]{Werth2016}
+Paul~A. Werth, Brian~E. Potter, Martin~E. Alexander, Craig~B. Clements,
+  Miguel~G. Cruz, Mark~A. Finney, Jason~A. Forthofer, Scott~L. Goodrick, Chad
+  Hoffman, W.~Matt Jolly, Sara~S. McAllister, Roger~D. Ottmar, and Russell~A.
+  Parsons.
+\newblock Synthesis of knowledge of extreme fire behavior: Volume 2 for fire
+  behavior specialists, researchers, and meteorologists.
+\newblock \emph{USDA Forest Service, Pacific Northwest Research Station,
+  General Technical Report PNW-GTR-891}, 2016.
+
+\bibitem[Williams et~al.(2019)Williams, Abatzoglou, Gershunov, Guzman-Morales,
+  Bishop, Balch, and Lettenmaier]{williams2019}
+A.~Park Williams, John~T. Abatzoglou, Alexander Gershunov, Janin
+  Guzman-Morales, Daniel~A. Bishop, Jennifer~K. Balch, and Dennis~P.
+  Lettenmaier.
+\newblock Observed impacts of anthropogenic climate change on wildfire in
+  {California}.
+\newblock \emph{Earth's Future}, 7:\penalty0 892--910, 2019.
+
+\end{thebibliography}

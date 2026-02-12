@@ -1,0 +1,183 @@
+\section{Fire Weather Assessment}
+\label{sec:fire_weather}
+
+The preceding sections have documented individual atmospheric parameters---wind, moisture, thermodynamics, and vertical motion---in isolation. This section integrates these parameters into a comprehensive fire weather assessment, evaluating the simultaneous co-occurrence of extremes that defined the Camp Fire environment. The analysis employs the HRRR fire weather composite product, cloud condensate fields, and terrain-relative diagnostics to quantify how far beyond established critical thresholds the atmospheric conditions extended on 08 November 2018.
+
+\subsection{Composite Fire Weather Index}
+\label{subsec:composite_firewx}
+
+The fire weather composite cross-section (Fig.~\ref{fig:firewx_canyon_f15}) simultaneously displays the two parameters most directly relevant to fire behavior: wind speed (barbs and isotachs) and relative humidity (color fill), overlaid on the terrain profile. This visualization reveals the spatial coincidence of strong winds and extreme dryness along the canyon path.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/firewx_canyon_f15.png}
+\caption{Fire weather composite cross-section along the NE--SW canyon path at FHR~15 (15z, 7:00~AM local). Color fill shows relative humidity (red $<10$\%, dark red $<5$\%); wind barbs show speed and direction. The cross-hatched pattern over the fire path indicates RH $<10$\% through the entire column below 600~hPa, co-located with 35--39~kt winds at 875--900~hPa. The entire atmospheric column from the surface to 600~hPa is engulfed in extreme fire weather conditions.}
+\label{fig:firewx_canyon_f15}
+\end{figure}
+
+At FHR~15 (ignition time), the composite analysis reveals:
+
+\begin{itemize}
+    \item Minimum RH of 6.0\% at 825~hPa near Paradise (39.76\textdegree N), with values below 10\% extending from 900 to 700~hPa---a continuous 3-km-deep layer of extreme dryness.
+    \item Maximum wind speeds of 38.9~kt at 900~hPa and 38.7~kt at 875~hPa, centered over the canyon at $d = 65$--77~km.
+    \item Surface conditions at Paradise: RH of 13.6\% with 29.2~kt winds from 066\textdegree (ENE).
+    \item The spatial coincidence of the driest air and the strongest winds is nearly perfect---both maxima are located within the same 30-km segment of the cross-section over the Feather River Canyon and Paradise Ridge.
+\end{itemize}
+
+The fire weather composite along the fire propagation path (Fig.~\ref{fig:firewx_fireprop_f15}) confirms that these extreme conditions characterized the entire route of fire advance from the Sierra crest through Concow and Paradise to the Sacramento Valley foothills. There was no segment of the fire's path where conditions fell below critical thresholds.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/firewx_fireprop_f15.png}
+\caption{Fire weather composite along the fire propagation path (east to west, Pulga through Paradise to the valley foothills) at FHR~15. The uniform deep red coloring across the entire path confirms sub-10\% RH through the full lower troposphere, with strong ENE wind barbs indicating 25--35+~kt terrain-channeled flow. No portion of the fire's path exhibited conditions below critical fire weather thresholds.}
+\label{fig:firewx_fireprop_f15}
+\end{figure}
+
+\subsubsection{Temporal Deterioration}
+
+A striking feature of the Camp Fire environment is that conditions worsened throughout the morning rather than improving. Table~\ref{tab:firewx_evolution} presents the evolution of key fire weather parameters along the canyon path.
+
+\begin{table}[htbp]
+\centering
+\caption{Temporal evolution of fire weather parameters along the canyon cross-section. All RH values are minima at the given pressure level; wind speeds are maxima. Local time is PST (UTC$-$8). Conditions deteriorated (lower RH) through the morning even as winds slowly decreased.}
+\label{tab:firewx_evolution}
+\begin{tabular}{llrrrrr}
+\toprule
+FHR & Local Time & \multicolumn{2}{c}{Min RH (\%)} & \multicolumn{2}{c}{Max Wind (kt)} & Paradise RH \\
+ & & 850~hPa & 825~hPa & 900~hPa & 875~hPa & 925~hPa \\
+\midrule
+15 & 7:00 AM & 6.5 & 6.0 & 38.9 & 38.7 & 13.6\% \\
+18 & 10:00 AM & 5.6 & 4.8 & 34.6 & 36.3 & 10.8\% \\
+20 & 12:00 PM & 5.5 & 4.6 & 30.6 & 33.2 & 8.7\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Between ignition (FHR~15) and noon (FHR~20), the minimum RH at 825~hPa decreased from 6.0\% to 4.6\%---a further 23\% relative reduction from already extreme values. Surface RH at Paradise dropped from 13.6\% to 8.7\%. Although wind speeds decreased somewhat (from 38.9 to 30.6~kt at 900~hPa), the RH decline more than compensated in fire behavior terms: wind-driven spotting distance scales linearly with wind speed but exponentially with decreasing fuel moisture, which tracks RH \citep{Rothermel1972}.
+
+The fire weather composite at FHR~18 (Fig.~\ref{fig:firewx_canyon_f18}) and FHR~20 (Fig.~\ref{fig:firewx_canyon_f20}) documents this progressive drying of the atmospheric column.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/firewx_canyon_f18.png}
+\caption{Fire weather composite at FHR~18 (18z, 10:00~AM local)---the approximate time Paradise was being overrun. RH at 825~hPa has dropped to 4.8\%, yet winds at 875~hPa remain 36.3~kt. This combination of persistent strong winds and worsening dryness is the hallmark of the event's severity.}
+\label{fig:firewx_canyon_f18}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/firewx_canyon_f20.png}
+\caption{Fire weather composite at FHR~20 (20z, 12:00~PM local). Although winds have weakened to 30--33~kt, RH continues to decrease (minimum 4.6\% at 825~hPa, 8.7\% at the surface near Paradise). The absence of any humidity recovery five hours after ignition reflects the dominance of the subsidence-driven drying over any diurnal moisture cycle.}
+\label{fig:firewx_canyon_f20}
+\end{figure}
+
+\subsection{Critical Threshold Exceedance}
+\label{subsec:thresholds}
+
+Standard red flag warning criteria in California are typically defined as sustained winds exceeding 25~mph (22~kt) combined with relative humidity below 15\% \citep{nws_rfwc}. The Camp Fire atmospheric environment exceeded these thresholds by extreme margins across multiple parameters simultaneously. Table~\ref{tab:threshold_exceedance} presents a systematic comparison.
+
+\begin{table}[htbp]
+\centering
+\caption{Comparison of standard California red flag warning thresholds to observed Camp Fire atmospheric conditions at FHR~15 (15z, ignition time). The exceedance factor quantifies how far beyond the threshold the observed value fell. Values are drawn from HRRR cross-section data at terrain-relevant levels along the Feather River Canyon path.}
+\label{tab:threshold_exceedance}
+\begin{tabular}{llrl}
+\toprule
+Parameter & Red Flag Threshold & Camp Fire Value & Exceedance \\
+\midrule
+Terrain-level wind speed & $>$25 mph (22 kt) & 40--45 mph (35--39 kt) & 1.6--1.8$\times$ \\
+Relative humidity & $<$15\% & 5--12\% & 1.3--3.0$\times$ below \\
+Dewpoint depression & $>$20\textdegree C & 25--37\textdegree C & 1.3--1.9$\times$ \\
+Vapor pressure deficit & $>$6 hPa (high danger) & 13--20 hPa & 2.2--3.3$\times$ \\
+Event duration & 4--6 hours & 24+ hours & 4--6$\times$ \\
+Dry layer depth & Surface only & Sfc--500 hPa ($\sim$5.5 km) & Full troposphere \\
+Cloud cover & Not specified & 0.000 g~kg$^{-1}$ (zero) & Absolute zero \\
+Overnight RH recovery & Expected & None (continued decrease) & No recovery \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The exceedance factors in Table~\ref{tab:threshold_exceedance} understate the compound severity of the event. Red flag criteria are designed as individual-parameter thresholds; the simultaneous exceedance of every relevant parameter is far rarer than the exceedance of any single parameter. If each parameter's exceedance probability is independent (a conservative assumption, as these parameters are positively correlated in downslope events), then the joint probability of the observed multi-parameter extreme is the product of the individual probabilities---placing this event deep in the tail of the fire weather distribution for northern California.
+
+The most extreme exceedance was in vapor pressure deficit, where values of 13--20~hPa exceeded the high-danger threshold by a factor of 2.2--3.3. VPD is the most operationally relevant parameter for fire behavior because it directly quantifies the atmosphere's demand for moisture from vegetative fuels. At VPD values above 15~hPa, even live fuels with moisture content above 100\% begin losing water rapidly, and dead fuel moisture content drops below 3\%---the lowest values physically possible under equilibrium with the atmosphere \citep{nolan2016}.
+
+\subsection{Zero Cloud Condensate}
+\label{subsec:zero_cloud}
+
+The HRRR cloud total condensate field---the sum of cloud liquid water, cloud ice, rain, snow, and graupel mixing ratios---was exactly \textbf{0.000~g~kg$^{-1}$} at every grid point and every pressure level along the canyon cross-section at FHR~15 (Fig.~\ref{fig:cloud_canyon_f15}). This was not a rounding artifact; the model produced literally zero condensed or frozen water at any point in the atmospheric column.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/cloud_canyon_f15.png}
+\caption{Cloud total condensate (g~kg$^{-1}$) along the canyon cross-section at FHR~15. The uniformly blank (zero) field across all 50 horizontal points and 40 vertical levels confirms the complete absence of any cloud water, ice, rain, snow, or graupel particles anywhere in the atmospheric column. Wind barbs are overlaid for reference. This absolute zero in condensate reflects the extreme dryness documented in Section~\ref{sec:moisture}: with RH below 13\% through the entire column below 600~hPa, no mechanism existed for any condensation to occur.}
+\label{fig:cloud_canyon_f15}
+\end{figure}
+
+The zero-condensate finding has three direct implications for fire behavior:
+
+\begin{enumerate}
+    \item \textbf{Maximum solar insolation.} Clear skies permitted unattenuated shortwave radiation to reach the surface throughout the day, maximizing solar heating of fuels and further reducing their moisture content. The mid-November sun angle at 39.8\textdegree N provides approximately 7 hours of effective solar heating between 9~AM and 4~PM local time.
+
+    \item \textbf{Zero precipitation probability.} With no cloud condensate at any level, there was physically zero possibility of any precipitation---not even virga---that might have dampened fuels or impeded the fire's advance.
+
+    \item \textbf{Unimpeded radiative heat transfer.} The absence of clouds allowed the fire's radiant heat to propagate through the atmosphere without attenuation, enhancing pre-heating and ignition of fuels ahead of the active flame front.
+\end{enumerate}
+
+The moisture transport field (Fig.~\ref{fig:moisttrans_canyon_f15}) provides additional context, showing that the product of specific humidity and wind speed ($q \cdot V$) was minimal throughout the canyon path. This confirms that the strong winds were transporting virtually no moisture---a dry conveyor belt of desiccated air flowing continuously through the fire zone.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/moisttrans_canyon_f15.png}
+\caption{Moisture transport ($q \cdot V$, g~kg$^{-1}~\cdot$~m~s$^{-1}$) along the canyon path at FHR~15. Despite the 35--39~kt low-level jet visible in the wind barbs, the moisture transport is extremely weak throughout the cross-section because specific humidity is near zero (1--2~g~kg$^{-1}$ at the surface). The atmosphere was essentially a dry conveyor belt, advecting desiccated air through the fire zone at high speed.}
+\label{fig:moisttrans_canyon_f15}
+\end{figure}
+
+\subsection{Terrain--Wind Interaction}
+\label{subsec:terrain_wind}
+
+The surface pressure field in the cross-section data serves as a high-resolution terrain proxy, revealing the topographic complexity that governed the wind channeling. The NE--SW canyon path traverses a 760-m elevation drop from the Sierra crest (surface pressure 818~hPa, $\approx$1,600~m MSL) to the Paradise area (surface pressure 943~hPa, $\approx$540~m MSL) over a horizontal distance of approximately 48~km, yielding a mean slope of 1.6\% (0.9\textdegree). However, the actual terrain is far from a uniform slope---intermediate ridges and deep canyon cuts create local gradients several times steeper.
+
+\begin{table}[htbp]
+\centering
+\caption{Terrain profile along the NE--SW canyon cross-section, derived from HRRR surface pressure. The complex intermediate topography channels and accelerates the downslope flow, producing wind speed maxima in the canyon segments.}
+\label{tab:terrain_profile}
+\begin{tabular}{rrlr}
+\toprule
+Distance (km) & Sfc Pressure (hPa) & Feature & $\approx$ Elevation (m) \\
+\midrule
+0.0 & 818 & Sierra crest & 1,600 \\
+12.0 & 878 & Ridge shoulder & 1,200 \\
+23.9 & 826 & Secondary crest & 1,550 \\
+35.9 & 944 & Canyon floor (Concow) & 490 \\
+47.9 & 944 & Mid-canyon & 490 \\
+59.9 & 919 & Canyon ridge (Paradise area) & 740 \\
+71.9 & 972 & Lower foothills & 330 \\
+95.9 & 1,016 & Sacramento Valley edge & 30 \\
+117.6 & 1,018 & Valley floor & 15 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The terrain geometry creates a natural Venturi effect within the Feather River Canyon system. The canyon narrows between the secondary crest at $d = 23.9$~km (826~hPa surface, $\approx$1,550~m) and the canyon floor at $d = 35.9$~km (944~hPa, $\approx$490~m)---a drop of over 1,000~m in just 12~km horizontal distance. The cross-section perpendicular to the canyon axis (documented in Section~\ref{sec:wind}) showed that this channeling amplified wind speeds by a factor of 2.0--2.3$\times$ compared to nearby terrain outside the canyon system.
+
+Paradise itself sits on a ridge (surface pressure 919~hPa at $d \approx 60$~km, roughly 740~m MSL) between the main Feather River Canyon to the north and the West Branch canyon to the south. This ridge-top position placed the town at the exact altitude of the low-level jet core at 875--900~hPa, where winds were 35--39~kt. Had Paradise been situated 200~m lower (in the valley floor) or 300~m higher (above the jet core), the surface wind exposure would have been substantially reduced. The town's elevation was, in effect, the worst possible altitude for a downslope wind event of this configuration.
+
+\subsection{The Bent-Over Plume Regime}
+\label{subsec:bent_over_plume}
+
+The thermodynamic structure documented in Section~\ref{sec:thermodynamics} revealed a subsidence inversion at approximately 875--900~hPa (1,000--1,200~m ASL). This inversion, combined with the extreme wind speeds at the same altitude, has profound implications for fire behavior through its effect on the fire's convective column.
+
+In a quiescent atmosphere, a wildfire's buoyant plume rises vertically, entraining ambient air and generating its own circulation (the pyro-convective column). This vertical development has two consequences that can actually slow the fire's lateral spread: (1) the fire's energy is directed upward rather than forward, and (2) the convective column can generate downdrafts that bring cooler, moister air to the surface.
+
+When strong ambient winds are present, the plume is tilted downwind, creating a ``bent-over'' configuration. The ratio of plume buoyancy velocity ($w_p$) to ambient wind speed ($U$) determines the plume behavior. For the Camp Fire environment:
+
+\begin{itemize}
+    \item Ambient wind speed at plume height: $U \approx 35$--$39$~kt ($\approx$18--20~m~s$^{-1}$)
+    \item Subsidence inversion strength: $\Delta T \approx +2$\textdegree C over 75~hPa ($\approx$700~m), lapse rate 2.4\textdegree C~km$^{-1}$ vs.\ standard 6.5\textdegree C~km$^{-1}$
+    \item The inversion acts as a rigid lid, suppressing vertical penetration of the plume
+\end{itemize}
+
+Under these conditions, the fire's convective energy was forced laterally rather than vertically. The plume from the advancing fire front was bent over by the 35--39~kt winds and trapped below the inversion, directing radiative and convective heat transfer downwind at the surface level. This created a thermal feedback mechanism in which the fire pre-heated fuels ahead of the flame front far more effectively than would occur with a vertically developing plume.
+
+The bent-over plume regime also suppressed pyro-convective development that might otherwise have generated local precipitation (as has been observed in some extreme fire events that produce pyrocumulonimbus clouds). With the plume unable to penetrate the subsidence inversion, no pyro-convection was possible---the fire's moisture output was simply advected horizontally through the already desiccated atmosphere without generating any clouds.
+
+This aerodynamic regime---strong wind, strong inversion, bent-over plume---is known to produce the fastest rates of forward fire spread because essentially all of the fire's energy budget is directed along the surface in the direction of fire propagation \citep{Werth2011,Werth2016}. The Camp Fire's advance rate of approximately 130~hectares~min$^{-1}$ during its peak spread phase is consistent with this maximum-efficiency surface-driven propagation mode.

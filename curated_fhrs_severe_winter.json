@@ -1,0 +1,366 @@
+{
+  "20200810_12z": {
+    "_name": "Iowa Derecho",
+    "_category": "derecho",
+    "_hero_fhr": 7,
+    "_init": "12z synoptic (F0-F48)",
+    "_notes": "Init at 12z = 7am CDT. Derecho initiated ~12z over SD/NE, exploded across Iowa 17:30-18:00z (peak at Cedar Rapids). F5=17z, F6=18z, F7=19z. System continued into Ohio Valley through evening.",
+    "essential_fhrs": [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    "trimmable_fhrs": [1, 2, 13, 14, 15, 16, 17, 18, 20, 24],
+    "timing": {
+      "best_fhrs": [5, 6, 7, 8],
+      "buildup_fhrs": [0, 1, 2, 3, 4]
+    }
+  },
+  "20211215_18z": {
+    "_name": "December Midwest Derecho",
+    "_category": "derecho",
+    "_hero_fhr": 5,
+    "_init": "18z synoptic (F0-F48)",
+    "_notes": "Init at 18z = noon CST. Initiated ~19z (F1), peak winds 21z-01z (F3-F7). Russell KS 100mph, 800mi path. Limited by F5 in existing data but synoptic cycle allows F48.",
+    "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    "trimmable_fhrs": [11, 12, 14, 16, 18, 20, 24],
+    "timing": {
+      "best_fhrs": [3, 4, 5, 6, 7],
+      "buildup_fhrs": [0, 1, 2]
+    }
+  },
+  "20220512_16z": {
+    "_name": "May SD Derecho",
+    "_category": "derecho",
+    "_hero_fhr": 7,
+    "_init": "16z non-synoptic (F0-F18 ONLY)",
+    "_notes": "Init 16z = 11am CDT. Initiated ~20z (F4), peak winds 23z-02z (F7-F10). 107mph Tripp SD. Haboob. Max FHR is F18. archive_cycle is 20220512_12z with fhr_offset=4.",
+    "essential_fhrs": [0, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+    "trimmable_fhrs": [1, 2, 3, 15, 16, 17, 18],
+    "timing": {
+      "best_fhrs": [6, 7, 8, 9, 10],
+      "buildup_fhrs": [0, 1, 2, 3, 4, 5]
+    }
+  },
+  "20220613_18z": {
+    "_name": "Ohio Valley Derecho",
+    "_category": "derecho",
+    "_hero_fhr": 8,
+    "_init": "18z synoptic (F0-F48)",
+    "_notes": "Init 18z = 2pm EDT. Three rounds of storms, initiated ~22z (F4), peak at Fort Wayne 02:30-03:00z Jun14 (F8-F9). Late evening/nocturnal event.",
+    "essential_fhrs": [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    "trimmable_fhrs": [1, 2, 13, 14, 16, 18, 20, 24],
+    "timing": {
+      "best_fhrs": [6, 7, 8, 9],
+      "buildup_fhrs": [0, 1, 2, 3, 4, 5]
+    }
+  },
+  "20230629_12z": {
+    "_name": "June Midwest Derecho",
+    "_category": "derecho",
+    "_hero_fhr": 8,
+    "_init": "12z synoptic (F0-F48)",
+    "_notes": "Init 12z = 7am CDT. Re-intensified ~10z Jun29 over IA/MO (already ongoing). Peak 18z-21z (F6-F9), 100mph Roseville IL. 600mi path through IL into KY-TN border.",
+    "essential_fhrs": [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+    "trimmable_fhrs": [1, 2, 14, 16, 18, 20, 24],
+    "timing": {
+      "best_fhrs": [6, 7, 8, 9, 10],
+      "buildup_fhrs": [0, 1, 2, 3, 4, 5]
+    }
+  },
+  "20240516_18z": {
+    "_name": "Houston Derecho",
+    "_category": "derecho",
+    "_hero_fhr": 5,
+    "_init": "18z synoptic (F0-F48)",
+    "_notes": "Init 18z = 1pm CDT. Quick-hitting: initiated ~22z (F4), peak 23z-23:30z (F5). 100mph downtown Houston. Compact window but devastating.",
+    "essential_fhrs": [0, 2, 3, 4, 5, 6, 7, 8],
+    "trimmable_fhrs": [1, 9, 10, 12, 14, 16, 18, 20, 24],
+    "timing": {
+      "best_fhrs": [4, 5, 6, 7],
+      "buildup_fhrs": [0, 1, 2, 3]
+    }
+  },
+  "20240715_18z": {
+    "_name": "July Chicago Derecho",
+    "_category": "derecho",
+    "_hero_fhr": 7,
+    "_init": "18z synoptic (F0-F48)",
+    "_notes": "Init 18z = 1pm CDT. Initiated ~22z over central IA (F4), peak 01z-02:30z Jul16 (F7-F8.5). 32 tornadoes in Chicago NWS area. 105mph Camp Grove. EF2 Channahon-Matteson.",
+    "essential_fhrs": [0, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+    "trimmable_fhrs": [1, 2, 12, 14, 16, 18, 20, 24],
+    "timing": {
+      "best_fhrs": [5, 6, 7, 8, 9],
+      "buildup_fhrs": [0, 1, 2, 3, 4]
+    }
+  },
+  "20250429_17z": {
+    "_name": "Pennsylvania Derecho",
+    "_category": "derecho",
+    "_hero_fhr": 6,
+    "_init": "17z non-synoptic (F0-F18 ONLY)",
+    "_notes": "Init 17z = 1pm EDT. Serial derecho originated south of STL at ~12z. Peak PA winds 22z-23z (F5-F6). 120mph Cambria County. archive_cycle 20250429_12z fhr_offset=5. Max F18.",
+    "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    "trimmable_fhrs": [11, 12, 13, 14, 15, 16, 17, 18],
+    "timing": {
+      "best_fhrs": [4, 5, 6, 7, 8],
+      "buildup_fhrs": [0, 1, 2, 3]
+    }
+  },
+  "20250620_18z": {
+    "_name": "N Plains Derecho + Enderlin EF5",
+    "_category": "derecho",
+    "_hero_fhr": 10,
+    "_init": "18z synoptic (F0-F48)",
+    "_notes": "Init 18z = 1pm CDT. Supercells evening Jun20 CDT. Enderlin EF5 touchdown 04:02z Jun21 (F10), liftoff 04:21z. First EF5 since 2013 Moore. Derecho 70-120mph gusts.",
+    "essential_fhrs": [0, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+    "trimmable_fhrs": [1, 2, 3, 15, 16, 18, 20, 24],
+    "timing": {
+      "best_fhrs": [8, 9, 10, 11, 12],
+      "buildup_fhrs": [0, 1, 2, 3, 4, 5, 6, 7]
+    }
+  },
+  "20250728_18z": {
+    "_name": "July N Plains Derecho",
+    "_category": "derecho",
+    "_hero_fhr": 8,
+    "_init": "18z synoptic (F0-F48)",
+    "_notes": "Init 18z = 1pm CDT. Developed over SD late Jul28. Peak 02z-05z Jul29 (F8-F11). 99mph Sioux Center. Split into two branches across MN/IA. 400mi path.",
+    "essential_fhrs": [0, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+    "trimmable_fhrs": [1, 2, 3, 14, 16, 18, 20, 24],
+    "timing": {
+      "best_fhrs": [6, 7, 8, 9, 10, 11],
+      "buildup_fhrs": [0, 1, 2, 3, 4, 5]
+    }
+  },
+  "20210428_18z": {
+    "_name": "Hondo TX Record Hail 6.42in",
+    "_category": "hail",
+    "_hero_fhr": 6,
+    "_init": "18z synoptic (F0-F48)",
+    "_notes": "Init 18z = 1pm CDT. Storm initiated ~21z (F3). Record 6.42in hailstone at 00:35z Apr29 (F6.5). Dryline supercell, classic LP. 3000+ CAPE.",
+    "essential_fhrs": [0, 3, 4, 5, 6, 7, 8, 9],
+    "trimmable_fhrs": [1, 2, 10, 12, 14, 16, 18, 20, 24],
+    "timing": {
+      "best_fhrs": [5, 6, 7, 8],
+      "buildup_fhrs": [0, 1, 2, 3, 4]
+    }
+  },
+  "20230621_18z": {
+    "_name": "Red Rocks CO Hail + 36 Tornadoes",
+    "_category": "hail",
+    "_hero_fhr": 6,
+    "_init": "18z synoptic (F0-F48)",
+    "_notes": "Init 18z = noon MDT. Plains tornadoes 22z-02z (F4-F8). Red Rocks hail 03:20z Jun22 (F9). 36 tornadoes CO record. 27 from one supercell. Dual mode: plains supercells + foothills storms.",
+    "essential_fhrs": [0, 3, 4, 5, 6, 7, 8, 9, 10],
+    "trimmable_fhrs": [1, 2, 11, 12, 14, 16, 18, 20, 24],
+    "timing": {
+      "best_fhrs": [4, 5, 6, 7, 8, 9],
+      "buildup_fhrs": [0, 1, 2, 3]
+    }
+  },
+  "20240314_18z": {
+    "_name": "DFW Hailstorm",
+    "_category": "hail",
+    "_hero_fhr": 5,
+    "_init": "18z synoptic (F0-F48)",
+    "_notes": "Init 18z = 1pm CDT. Initiated ~21z (F3). Peak hail 23z-02z (F5-F8). Record 106 reports 2in+. Multiple training supercells. $2.3B insured losses.",
+    "essential_fhrs": [0, 2, 3, 4, 5, 6, 7, 8, 9],
+    "trimmable_fhrs": [1, 10, 12, 14, 16, 18, 20, 24],
+    "timing": {
+      "best_fhrs": [4, 5, 6, 7, 8],
+      "buildup_fhrs": [0, 1, 2, 3]
+    }
+  },
+  "20240528_18z": {
+    "_name": "South Plains DVD-Size Hail",
+    "_category": "hail",
+    "_hero_fhr": 12,
+    "_init": "18z synoptic (F0-F48)",
+    "_notes": "Init 18z = 1pm CDT. Storm initiated near Tucumcari ~00z May29 (F6). Peak hail 05z-07z May29 (F11-F13) at Whiteface/Levelland. 4-5in hail, 8hr supercell, 200mi track. Overnight event.",
+    "essential_fhrs": [0, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+    "trimmable_fhrs": [1, 2, 3, 4, 5, 16, 18, 20, 24],
+    "timing": {
+      "best_fhrs": [10, 11, 12, 13, 14],
+      "buildup_fhrs": [0, 4, 5, 6, 7, 8, 9]
+    }
+  },
+  "20240531_00z": {
+    "_name": "Denver Midnight Hail",
+    "_category": "hail",
+    "_hero_fhr": 10,
+    "_init": "00z synoptic (F0-F48)",
+    "_notes": "Init 00z May31 = 6pm MDT May30. Storm initiated ~03z (F3). Peak hail 05:30-06:30z (F5.5-F6.5). Nocturnal supercell, 2.75in hail. $1.9B insured. Broomfield through Aurora.",
+    "essential_fhrs": [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    "trimmable_fhrs": [1, 2, 13, 14, 16, 18, 20, 24],
+    "timing": {
+      "best_fhrs": [5, 6, 7, 8, 9, 10],
+      "buildup_fhrs": [0, 1, 2, 3, 4]
+    }
+  },
+  "20240602_18z": {
+    "_name": "Vigo Park TX 7in Hail",
+    "_category": "hail",
+    "_hero_fhr": 11,
+    "_init": "18z synoptic (F0-F48)",
+    "_notes": "Init 18z = 1pm CDT. Dryline bulge, storm initiated ~22z (F4). Peak hail 00:37z Jun3 (F6.5). Potential state record 7in. 4000+ CAPE, 8.5+ C/km lapse rates.",
+    "essential_fhrs": [0, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+    "trimmable_fhrs": [1, 2, 3, 14, 16, 18, 20, 24],
+    "timing": {
+      "best_fhrs": [6, 7, 8, 9, 10, 11],
+      "buildup_fhrs": [0, 2, 3, 4, 5]
+    }
+  },
+  "20250526_18z": {
+    "_name": "Menard TX 5.87in Hail",
+    "_category": "hail",
+    "_hero_fhr": 3,
+    "_init": "18z synoptic (F0-F48)",
+    "_notes": "Init 18z = 1pm CDT. Storm initiated ~20z (F2). Peak hail 21:23z (F3.4). Quick-hitting event. 5.87in largest ever NWS San Angelo area. Edwards Plateau terrain enhancement.",
+    "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7],
+    "trimmable_fhrs": [8, 9, 10, 12, 14, 16, 18, 20, 24],
+    "timing": {
+      "best_fhrs": [2, 3, 4, 5],
+      "buildup_fhrs": [0, 1]
+    }
+  },
+  "20211114_00z": {
+    "_name": "PNW Atmospheric River",
+    "_category": "ar",
+    "_hero_fhr": 12,
+    "_init": "00z synoptic (F0-F48)",
+    "_notes": "Init 00z Nov14 = 4pm PST Nov13. Cat4-5 AR. Second (strongest) AR hit Nov14-15. Peak rainfall 06z-18z Nov15 (F30-F42). Dense coverage of the main event window. IVT >1000 kg/m/s. Coquihalla Hwy collapse.",
+    "essential_fhrs": [0, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 28, 30, 32, 34, 36, 38, 40, 42],
+    "trimmable_fhrs": [1, 2, 3, 5, 7, 9, 44, 46, 48],
+    "timing": {
+      "best_fhrs": [30, 32, 34, 36, 38, 40, 42],
+      "buildup_fhrs": [0, 4, 8, 12, 16, 20, 24, 28]
+    }
+  },
+  "20230104_12z": {
+    "_name": "CA AR Strongest Storm",
+    "_category": "ar",
+    "_hero_fhr": 14,
+    "_init": "12z synoptic (F0-F48)",
+    "_notes": "Init 12z Jan4 = 4am PST. Bomb cyclone approaching CA coast. Peak overnight Jan4-5 = 00z-12z Jan5 (F12-F24). 119mph Kirkwood. Part of 9 consecutive ARs. Pineapple Express.",
+    "essential_fhrs": [0, 4, 6, 8, 10, 12, 13, 14, 15, 16, 17, 18, 20, 22, 24, 28, 32, 36],
+    "trimmable_fhrs": [1, 2, 3, 5, 7, 38, 40, 42, 44, 48],
+    "timing": {
+      "best_fhrs": [12, 14, 16, 18, 20, 22, 24],
+      "buildup_fhrs": [0, 2, 4, 6, 8, 10]
+    }
+  },
+  "20230109_00z": {
+    "_name": "CA AR Peak Flooding",
+    "_category": "ar",
+    "_hero_fhr": 10,
+    "_init": "00z synoptic (F0-F48)",
+    "_notes": "Init 00z Jan9 = 4pm PST Jan8. Event started 00z Jan9 (F0). Peak flooding 06z-18z Jan9 (F6-F18). IVT 750-1000. 9.89in Montecito 24hr. 7th of 9 consecutive ARs.",
+    "essential_fhrs": [0, 2, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 24],
+    "trimmable_fhrs": [1, 3, 5, 22, 28, 32, 36, 40, 48],
+    "timing": {
+      "best_fhrs": [6, 8, 10, 12, 14, 16, 18],
+      "buildup_fhrs": [0, 2, 4]
+    }
+  },
+  "20240204_06z": {
+    "_name": "Pineapple Express LA",
+    "_category": "ar",
+    "_hero_fhr": 12,
+    "_init": "06z synoptic (F0-F48)",
+    "_notes": "Init 06z Feb4 = 10pm PST Feb3. Event started at init. Peak afternoon-evening Feb4 = 12z-24z Feb4 (F6-F18). Stalled over LA Basin 48hrs. 12.42in Bel-Air (380yr return). Wettest LA day since 2003. 520+ mudslides.",
+    "essential_fhrs": [0, 2, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 24, 28, 32, 36],
+    "trimmable_fhrs": [1, 3, 5, 22, 38, 40, 42, 44, 48],
+    "timing": {
+      "best_fhrs": [6, 8, 10, 12, 14, 16, 18],
+      "buildup_fhrs": [0, 2, 4]
+    }
+  },
+  "20251210_12z": {
+    "_name": "PNW Mega-AR Cat 5",
+    "_category": "ar",
+    "_hero_fhr": 12,
+    "_init": "12z synoptic (F0-F48)",
+    "_notes": "Init 12z Dec10 = 4am PST. Cat 5 AR. Peak 00z-18z Dec11 (F12-F30). All-time flood records Snohomish/Skagit/Cedar rivers. 100K+ evacuated. 5 trillion gallons in one week. Sourced 7000mi from Philippines.",
+    "essential_fhrs": [0, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 36],
+    "trimmable_fhrs": [1, 2, 3, 5, 7, 34, 38, 40, 42, 44, 48],
+    "timing": {
+      "best_fhrs": [12, 14, 16, 18, 20, 24, 28, 30],
+      "buildup_fhrs": [0, 2, 4, 6, 8, 10]
+    }
+  },
+  "20210215_12z": {
+    "_name": "Winter Storm Uri",
+    "_category": "winter",
+    "_hero_fhr": 6,
+    "_init": "12z synoptic (F0-F48)",
+    "_notes": "Init 12z Feb15 = 6am CST. Multi-day arctic outbreak. Coldest night: 00z-12z Feb16 (F12-F24). DFW -2F. ERCOT grid 4.5min from collapse. 5.2M power outages. 850mb temps -15 to -20C across TX.",
+    "essential_fhrs": [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 28, 32, 36],
+    "trimmable_fhrs": [1, 3, 5, 7, 9, 40, 44, 48],
+    "timing": {
+      "best_fhrs": [6, 8, 10, 12, 14, 16, 18, 20, 24],
+      "buildup_fhrs": [0, 2, 4]
+    }
+  },
+  "20221118_00z": {
+    "_name": "Buffalo Lake Effect 81in",
+    "_category": "winter",
+    "_hero_fhr": 12,
+    "_init": "00z synoptic (F0-F48)",
+    "_notes": "Init 00z Nov18 = 7pm EST Nov17. Band developing late Nov17. Full 24hr locked band 00z-24z Nov18 (F0-F24). 66in in 24hrs NY record. 81.2in total Hamburg. Snowfall rates 3-6in/hr. Thundersnow. Lake Erie 52F.",
+    "essential_fhrs": [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 28, 32],
+    "trimmable_fhrs": [1, 3, 5, 7, 9, 36, 40, 44, 48],
+    "timing": {
+      "best_fhrs": [6, 8, 10, 12, 14, 16, 18, 20, 24],
+      "buildup_fhrs": [0, 2, 4]
+    }
+  },
+  "20221223_06z": {
+    "_name": "Winter Storm Elliott",
+    "_category": "winter",
+    "_hero_fhr": 8,
+    "_init": "06z synoptic (F0-F48)",
+    "_notes": "Init 06z Dec23 = 1am EST. Bomb cyclone deepening through Dec23 (35mb/24hr). Blizzard onset Buffalo evening Dec23. Peak deepening 06z-18z Dec23 (F0-F12). Blizzard persisted 2 full days. 56in snow Buffalo. 41 fatalities.",
+    "essential_fhrs": [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40],
+    "trimmable_fhrs": [1, 3, 5, 7, 9, 42, 44, 48],
+    "timing": {
+      "best_fhrs": [4, 6, 8, 10, 12, 14, 16, 18],
+      "buildup_fhrs": [0, 2]
+    }
+  },
+  "20250121_06z": {
+    "_name": "Gulf Coast Blizzard Enzo",
+    "_category": "winter",
+    "_hero_fhr": 6,
+    "_init": "06z synoptic (F0-F48)",
+    "_notes": "Init 06z Jan21 = midnight CST. First-ever Gulf Coast blizzard warning. Peak snow 12z-24z Jan21 (F6-F18). NOLA 8in, Pensacola 8.9in, Mobile 7.5in, Milton FL 10in. Polar vortex stretching event.",
+    "essential_fhrs": [0, 2, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 24],
+    "trimmable_fhrs": [1, 3, 5, 22, 28, 32, 36, 40, 48],
+    "timing": {
+      "best_fhrs": [6, 8, 10, 12, 14, 16, 18],
+      "buildup_fhrs": [0, 2, 4]
+    }
+  },
+  "20241107_00z": {
+    "_name": "Colorado Blizzard",
+    "_category": "winter",
+    "_hero_fhr": 12,
+    "_init": "00z synoptic (F0-F48)",
+    "_notes": "Init 00z Nov7 = 5pm MST Nov6. 90-hour event, 3 waves. Heaviest rates wave 2: 00z-18z Nov7 (F0-F18). 42in SE CO plains, 60in Sangre de Cristo. Slow-moving closed low. 3in liquid equivalent.",
+    "essential_fhrs": [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 44, 48],
+    "trimmable_fhrs": [1, 3, 5, 7, 9],
+    "timing": {
+      "best_fhrs": [4, 8, 12, 16, 20, 24, 32],
+      "buildup_fhrs": [0, 2]
+    }
+  },
+  "20241119_12z": {
+    "_name": "PNW Bomb Cyclone",
+    "_category": "bomb_cyclone",
+    "_hero_fhr": 8,
+    "_init": "12z synoptic (F0-F48)",
+    "_notes": "Init 12z Nov19 = 4am PST. Deepening through Nov19, 942mb off WA coast. 66mb drop in 24hr. Peak winds 18z-00z Nov19-20 (F6-F12). 85mph western WA. 600K outages. Pressure sandwich: offshore low vs inland high.",
+    "essential_fhrs": [0, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 18],
+    "trimmable_fhrs": [1, 3, 20, 24, 28, 32, 36, 40, 48],
+    "timing": {
+      "best_fhrs": [6, 7, 8, 9, 10, 11, 12],
+      "buildup_fhrs": [0, 2, 4, 5]
+    }
+  }
+}

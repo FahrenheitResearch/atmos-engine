@@ -1,0 +1,274 @@
+{
+  "analysis_date": "2026-02-11",
+  "methodology": "For each event, identified peak action window in UTC, then selected the init cycle that puts peak action at the lowest reasonable FHR while preserving pre-event buildup. Synoptic cycles (00z/06z/12z/18z) preferred for multi-phase events needing F48 range.",
+  "events": [
+    {
+      "original_key": "20180723_12z",
+      "recommended_key": "20180723_18z",
+      "changed": true,
+      "name": "Carr Fire Ignition",
+      "rationale": "18z puts ignition (20z) at F02, peak evening destruction (02-08z Jul 24) at F08-F14 -- 6 hours fresher than 12z. Sacramento River Canyon wind channeling and terrain venturi effects are mesoscale features that benefit enormously from lower FHR. 18z is synoptic so still has F48 range for overnight extension.",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+      "trimmable_fhrs": [16, 18, 20, 24],
+      "timing": {
+        "best_fhrs": [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+        "buildup_fhrs": [0, 1]
+      },
+      "secondary_cycles": [
+        {
+          "key": "20180723_12z",
+          "rationale": "Captures pre-ignition afternoon heating buildup and early upslope/upvalley flow development",
+          "fhrs": [0, 3, 5, 6, 7, 8]
+        }
+      ]
+    },
+    {
+      "original_key": "20181108_00z",
+      "recommended_key": "20181108_12z",
+      "changed": true,
+      "name": "Camp Fire - Deadliest CA Fire",
+      "rationale": "12z puts ignition (14:15z) at F02, peak Paradise destruction (14-20z) at F02-F08 -- maximizes mesoscale accuracy for terrain-channeled Jarbo Gap winds through Feather River Canyon. 00z had ignition at F14 with stale data for the critical downslope wind pattern.",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+      "trimmable_fhrs": [9, 10, 12, 14, 16, 18],
+      "timing": {
+        "best_fhrs": [2, 3, 4, 5, 6, 7, 8],
+        "buildup_fhrs": [0, 1]
+      },
+      "secondary_cycles": [
+        {
+          "key": "20181108_00z",
+          "rationale": "Overnight Jarbo Gap wind buildup showing pressure gradient intensification and downslope wind onset",
+          "fhrs": [6, 8, 10, 12, 14]
+        }
+      ]
+    },
+    {
+      "original_key": "20200817_12z",
+      "recommended_key": "20200817_12z",
+      "changed": false,
+      "name": "CA Lightning Siege - Outbreak",
+      "rationale": "12z is already optimal. Lightning was ongoing from ~06z, so 12z F00 captures the active siege. Peak lightning/convection runs F00-F12 (12z-00z). The tropical moisture plume and instability structure are well-resolved at these low FHRs. Synoptic cycle provides F48 range for the multi-day siege.",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "trimmable_fhrs": [14, 16, 18, 20, 24],
+      "timing": {
+        "best_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+        "buildup_fhrs": []
+      },
+      "secondary_cycles": [
+        {
+          "key": "20200817_00z",
+          "rationale": "Pre-dawn lightning surge F06-F12 captures the Bay Area 2,500+ strike period and Tropical Storm Fausto moisture plume arrival",
+          "fhrs": [4, 6, 8, 10, 12]
+        }
+      ]
+    },
+    {
+      "original_key": "20200818_12z",
+      "recommended_key": "20200818_18z",
+      "changed": true,
+      "name": "CA Lightning Siege - Expansion",
+      "rationale": "18z puts event start (18z) at F00, peak explosive growth (22-06z) at F04-F12 -- 6 hours fresher than 12z which had peak at F10-F18. Diurnal wind shifts and terrain-channeled flows through Coast Ranges are mesoscale features needing fresh init data. 18z is synoptic with F48 range.",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "trimmable_fhrs": [14, 16, 18, 20, 24],
+      "timing": {
+        "best_fhrs": [4, 5, 6, 7, 8, 9, 10, 11, 12],
+        "buildup_fhrs": [0, 1, 2, 3]
+      },
+      "secondary_cycles": [
+        {
+          "key": "20200818_12z",
+          "rationale": "Pre-expansion midday heating buildup showing fire weather conditions developing before afternoon blowup",
+          "fhrs": [0, 3, 5, 6, 7, 8]
+        }
+      ]
+    },
+    {
+      "original_key": "20200906_12z",
+      "recommended_key": "20200906_18z",
+      "changed": true,
+      "name": "Creek Fire Explosive Growth",
+      "rationale": "18z puts the explosive pyroCb development (20-06z) at F02-F12 instead of F08-F18. The pyroCb reaching 50,000+ ft and up-canyon diurnal wind patterns in the San Joaquin drainage are mesoscale features that resolve significantly better at lower FHR. 18z is synoptic with F48 range.",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "trimmable_fhrs": [14, 16, 18, 20, 24],
+      "timing": {
+        "best_fhrs": [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+        "buildup_fhrs": [0, 1]
+      },
+      "secondary_cycles": [
+        {
+          "key": "20200906_12z",
+          "rationale": "Morning heat buildup and early up-canyon wind development before pyroCb onset",
+          "fhrs": [0, 3, 5, 6, 7, 8]
+        }
+      ]
+    },
+    {
+      "original_key": "20200927_00z",
+      "recommended_key": "20200927_06z",
+      "changed": true,
+      "name": "Glass Fire - Diablo Winds",
+      "rationale": "06z puts ignition (10:48z) at F04-F05, peak Diablo wind fire weather (10-18z) at F04-F12 instead of F10-F18. The Diablo wind channeling through Coast Range gaps into Napa Valley is a critical mesoscale feature -- 6 hours fresher init data gives substantially better resolved wind corridors. 06z is synoptic with F48 range.",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "trimmable_fhrs": [14, 16, 18, 20, 24],
+      "timing": {
+        "best_fhrs": [4, 5, 6, 7, 8, 9, 10, 11, 12],
+        "buildup_fhrs": [0, 1, 2, 3]
+      },
+      "secondary_cycles": [
+        {
+          "key": "20200927_00z",
+          "rationale": "Overnight Diablo wind onset and pressure gradient intensification from Great Basin high",
+          "fhrs": [0, 3, 6, 8, 10]
+        }
+      ]
+    },
+    {
+      "original_key": "20201026_00z",
+      "recommended_key": "20201026_12z",
+      "changed": true,
+      "name": "SoCal Santa Ana - Silverado/Blue Ridge",
+      "rationale": "12z puts Silverado ignition (14:47z) at F02-F03, peak Santa Ana impacts (14-22z) at F02-F10 instead of F14-F22. The 80-90 mph Santa Ana wind channeling through Santiago Canyon is THE critical mesoscale feature -- resolving it at F02-F10 with fresh init data is transformative. 12z is synoptic with F48 range.",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      "trimmable_fhrs": [12, 14, 16, 18, 20, 24],
+      "timing": {
+        "best_fhrs": [2, 3, 4, 5, 6, 7, 8, 9, 10],
+        "buildup_fhrs": [0, 1]
+      },
+      "secondary_cycles": [
+        {
+          "key": "20201026_00z",
+          "rationale": "Overnight Santa Ana wind onset and pressure gradient setup across southern CA mountains",
+          "fhrs": [0, 3, 6, 9, 10, 11, 12, 13, 14]
+        }
+      ]
+    },
+    {
+      "original_key": "20210804_12z",
+      "recommended_key": "20210804_18z",
+      "changed": true,
+      "name": "Dixie Fire - Greenville Run",
+      "rationale": "18z puts the Greenville run onset (20z) at F02, peak destruction (00-06z Aug 5) at F06-F12 instead of F12-F18. The Indian Valley wind channeling into Greenville is a terrain-driven mesoscale feature needing the freshest possible data. 18z is synoptic with F48 range.",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "trimmable_fhrs": [14, 16, 18, 20, 24],
+      "timing": {
+        "best_fhrs": [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+        "buildup_fhrs": [0, 1]
+      },
+      "secondary_cycles": [
+        {
+          "key": "20210804_12z",
+          "rationale": "Afternoon heating buildup and early red flag conditions developing before the Greenville run",
+          "fhrs": [0, 3, 5, 6, 7, 8]
+        }
+      ]
+    },
+    {
+      "original_key": "20220906_12z",
+      "recommended_key": "20220906_18z",
+      "changed": true,
+      "name": "CA Heat Wave + Mosquito Fire",
+      "rationale": "18z puts Sacramento's all-time 116F record (~22-23z Sep 6) at F04-F05, and Mosquito Fire ignition (01z Sep 7) at F07, peak fire behavior (01-12z Sep 7) at F07-F18. Much better than 12z which had these at F10-F24. The extreme heat dome and steep lapse rates driving pyroCb development benefit from fresher data. 18z is synoptic.",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+      "trimmable_fhrs": [20, 22, 24],
+      "timing": {
+        "best_fhrs": [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+        "buildup_fhrs": [0, 1, 2, 3]
+      },
+      "secondary_cycles": [
+        {
+          "key": "20220906_12z",
+          "rationale": "Midday heat ramp-up from morning through peak afternoon showing the full diurnal heating cycle that set the all-time Sacramento record",
+          "fhrs": [0, 3, 5, 6, 7, 8, 9, 10]
+        }
+      ]
+    },
+    {
+      "original_key": "20240725_12z",
+      "recommended_key": "20240725_18z",
+      "changed": true,
+      "name": "Park Fire First Burn Period",
+      "rationale": "18z puts the peak 5,000 acres/hour burn period (20-06z Jul 25-26) at F02-F12 instead of F08-F18. The afternoon upslope/upcanyon winds through the Sacramento Valley-Sierra transition and terrain channeling are mesoscale features that resolve better at lower FHR. 18z is synoptic with F48 range.",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "trimmable_fhrs": [14, 16, 18, 20, 24],
+      "timing": {
+        "best_fhrs": [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+        "buildup_fhrs": [0, 1]
+      },
+      "secondary_cycles": [
+        {
+          "key": "20240725_12z",
+          "rationale": "Morning heating buildup through record-hot afternoon showing the full diurnal fire weather cycle before peak burn period",
+          "fhrs": [0, 3, 5, 6, 7, 8]
+        }
+      ]
+    },
+    {
+      "original_key": "20250107_00z",
+      "recommended_key": "20250107_12z",
+      "changed": true,
+      "name": "LA Santa Ana Outbreak (Palisades/Eaton)",
+      "rationale": "12z puts Palisades ignition (18:30z) at F06, Eaton ignition (02:18z Jan 8) at F14, peak overnight destruction at F06-F24. This is vastly better than 00z which had Palisades at F18 and Eaton at F26. The Santa Ana wind channeling through San Gabriel and Santa Monica Mountain passes resolves much better 12 hours closer to init. 12z is synoptic with F48 range covering the full multi-fire event.",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24],
+      "trimmable_fhrs": [26, 28, 30, 32, 34, 36],
+      "timing": {
+        "best_fhrs": [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24],
+        "buildup_fhrs": [0, 1, 2, 3, 4, 5]
+      },
+      "secondary_cycles": [
+        {
+          "key": "20250107_00z",
+          "rationale": "Overnight Santa Ana wind onset and pressure gradient intensification showing the full buildup sequence from Great Basin high",
+          "fhrs": [0, 6, 9, 12, 14, 15, 16, 17, 18]
+        }
+      ]
+    },
+    {
+      "original_key": "20250107_18z",
+      "recommended_key": "20250108_00z",
+      "changed": true,
+      "name": "Eaton Fire Onset",
+      "rationale": "00z Jan 8 puts Eaton ignition (02:18z) at F02, peak overnight destruction (02-12z) at F02-F12. 18z Jan 7 had ignition at F08 and peak at F08-F18. The Eaton Canyon wind channeling from San Gabriel Mountains into Altadena is a tight mesoscale feature that resolves best at low FHR. 00z is synoptic with F48 range.",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "trimmable_fhrs": [14, 16, 18, 20, 24],
+      "timing": {
+        "best_fhrs": [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+        "buildup_fhrs": [0, 1]
+      },
+      "secondary_cycles": [
+        {
+          "key": "20250107_18z",
+          "rationale": "Full afternoon-evening Santa Ana wind intensification showing buildup through Palisades Fire period into Eaton onset",
+          "fhrs": [0, 2, 4, 5, 6, 7, 8]
+        }
+      ]
+    },
+    {
+      "original_key": "20250702_18z",
+      "recommended_key": "20250702_18z",
+      "changed": false,
+      "name": "Madre Fire Explosive Growth",
+      "rationale": "18z is already optimal. Ignition (20:07z) at F02, peak explosive growth (20-10z Jul 2-3) at F02-F16. The canyon-channeled winds along Highway 166 and steep terrain effects are captured at ideal FHRs. 18z is synoptic with F48 range. Cannot meaningfully improve this.",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+      "trimmable_fhrs": [18, 20, 24],
+      "timing": {
+        "best_fhrs": [2, 4, 5, 6, 7, 8, 10, 12, 14, 16],
+        "buildup_fhrs": [0, 1]
+      },
+      "secondary_cycles": []
+    },
+    {
+      "original_key": "20250801_18z",
+      "recommended_key": "20250801_18z",
+      "changed": false,
+      "name": "Gifford Fire Ignition",
+      "rationale": "18z is already optimal. Ignition (22:44z) at F04-F05, peak explosive growth (22-10z Aug 1-2) at F04-F16. The Highway 166/Los Padres canyon corridor winds are captured at ideal FHRs with fresh synoptic data. 20z could shave 2 hours but maxes at F18 which barely covers the event tail.",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16],
+      "trimmable_fhrs": [18, 20, 24],
+      "timing": {
+        "best_fhrs": [4, 5, 6, 7, 8, 9, 10, 12, 14, 16],
+        "buildup_fhrs": [0, 1, 2, 3]
+      },
+      "secondary_cycles": []
+    }
+  ]
+}

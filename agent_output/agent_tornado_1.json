@@ -1,0 +1,868 @@
+{
+  "20200303_03z": {
+    "suggested_sections": [
+      {
+        "label": "W-E along Nashville tornado track",
+        "start": [
+          36.17,
+          -87.0
+        ],
+        "end": [
+          36.15,
+          -85.89
+        ],
+        "products": [
+          "shear",
+          "vorticity",
+          "omega"
+        ],
+        "best_fhr": null,
+        "markers": [
+          {
+            "lat": 36.17,
+            "lon": -86.78,
+            "label": "Nashville"
+          },
+          {
+            "lat": 36.16,
+            "lon": -85.5,
+            "label": "Cookeville"
+          }
+        ]
+      },
+      {
+        "label": "S-N across LLJ axis through Nashville",
+        "start": [
+          34.0,
+          -86.5
+        ],
+        "end": [
+          38.0,
+          -86.5
+        ],
+        "products": [
+          "wind_speed",
+          "moisture_transport",
+          "theta_e"
+        ],
+        "best_fhr": null,
+        "markers": [
+          {
+            "lat": 36.17,
+            "lon": -86.78,
+            "label": "Nashville"
+          }
+        ]
+      },
+      {
+        "label": "SW-NE warm sector instability axis",
+        "start": [
+          34.0,
+          -88.5
+        ],
+        "end": [
+          37.5,
+          -84.5
+        ],
+        "products": [
+          "theta_e",
+          "lapse_rate",
+          "omega"
+        ],
+        "best_fhr": null,
+        "markers": [
+          {
+            "lat": 36.16,
+            "lon": -86.40,
+            "label": "Mt. Juliet"
+          },
+          {
+            "lat": 36.16,
+            "lon": -85.50,
+            "label": "Cookeville"
+          }
+        ]
+      }
+    ]
+  },
+  "20200412_18z": {
+    "suggested_sections": [
+      {
+        "label": "SW-NE warm sector instability axis through MS",
+        "start": [
+          31.0,
+          -91.0
+        ],
+        "end": [
+          34.5,
+          -87.5
+        ],
+        "products": [
+          "theta_e",
+          "shear",
+          "omega"
+        ],
+        "best_fhr": 5,
+        "markers": [
+          {
+            "lat": 32.30,
+            "lon": -90.18,
+            "label": "Jackson MS"
+          },
+          {
+            "lat": 32.77,
+            "lon": -89.12,
+            "label": "Philadelphia"
+          }
+        ]
+      },
+      {
+        "label": "Across Bassfield EF4 track perpendicular to motion",
+        "start": [
+          30.5,
+          -89.5
+        ],
+        "end": [
+          33.5,
+          -89.5
+        ],
+        "products": [
+          "vorticity",
+          "omega",
+          "wind_speed"
+        ],
+        "best_fhr": 5,
+        "markers": [
+          {
+            "lat": 31.5,
+            "lon": -89.74,
+            "label": "Bassfield"
+          },
+          {
+            "lat": 31.75,
+            "lon": -89.27,
+            "label": "Soso"
+          }
+        ]
+      },
+      {
+        "label": "Along LLJ axis from Gulf into warm sector",
+        "start": [
+          29.5,
+          -91.5
+        ],
+        "end": [
+          35.0,
+          -87.0
+        ],
+        "products": [
+          "moisture_transport",
+          "wind_speed",
+          "theta_e"
+        ],
+        "best_fhr": 3,
+        "markers": [
+          {
+            "lat": 31.5,
+            "lon": -89.74,
+            "label": "Bassfield"
+          },
+          {
+            "lat": 31.75,
+            "lon": -89.27,
+            "label": "Soso"
+          }
+        ]
+      }
+    ]
+  },
+  "20210126_02z": {
+    "suggested_sections": [
+      {
+        "label": "SW-NE along Fultondale tornado track",
+        "start": [
+          33.4,
+          -86.95
+        ],
+        "end": [
+          33.85,
+          -86.5
+        ],
+        "products": [
+          "shear",
+          "vorticity",
+          "omega"
+        ],
+        "best_fhr": null,
+        "markers": [
+          {
+            "lat": 33.605,
+            "lon": -86.794,
+            "label": "Fultondale"
+          },
+          {
+            "lat": 33.646,
+            "lon": -86.684,
+            "label": "Center Point"
+          }
+        ]
+      },
+      {
+        "label": "S-N across Birmingham metro showing LLJ and shear",
+        "start": [
+          32.5,
+          -86.8
+        ],
+        "end": [
+          34.8,
+          -86.8
+        ],
+        "products": [
+          "wind_speed",
+          "moisture_transport",
+          "theta_e"
+        ],
+        "best_fhr": null,
+        "markers": [
+          {
+            "lat": 33.605,
+            "lon": -86.794,
+            "label": "Fultondale"
+          },
+          {
+            "lat": 33.52,
+            "lon": -86.81,
+            "label": "Birmingham"
+          }
+        ]
+      }
+    ]
+  },
+  "20210325_15z": {
+    "suggested_sections": [
+      {
+        "label": "SW-NE along Helena-Eagle Point-Vandiver tornado track",
+        "start": [
+          33.05,
+          -87.1
+        ],
+        "end": [
+          33.52,
+          -86.5
+        ],
+        "products": [
+          "shear",
+          "vorticity",
+          "omega"
+        ],
+        "best_fhr": null,
+        "markers": [
+          {
+            "lat": 33.296,
+            "lon": -86.854,
+            "label": "Helena"
+          },
+          {
+            "lat": 33.3,
+            "lon": -86.75,
+            "label": "Eagle Point"
+          },
+          {
+            "lat": 33.471,
+            "lon": -86.513,
+            "label": "Vandiver"
+          }
+        ]
+      },
+      {
+        "label": "Perpendicular to track through Eagle Point",
+        "start": [
+          32.5,
+          -86.85
+        ],
+        "end": [
+          34.0,
+          -86.85
+        ],
+        "products": [
+          "theta_e",
+          "wind_speed",
+          "lapse_rate"
+        ],
+        "best_fhr": null,
+        "markers": [
+          {
+            "lat": 33.3,
+            "lon": -86.75,
+            "label": "Eagle Point"
+          },
+          {
+            "lat": 33.286,
+            "lon": -86.81,
+            "label": "Pelham"
+          }
+        ]
+      },
+      {
+        "label": "W-E frontal boundary cross-section through Birmingham",
+        "start": [
+          33.3,
+          -88.0
+        ],
+        "end": [
+          33.3,
+          -85.5
+        ],
+        "products": [
+          "theta_e",
+          "omega",
+          "moisture_transport"
+        ],
+        "best_fhr": null,
+        "markers": [
+          {
+            "lat": 33.296,
+            "lon": -86.854,
+            "label": "Helena"
+          },
+          {
+            "lat": 33.3,
+            "lon": -86.75,
+            "label": "Eagle Point"
+          },
+          {
+            "lat": 33.52,
+            "lon": -86.81,
+            "label": "Birmingham"
+          }
+        ]
+      }
+    ]
+  },
+  "20210327_01z": {
+    "suggested_sections": [
+      {
+        "label": "SW-NE along Heard-Coweta-Fayette tornado track",
+        "start": [
+          33.1,
+          -85.3
+        ],
+        "end": [
+          33.65,
+          -84.4
+        ],
+        "products": [
+          "shear",
+          "vorticity",
+          "omega"
+        ],
+        "best_fhr": null,
+        "markers": [
+          {
+            "lat": 33.15,
+            "lon": -85.15,
+            "label": "Touchdown"
+          },
+          {
+            "lat": 33.381,
+            "lon": -84.799,
+            "label": "Newnan"
+          }
+        ]
+      },
+      {
+        "label": "S-N across Newnan showing nocturnal LLJ profile",
+        "start": [
+          32.0,
+          -84.8
+        ],
+        "end": [
+          34.8,
+          -84.8
+        ],
+        "products": [
+          "wind_speed",
+          "moisture_transport",
+          "theta_e"
+        ],
+        "best_fhr": null,
+        "markers": [
+          {
+            "lat": 33.381,
+            "lon": -84.799,
+            "label": "Newnan"
+          }
+        ]
+      },
+      {
+        "label": "W-E across warm sector instability through Georgia",
+        "start": [
+          33.4,
+          -86.0
+        ],
+        "end": [
+          33.4,
+          -83.5
+        ],
+        "products": [
+          "theta_e",
+          "lapse_rate",
+          "omega"
+        ],
+        "best_fhr": null,
+        "markers": [
+          {
+            "lat": 33.381,
+            "lon": -84.799,
+            "label": "Newnan"
+          }
+        ]
+      }
+    ]
+  },
+  "20211211_00z": {
+    "suggested_sections": [
+      {
+        "label": "SW-NE along Quad-State tornado track",
+        "start": [
+          35.5,
+          -90.5
+        ],
+        "end": [
+          37.8,
+          -86.5
+        ],
+        "products": [
+          "shear",
+          "theta_e",
+          "vorticity"
+        ],
+        "best_fhr": 4,
+        "markers": [
+          {
+            "lat": 35.89,
+            "lon": -90.08,
+            "label": "Monette AR"
+          },
+          {
+            "lat": 36.19,
+            "lon": -89.66,
+            "label": "Caruthersville"
+          },
+          {
+            "lat": 36.74,
+            "lon": -88.64,
+            "label": "Mayfield KY"
+          }
+        ]
+      },
+      {
+        "label": "Cross-section perpendicular to track through Mayfield KY",
+        "start": [
+          35.5,
+          -88.6
+        ],
+        "end": [
+          38.0,
+          -88.6
+        ],
+        "products": [
+          "omega",
+          "wind_speed",
+          "moisture_transport"
+        ],
+        "best_fhr": 4,
+        "markers": [
+          {
+            "lat": 36.74,
+            "lon": -88.64,
+            "label": "Mayfield KY"
+          }
+        ]
+      },
+      {
+        "label": "Gulf moisture feed along LLJ axis",
+        "start": [
+          30.0,
+          -91.0
+        ],
+        "end": [
+          37.0,
+          -87.0
+        ],
+        "products": [
+          "moisture_transport",
+          "wind_speed",
+          "theta_e"
+        ],
+        "best_fhr": 3,
+        "markers": [
+          {
+            "lat": 36.53,
+            "lon": -87.36,
+            "label": "Clarksville TN"
+          },
+          {
+            "lat": 36.87,
+            "lon": -87.49,
+            "label": "Hopkinsville KY"
+          }
+        ]
+      }
+    ]
+  },
+  "20211210_23z": {
+    "suggested_sections": [
+      {
+        "label": "SW-NE through Edwardsville tornado path",
+        "start": [
+          38.65,
+          -90.15
+        ],
+        "end": [
+          38.9,
+          -89.8
+        ],
+        "products": [
+          "shear",
+          "vorticity",
+          "omega"
+        ],
+        "best_fhr": null,
+        "markers": [
+          {
+            "lat": 38.76,
+            "lon": -90.02,
+            "label": "Amazon DLI4"
+          },
+          {
+            "lat": 38.81,
+            "lon": -89.95,
+            "label": "Edwardsville"
+          }
+        ]
+      },
+      {
+        "label": "S-N across warm front boundary near St. Louis",
+        "start": [
+          37.5,
+          -90.0
+        ],
+        "end": [
+          40.0,
+          -90.0
+        ],
+        "products": [
+          "theta_e",
+          "wind_speed",
+          "moisture_transport"
+        ],
+        "best_fhr": null,
+        "markers": [
+          {
+            "lat": 38.76,
+            "lon": -90.02,
+            "label": "Amazon DLI4"
+          },
+          {
+            "lat": 38.63,
+            "lon": -90.2,
+            "label": "St. Louis"
+          }
+        ]
+      },
+      {
+        "label": "W-E across Mississippi Valley showing storm environment",
+        "start": [
+          38.78,
+          -91.5
+        ],
+        "end": [
+          38.78,
+          -88.5
+        ],
+        "products": [
+          "theta_e",
+          "omega",
+          "shear"
+        ],
+        "best_fhr": null,
+        "markers": [
+          {
+            "lat": 38.76,
+            "lon": -90.02,
+            "label": "Amazon DLI4"
+          },
+          {
+            "lat": 38.81,
+            "lon": -89.95,
+            "label": "Edwardsville"
+          }
+        ]
+      }
+    ]
+  },
+  "20220305_18z": {
+    "suggested_sections": [
+      {
+        "label": "SW-NE along tornado track Macksburg to Newton",
+        "start": [
+          41.0,
+          -94.3
+        ],
+        "end": [
+          41.7,
+          -93.1
+        ],
+        "products": [
+          "shear",
+          "vorticity",
+          "omega"
+        ],
+        "best_fhr": 5,
+        "markers": [
+          {
+            "lat": 41.215,
+            "lon": -94.185,
+            "label": "Macksburg"
+          },
+          {
+            "lat": 41.331,
+            "lon": -94.014,
+            "label": "Winterset"
+          },
+          {
+            "lat": 41.7,
+            "lon": -93.05,
+            "label": "Newton"
+          }
+        ]
+      },
+      {
+        "label": "Perpendicular to track through Winterset showing shear profile",
+        "start": [
+          40.3,
+          -94.1
+        ],
+        "end": [
+          42.4,
+          -93.3
+        ],
+        "products": [
+          "theta_e",
+          "wind_speed",
+          "lapse_rate"
+        ],
+        "best_fhr": 5,
+        "markers": [
+          {
+            "lat": 41.331,
+            "lon": -94.014,
+            "label": "Winterset"
+          }
+        ]
+      },
+      {
+        "label": "S-N cross-section through warm sector moisture axis",
+        "start": [
+          39.5,
+          -93.8
+        ],
+        "end": [
+          43.0,
+          -93.5
+        ],
+        "products": [
+          "moisture_transport",
+          "theta_e",
+          "omega"
+        ],
+        "best_fhr": 4,
+        "markers": [
+          {
+            "lat": 41.331,
+            "lon": -94.014,
+            "label": "Winterset"
+          }
+        ]
+      }
+    ]
+  },
+  "20220429_22z": {
+    "suggested_sections": [
+      {
+        "label": "SW-NE along Andover tornado track",
+        "start": [
+          37.5,
+          -97.3
+        ],
+        "end": [
+          37.9,
+          -96.9
+        ],
+        "products": [
+          "shear",
+          "vorticity",
+          "omega"
+        ],
+        "best_fhr": null,
+        "markers": [
+          {
+            "lat": 37.69,
+            "lon": -97.2,
+            "label": "Touchdown"
+          },
+          {
+            "lat": 37.714,
+            "lon": -97.136,
+            "label": "Andover"
+          }
+        ]
+      },
+      {
+        "label": "W-E across dryline and warm sector through Wichita",
+        "start": [
+          37.7,
+          -98.5
+        ],
+        "end": [
+          37.7,
+          -95.5
+        ],
+        "products": [
+          "theta_e",
+          "moisture_transport",
+          "lapse_rate"
+        ],
+        "best_fhr": null,
+        "markers": [
+          {
+            "lat": 37.698,
+            "lon": -97.315,
+            "label": "Wichita"
+          },
+          {
+            "lat": 37.714,
+            "lon": -97.136,
+            "label": "Andover"
+          }
+        ]
+      },
+      {
+        "label": "S-N through supercell inflow region",
+        "start": [
+          36.0,
+          -97.2
+        ],
+        "end": [
+          39.5,
+          -97.0
+        ],
+        "products": [
+          "wind_speed",
+          "theta_e",
+          "omega"
+        ],
+        "best_fhr": null,
+        "markers": [
+          {
+            "lat": 37.714,
+            "lon": -97.136,
+            "label": "Andover"
+          }
+        ]
+      }
+    ]
+  },
+  "20230324_22z": {
+    "suggested_sections": [
+      {
+        "label": "SW-NE along Rolling Fork tornado track",
+        "start": [
+          32.5,
+          -91.3
+        ],
+        "end": [
+          33.4,
+          -90.3
+        ],
+        "products": [
+          "shear",
+          "vorticity",
+          "omega"
+        ],
+        "best_fhr": null,
+        "markers": [
+          {
+            "lat": 32.907,
+            "lon": -90.878,
+            "label": "Rolling Fork"
+          },
+          {
+            "lat": 33.049,
+            "lon": -90.573,
+            "label": "Midnight"
+          },
+          {
+            "lat": 33.097,
+            "lon": -90.497,
+            "label": "Silver City"
+          }
+        ]
+      },
+      {
+        "label": "S-N across warm front and Delta moisture",
+        "start": [
+          31.0,
+          -90.9
+        ],
+        "end": [
+          35.0,
+          -90.7
+        ],
+        "products": [
+          "theta_e",
+          "moisture_transport",
+          "wind_speed"
+        ],
+        "best_fhr": null,
+        "markers": [
+          {
+            "lat": 32.907,
+            "lon": -90.878,
+            "label": "Rolling Fork"
+          }
+        ]
+      },
+      {
+        "label": "W-E across Mississippi Delta warm sector",
+        "start": [
+          32.9,
+          -92.5
+        ],
+        "end": [
+          32.9,
+          -89.0
+        ],
+        "products": [
+          "theta_e",
+          "lapse_rate",
+          "omega"
+        ],
+        "best_fhr": null,
+        "markers": [
+          {
+            "lat": 32.907,
+            "lon": -90.878,
+            "label": "Rolling Fork"
+          },
+          {
+            "lat": 33.097,
+            "lon": -90.497,
+            "label": "Silver City"
+          }
+        ]
+      }
+    ]
+  }
+}

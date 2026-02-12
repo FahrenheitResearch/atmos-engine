@@ -1,0 +1,277 @@
+% =============================================================================
+% Section 3: Wind Dynamics
+% Camp Fire Atmospheric Environment — Research Paper
+% Data Source: HRRR 3-km, cycle 2018-11-08 00z, via wxsection.com API
+% =============================================================================
+
+\section{Wind Analysis}
+\label{sec:wind}
+
+The dominant atmospheric forcing agent for the Camp Fire was a low-level easterly jet that channeled through the Feather River Canyon with near-perfect alignment to the terrain gradient. This section presents cross-section analyses of the wind field from the HRRR 3-km model along multiple transects through the fire environment, documenting the jet structure, its temporal evolution, the downslope wind mechanics, canyon channeling effects, and the vertical shear regime that facilitated momentum transfer to the surface.
+
+% -----------------------------------------------------------------------------
+\subsection{Low-Level Jet Structure}
+\label{sec:jet}
+
+The most critical atmospheric feature driving the Camp Fire was a low-level jet centered at 875--900~hPa, flowing from the east-northeast (ENE) through the Feather River Canyon. Figure~\ref{fig:wind_canyon_f15} presents the wind speed cross-section along the canyon axis at forecast hour~15 (15z, 0700~PST), corresponding to the time of fire ignition.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{figures/wind_canyon_f15.png}
+  \caption{Wind speed cross-section along the NE--SW canyon path (40.2\textdegree N, 121.0\textdegree W to 39.4\textdegree N, 121.9\textdegree W) at FHR~15 (15z, 0700~PST 8~November 2018). The low-level jet core is centered at 875--900~hPa with maximum speeds of 38--39~kt, positioned directly over the Feather River Canyon and Paradise Ridge. Terrain is depicted by the filled region at the base. Data: HRRR 3-km, 2018-11-08 00z cycle.}
+  \label{fig:wind_canyon_f15}
+\end{figure}
+
+Table~\ref{tab:jet_structure} presents the jet structure at multiple pressure levels along the canyon path at ignition time. The jet core was remarkably broad vertically, maintaining speeds above 35~kt through a 75~hPa layer from 850 to 925~hPa. The maximum wind speed of 38.9~kt (44.8~mph, 20.0~m\,s$^{-1}$) occurred at 900~hPa near 39.68\textdegree N, 121.59\textdegree W---directly over the western mouth of the Feather River Canyon near the community of Paradise. A secondary maximum of 38.7~kt at 875~hPa was located slightly upstream at 39.76\textdegree N, 121.50\textdegree W, in the Concow area where fire spread was most explosive.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Low-level jet structure along the Feather River Canyon cross-section at FHR~15 (15z, 0700~PST). Wind speed maxima at each pressure level with the geographic location of the maximum and the wind direction.}
+  \label{tab:jet_structure}
+  \begin{tabular}{lrrll}
+    \toprule
+    Level (hPa) & Max Speed (kt) & Speed (m\,s$^{-1}$) & Location of Maximum & Direction \\
+    \midrule
+    925 & 33.4 & 17.2 & 39.61\textdegree N, 121.66\textdegree W & 069\textdegree\ (ENE) \\
+    900 & 38.9 & 20.0 & 39.68\textdegree N, 121.59\textdegree W & 072\textdegree\ (ENE) \\
+    875 & 38.7 & 19.9 & 39.76\textdegree N, 121.50\textdegree W & 072\textdegree\ (ENE) \\
+    850 & 37.4 & 19.2 & 39.82\textdegree N, 121.42\textdegree W & 071\textdegree\ (ENE) \\
+    825 & 35.9 & 18.5 & 39.86\textdegree N, 121.39\textdegree W & 072\textdegree\ (ENE) \\
+    800 & 34.7 & 17.9 & 39.91\textdegree N, 121.33\textdegree W & 074\textdegree\ (ENE) \\
+    775 & 33.1 & 17.0 & 39.97\textdegree N, 121.26\textdegree W & 081\textdegree\ (E) \\
+    750 & 30.2 & 15.5 & 40.00\textdegree N, 121.22\textdegree W & 080\textdegree\ (E) \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+A notable feature of the jet is the progressive downstream displacement of the wind maximum with decreasing altitude. At 750~hPa, the maximum was located at 40.00\textdegree N near the Sierra crest, while at 925~hPa it had shifted 50~km southwest to 39.61\textdegree N over the lower foothills. This pattern is consistent with a mountain wave structure in which upper-level momentum is transported downward and forward along the lee slope.
+
+% -----------------------------------------------------------------------------
+\subsection{Temporal Evolution}
+\label{sec:temporal}
+
+The Camp Fire wind event was remarkable not only for its intensity but also for its persistence. Figure~\ref{fig:wind_temporal} presents a five-panel temporal sequence of wind speed cross-sections along the canyon path from ignition through the following evening.
+
+\begin{figure}[htbp]
+  \centering
+  \begin{minipage}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/wind_canyon_f15.png}
+    \subcaption{FHR~15 (0700~PST, ignition)}
+    \label{fig:wind_f15}
+  \end{minipage}\hfill
+  \begin{minipage}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/wind_canyon_f18.png}
+    \subcaption{FHR~18 (1000~PST, Paradise destroyed)}
+    \label{fig:wind_f18}
+  \end{minipage}
+
+  \vspace{0.5cm}
+
+  \begin{minipage}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/wind_canyon_f20.png}
+    \subcaption{FHR~20 (1200~PST)}
+    \label{fig:wind_f20}
+  \end{minipage}\hfill
+  \begin{minipage}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/wind_canyon_f24.png}
+    \subcaption{FHR~24 (1600~PST)}
+    \label{fig:wind_f24}
+  \end{minipage}
+
+  \vspace{0.5cm}
+
+  \begin{minipage}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/wind_canyon_f30.png}
+    \subcaption{FHR~30 (2200~PST)}
+    \label{fig:wind_f30}
+  \end{minipage}
+
+  \caption{Temporal evolution of wind speed along the NE--SW Feather River Canyon cross-section from 0700~PST 8~November through 2200~PST 8~November 2018. The low-level jet weakened gradually during the afternoon but remained above 28~kt at 875~hPa through the entire period. No overnight relaxation occurred within the model forecast window.}
+  \label{fig:wind_temporal}
+\end{figure}
+
+Table~\ref{tab:wind_evolution} quantifies the temporal evolution at three key pressure levels. At ignition (0700~PST), the 900~hPa jet maximum was 38.9~kt. Three hours later, when Paradise was being overrun, the 875~hPa maximum remained 36.3~kt---a reduction of only 6\%. Even at 1600~PST (FHR~24), nine hours after ignition, the 875~hPa maximum was still 30.0~kt (34.5~mph, 15.4~m\,s$^{-1}$), well above critical fire weather thresholds. At 2200~PST (FHR~30), winds at 900~hPa had actually \emph{re-intensified} to 30.6~kt, while the 875~hPa jet had only relaxed to 28.9~kt.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Temporal evolution of maximum wind speeds along the Feather River Canyon cross-section at selected pressure levels. All speeds are in knots (1~kt $= 0.514$~m\,s$^{-1}$). The near-surface column reports the maximum wind speed at the first pressure level above the local terrain.}
+  \label{tab:wind_evolution}
+  \begin{tabular}{llrrrr}
+    \toprule
+    FHR & Valid Time (PST) & 900~hPa & 875~hPa & 850~hPa & Near-Surface \\
+    \midrule
+    15 & 0700 (ignition)          & 38.9 & 38.7 & 37.4 & 37.4 \\
+    18 & 1000 (Paradise destroyed) & 34.6 & 36.3 & 36.5 & 33.0 \\
+    20 & 1200                      & 30.6 & 33.2 & 33.8 & 29.2 \\
+    24 & 1600                      & 29.6 & 30.0 & 29.5 & 28.0 \\
+    30 & 2200                      & 30.6 & 28.9 & 27.6 & 29.3 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The persistence of the wind event is one of its most operationally significant characteristics. Winds at fire-relevant levels remained above 28~kt for at least 15~hours following ignition and showed no indication of overnight relaxation. This extraordinary duration meant there was no window for effective suppression or safe evacuation during the entire period. The slight re-intensification at 900~hPa by FHR~30 suggests the downslope wind event was driven by persistent synoptic-scale forcing (the upper-level trough discussed in Section~\ref{sec:synoptic_overview}) rather than a transient mountain wave pulse.
+
+The vertical redistribution of the jet core is also noteworthy. At ignition, the strongest winds were at 900~hPa, but by 1000~PST the maximum had shifted upward to 850~hPa (36.5~kt). This upward migration is consistent with the diurnal deepening of the mixed layer over the western Sierra slopes, which erodes the low-level inversion and allows the jet to broaden vertically while weakening at its base.
+
+% -----------------------------------------------------------------------------
+\subsection{Downslope Wind Mechanics}
+\label{sec:downslope}
+
+A cross-section along the actual fire propagation path (39.85\textdegree N, 121.30\textdegree W to 39.65\textdegree N, 121.90\textdegree W, bearing approximately 247\textdegree) enables decomposition of the wind vector into along-path (downslope) and cross-path components (Figure~\ref{fig:wind_fireprop}).
+
+\begin{figure}[htbp]
+  \centering
+  \begin{minipage}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/wind_fireprop_f15.png}
+    \subcaption{FHR~15 (0700~PST, ignition)}
+    \label{fig:fireprop_f15}
+  \end{minipage}\hfill
+  \begin{minipage}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/wind_fireprop_f18.png}
+    \subcaption{FHR~18 (1000~PST, Paradise destroyed)}
+    \label{fig:fireprop_f18}
+  \end{minipage}
+  \caption{Wind speed cross-sections along the fire propagation path from the Sierra crest near Pulga (right) to the Sacramento Valley foothills (left) at (a) ignition and (b) the time of Paradise's destruction. The terrain profile reveals the complex canyon topography that channeled the flow.}
+  \label{fig:wind_fireprop}
+\end{figure}
+
+At 875~hPa along the fire propagation path at FHR~15, the wind was nearly perfectly aligned with the downslope direction. At the canyon mouth (approximately 17~km along the path), the total wind was 38.4~kt with a downslope component of 38.2~kt---indicating the cross-slope component was only 1.8~kt, less than 5\% of the total wind. Over the Paradise area (23~km along path), the alignment remained excellent: 37.0~kt total with 36.9~kt in the downslope direction. Even at the Sierra crest, where one might expect more disorganized flow, the downslope component accounted for 100\% of the 34.1~kt total wind at 875~hPa.
+
+This near-perfect alignment of a 35--40~kt jet with the canyon axis and fire propagation direction represents the worst-case scenario for fire spread. The wind direction at 875~hPa was consistently 071--073\textdegree, and the canyon axis orientation from Pulga to Paradise is approximately 067\textdegree. The angular offset was only 4--6\textdegree, producing an alignment efficiency (cosine of the offset angle) of 0.994--0.998. In practical terms, essentially the full strength of the low-level jet was directed along the terrain gradient and the fire's path of advance.
+
+% -----------------------------------------------------------------------------
+\subsection{Canyon Channeling}
+\label{sec:channeling}
+
+To quantify the canyon channeling effect, Figure~\ref{fig:wind_perp} presents a cross-section perpendicular to the canyon axis (NW--SE, from 40.0\textdegree N, 121.8\textdegree W to 39.6\textdegree N, 121.2\textdegree W) at FHR~15.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{figures/wind_perp_f15.png}
+  \caption{Wind speed cross-section perpendicular to the Feather River Canyon axis (NW to SE) at FHR~15 (0700~PST). The transect cuts across the canyon system, revealing a pronounced surface wind speed maximum of 40.6~kt in the canyon center compared to 6.8~kt on the NW ridge. The 875~hPa jet exhibits a more uniform structure, indicating that canyon channeling is primarily a surface-level phenomenon driven by terrain constriction.}
+  \label{fig:wind_perp}
+\end{figure}
+
+Table~\ref{tab:channeling} presents the wind speed variation along this perpendicular transect at the surface and at 875~hPa. The surface wind speed ranged from a minimum of 6.8~kt on the northwestern ridge (39.92\textdegree N, 121.68\textdegree W, surface pressure 964~hPa) to a maximum of 40.6~kt in the canyon center (39.69\textdegree N, 121.33\textdegree W, surface pressure 895~hPa), yielding a channeling amplification factor of 6.0 at the surface. However, this extreme ratio reflects the comparison between an elevated ridgeline sheltered from the flow and the deepest canyon point. A more conservative measure compares the mean surface wind in the canyon zone (25.7~kt) to the mean wind on the NW ridge (14.7~kt), yielding an amplification factor of 1.7.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Wind speeds along the perpendicular (NW--SE) cross-section at FHR~15, illustrating the canyon channeling effect. Surface wind is defined as the first pressure level above local terrain. Point locations sampled at approximately 12~km intervals.}
+  \label{tab:channeling}
+  \begin{tabular}{lllrrr}
+    \toprule
+    Location & Lat (\textdegree N) & Lon (\textdegree W) & Sfc~$p$ (hPa) & Surface (kt) & 875~hPa (kt) \\
+    \midrule
+    NW ridge     & 40.00 & 121.80 & 936 & 17.4 & 29.7 \\
+    NW slope     & 39.96 & 121.74 & 930 & 11.4 & 27.2 \\
+    Valley floor & 39.92 & 121.68 & 964 &  6.8 & 27.1 \\
+    Mid-canyon   & 39.88 & 121.62 & 924 & 20.1 & 30.4 \\
+    Canyon wall  & 39.84 & 121.56 & 940 & 19.0 & 34.0 \\
+    Canyon axis  & 39.80 & 121.49 & 937 & 24.8 & 37.0 \\
+    Canyon floor & 39.76 & 121.43 & 890 & 39.3 & 39.3 \\
+    SE slope     & 39.71 & 121.37 & 947 & 27.4 & 40.6 \\
+    SE canyon    & 39.67 & 121.31 & 909 & 36.6 & 41.1 \\
+    SE ridge     & 39.63 & 121.25 & 897 & 39.4 & 39.4 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+At 875~hPa, the channeling effect was more modest: the maximum was 41.1~kt in the canyon compared to 27.1~kt on the NW ridge, an amplification of 1.5. This level-dependent behavior is physically consistent with the mechanism of canyon channeling: at the surface, the terrain walls physically constrain the flow, creating a Venturi-like constriction that accelerates the wind. At 875~hPa (roughly 1,200~m ASL), the flow is above most of the terrain barriers and responds primarily to the synoptic-scale pressure gradient rather than local terrain channeling.
+
+The asymmetry between the NW and SE sides of the transect is also significant. The NW ridge experienced relatively light winds (6.8--17.4~kt at the surface) because it was sheltered in the wake of higher terrain upstream. The SE terrain, by contrast, showed uniformly strong winds (27--40~kt) because it was directly exposed to the downslope flow descending from the Sierra crest. This asymmetry contributed to the fire's preferential spread to the southwest through Paradise rather than northward along the ridge.
+
+% -----------------------------------------------------------------------------
+\subsection{Vertical Wind Profile}
+\label{sec:profile}
+
+The vertical wind profile over Paradise (39.76\textdegree N, 121.61\textdegree W) at FHR~15 reveals the tight jet structure and provides insight into the dynamics of the downslope wind event. Table~\ref{tab:vertical_profile} presents the wind speed and direction at each standard pressure level.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Vertical wind profile over Paradise (39.76\textdegree N, 121.61\textdegree W) at FHR~15 (0700~PST, ignition time). The jet core at 875--900~hPa is only 50--100~hPa above the local surface ($p_{\mathrm{sfc}} \approx 950$~hPa). Wind direction backs from ENE to NNE above 800~hPa, indicating warm advection and the descending branch of the mountain wave.}
+  \label{tab:vertical_profile}
+  \begin{tabular}{rrrl}
+    \toprule
+    Level (hPa) & Speed (kt) & Speed (m\,s$^{-1}$) & Direction \\
+    \midrule
+    950 (surface) & 16.5 & 8.5  & 056\textdegree\ (ENE) \\
+    925           & 26.8 & 13.8 & 065\textdegree\ (ENE) \\
+    900           & 34.0 & 17.5 & 070\textdegree\ (ENE) \\
+    875           & 34.3 & 17.6 & 073\textdegree\ (ENE) \\
+    850           & 27.5 & 14.1 & 074\textdegree\ (ENE) \\
+    825           & 18.3 & 9.4  & 072\textdegree\ (ENE) \\
+    800           & 11.5 & 5.9  & 062\textdegree\ (ENE) \\
+    775           &  9.1 & 4.7  & 040\textdegree\ (NE)  \\
+    750           & 10.9 & 5.6  & 022\textdegree\ (NNE) \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The profile exhibits several features characteristic of a downslope windstorm:
+
+\begin{enumerate}
+  \item \textbf{Sharp low-level jet}: Wind speed increases from 16.5~kt at the surface to 34.3~kt at 875~hPa---a doubling over only 75~hPa ($\sim$700~m). This extreme vertical wind shear in the lowest levels is a hallmark of downslope wind events where upper-level momentum is transported to the surface by the mountain wave.
+
+  \item \textbf{Rapid decay above the jet}: Above 875~hPa, wind speed decreases sharply to 11.5~kt at 800~hPa and 9.1~kt at 775~hPa, a reduction of 25~kt over 100~hPa. This tight jet profile indicates the flow was concentrated in a shallow layer rather than distributed through the troposphere.
+
+  \item \textbf{Wind backing with height}: Wind direction veered from 056\textdegree\ at the surface to 074\textdegree\ at 850~hPa (within the jet), then backed dramatically from 074\textdegree\ to 022\textdegree\ (NNE) at 750~hPa. In the Northern Hemisphere, wind backing with height indicates cold advection or, equivalently, warm advection below the layer of backing. This directional profile is characteristic of the descending branch of a mountain wave: the subsiding air within and below the jet core carries warm advection signatures, while above the jet the ambient flow has a more northerly component associated with the upstream trough.
+
+  \item \textbf{Surface wind enhancement}: The surface wind of 16.5~kt (19~mph) was itself above red flag warning thresholds, even before considering the 34~kt jet immediately overhead. The strong vertical shear between the surface and 900~hPa provided the mechanism for turbulent eddies to intermittently bring jet-core momentum to the surface, producing gusts far exceeding the mean surface wind.
+\end{enumerate}
+
+% -----------------------------------------------------------------------------
+\subsection{Wind Shear}
+\label{sec:shear}
+
+Vertical wind shear is the primary mechanism by which the low-level jet's momentum is communicated to the surface. Strong shear generates Kelvin--Helmholtz instability and turbulent eddies that intermittently transfer high-momentum air from the jet core to the ground, producing the damaging wind gusts that drove the fire's extreme rate of spread. Figure~\ref{fig:shear} presents the shear cross-sections along the canyon path.
+
+\begin{figure}[htbp]
+  \centering
+  \begin{minipage}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/shear_canyon_f15.png}
+    \subcaption{FHR~15 (0700~PST, ignition)}
+    \label{fig:shear_f15}
+  \end{minipage}\hfill
+  \begin{minipage}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/shear_canyon_f18.png}
+    \subcaption{FHR~18 (1000~PST, Paradise destroyed)}
+    \label{fig:shear_f18}
+  \end{minipage}
+  \caption{Wind shear ($\times 10^{-3}$~s$^{-1}$) cross-sections along the Feather River Canyon path at (a) ignition and (b) the time of Paradise's destruction. Maximum shear values of 30--35 $\times 10^{-3}$~s$^{-1}$ are concentrated at the foothill transition zone (39.6--39.7\textdegree N) where the downslope jet encounters the more stagnant valley air mass.}
+  \label{fig:shear}
+\end{figure}
+
+Table~\ref{tab:shear} presents the maximum shear values at key pressure levels along the canyon path at FHR~15. The strongest shear occurred in the lowest levels: 34.6 $\times 10^{-3}$~s$^{-1}$ at 975~hPa and 30.6 $\times 10^{-3}$~s$^{-1}$ at 950~hPa, both located at the foothill transition zone near 39.61--39.68\textdegree N, 121.59--121.66\textdegree W. This is the region where the terrain drops steeply from the canyon to the Sacramento Valley, and the downslope jet encounters the slower-moving valley air mass.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Maximum wind shear along the Feather River Canyon cross-section at FHR~15. Shear values are computed as the magnitude of the vertical wind shear vector between adjacent pressure levels. The foothill transition zone (39.6--39.7\textdegree N) consistently exhibits the strongest shear at all levels below 900~hPa.}
+  \label{tab:shear}
+  \begin{tabular}{rrl}
+    \toprule
+    Level (hPa) & Max Shear ($\times 10^{-3}$~s$^{-1}$) & Location \\
+    \midrule
+    975 & 34.6 & 39.61\textdegree N, 121.66\textdegree W \\
+    950 & 30.6 & 39.68\textdegree N, 121.59\textdegree W \\
+    925 & 19.3 & 39.79\textdegree N, 121.46\textdegree W \\
+    900 & 14.7 & 39.84\textdegree N, 121.40\textdegree W \\
+    875 & 19.2 & 39.64\textdegree N, 121.62\textdegree W \\
+    850 & 25.3 & 40.20\textdegree N, 121.00\textdegree W \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The shear profile has important implications for fire behavior. Shear values exceeding $20 \times 10^{-3}$~s$^{-1}$ are sufficient to generate turbulent eddies that transfer momentum from the jet to the surface \citep{Sharples2012}. At the foothill transition zone, shear exceeded this threshold at multiple levels simultaneously (975, 950, and 850~hPa), creating a deep layer of mechanical turbulence. This turbulence explains the observation that surface wind gusts during the Camp Fire reached 40--50~mph in areas where the mean surface wind was only 20--25~mph: the turbulent eddies intermittently brought the full 35--40~kt jet-core wind speed to ground level.
+
+The shear maximum at 850~hPa was located at 40.20\textdegree N, 121.00\textdegree W---the Sierra crest itself. This elevated shear zone marks the top of the jet core and the interface between the strong downslope flow and the weaker ambient winds above. As the jet descended westward along the terrain slope, the shear maximum migrated downward to lower pressure levels (950--975~hPa) near the foothill exit, consistent with the jet following the terrain surface.
+
+The concentration of the strongest shear at the foothill transition zone, precisely where Paradise is situated, was a critical factor in the fire's destructiveness. Paradise occupies a ridge at approximately 540~m elevation (957~hPa surface pressure), placing it directly within the zone of maximum turbulent momentum transfer between the jet core and the surface. The community was positioned at the worst possible location relative to the shear dynamics: too high to be sheltered in the valley beneath the jet, and too low to be above the zone of maximum vertical mixing.

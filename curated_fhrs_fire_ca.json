@@ -1,0 +1,170 @@
+{
+  "20180723_12z": {
+    "_event": "Carr Fire Ignition",
+    "_init": "12z Jul 23 (5 AM PDT)",
+    "_notes": "Ignition ~1 PM PDT (F8/20z) from vehicle sparks on SR 299; peak fire behavior evening into night; EF3 fire tornado Jul 26; hero=F10; 12z synoptic cycle goes to F48",
+    "_timeline": "F0=12z(5AM) F5=17z(10AM) F8=20z(1PM ignition) F10=22z(3PM hero) F14=02z+1(7PM) F18=06z+1(11PM) F24=12z+1(5AM+1)",
+    "essential_fhrs": [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+    "trimmable_fhrs": [0, 3, 5, 18, 20, 24],
+    "timing": {
+      "best_fhrs": [8, 9, 10, 11, 12, 13],
+      "buildup_fhrs": [0, 3, 5, 6, 7]
+    }
+  },
+  "20181108_00z": {
+    "_event": "Camp Fire - Deadliest CA Fire",
+    "_init": "00z Nov 8 (4 PM PST Nov 7)",
+    "_notes": "Ignition 6:15 AM PST (F14:15/14:15z); Jarbo Gap winds 55 mph; fire raced 14 mi to Paradise in <2 hrs; 85 dead; hero=F14; 00z synoptic cycle goes to F48",
+    "_timeline": "F0=00z(4PM-1) F10=10z(2AM) F14=14z(6AM ignition) F16=16z(8AM) F18=18z(10AM) F20=20z(12PM) F24=00z+1(4PM)",
+    "essential_fhrs": [12, 13, 14, 15, 16, 17, 18, 19, 20],
+    "trimmable_fhrs": [0, 3, 6, 9, 10, 11, 24, 27, 30],
+    "timing": {
+      "best_fhrs": [14, 15, 16, 17, 18],
+      "buildup_fhrs": [0, 3, 6, 9, 10, 11, 12, 13]
+    }
+  },
+  "20200817_12z": {
+    "_event": "CA Lightning Siege - Outbreak",
+    "_init": "12z Aug 17 (5 AM PDT)",
+    "_notes": "12,000+ dry lightning strikes over 72 hrs; remnant TS Fausto moisture + heat dome; peak activity morning Aug 17; hero=F4; 12z synoptic cycle goes to F48",
+    "_timeline": "F0=12z(5AM peak lightning ongoing) F4=16z(9AM) F8=20z(1PM) F12=00z+1(5PM) F18=06z+1(11PM)",
+    "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    "trimmable_fhrs": [12, 14, 16, 18, 20, 24],
+    "timing": {
+      "best_fhrs": [0, 2, 3, 4, 5, 6, 7, 8],
+      "buildup_fhrs": [10, 12, 14, 16]
+    }
+  },
+  "20200818_12z": {
+    "_event": "CA Lightning Siege - Expansion",
+    "_init": "12z Aug 18 (5 AM PDT)",
+    "_notes": "Explosive growth day for LNU/SCU/CZU complexes; wind shifts + extreme heat 105-115F; peak afternoon-evening; hero=F8; 12z synoptic cycle goes to F48",
+    "_timeline": "F0=12z(5AM) F6=18z(11AM event start) F8=20z(1PM hero) F10=22z(3PM) F14=02z+1(7PM) F18=06z+1(11PM)",
+    "essential_fhrs": [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+    "trimmable_fhrs": [0, 2, 3, 4, 18, 20, 24],
+    "timing": {
+      "best_fhrs": [6, 7, 8, 9, 10, 11, 12, 13],
+      "buildup_fhrs": [0, 2, 3, 4, 5]
+    }
+  },
+  "20200906_12z": {
+    "_event": "Creek Fire Explosive Growth",
+    "_init": "12z Sep 6 (5 AM PDT)",
+    "_notes": "Record pyroCb 50,000+ ft; 50,000 acres/day in Big Creek drainage; Mammoth Pool rescue; peak afternoon-evening; hero=F10; 12z synoptic cycle goes to F48",
+    "_timeline": "F0=12z(5AM) F5=17z(10AM) F8=20z(1PM peak start) F10=22z(3PM hero) F14=02z+1(7PM) F18=06z+1(11PM) F24=12z+1(5AM+1)",
+    "essential_fhrs": [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    "trimmable_fhrs": [0, 3, 5, 20, 22, 24],
+    "timing": {
+      "best_fhrs": [8, 9, 10, 11, 12, 13, 14],
+      "buildup_fhrs": [0, 3, 5, 6, 7]
+    }
+  },
+  "20200927_00z": {
+    "_event": "Glass Fire - Diablo Winds",
+    "_init": "00z Sep 27 (5 PM PDT Sep 26)",
+    "_notes": "Ignited 3:48 AM PDT (F10:48/10:48z); Diablo winds 60 mph; 1 acre/5 seconds; Napa/Sonoma wine country; hero=F12; 00z synoptic cycle goes to F48",
+    "_timeline": "F0=00z(5PM-1) F7=07z(12AM) F10=10z(3AM fire start) F12=12z(5AM hero) F18=18z(11AM) F24=00z+1(5PM)",
+    "essential_fhrs": [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    "trimmable_fhrs": [0, 3, 5, 6, 7, 20, 22, 24],
+    "timing": {
+      "best_fhrs": [10, 11, 12, 13, 14, 15],
+      "buildup_fhrs": [0, 3, 5, 6, 7, 8, 9]
+    }
+  },
+  "20201026_00z": {
+    "_event": "SoCal Santa Ana - Silverado/Blue Ridge",
+    "_init": "00z Oct 26 (5 PM PDT Oct 25)",
+    "_notes": "Silverado Fire 6:47 AM PDT (F14:47/14:47z) during 80-90 mph Santa Ana gusts; Blue Ridge PM; 90,000 evacuated; hero=F16; 00z synoptic cycle goes to F48",
+    "_timeline": "F0=00z(5PM-1) F8=08z(1AM) F14=14z(7AM ignition) F16=16z(9AM hero) F20=20z(1PM) F22=22z(3PM) F24=00z+1(5PM)",
+    "essential_fhrs": [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22],
+    "trimmable_fhrs": [0, 3, 6, 9, 10, 11, 24, 27, 30],
+    "timing": {
+      "best_fhrs": [14, 15, 16, 17, 18, 19, 20],
+      "buildup_fhrs": [0, 3, 6, 9, 10, 11, 12, 13]
+    }
+  },
+  "20210804_12z": {
+    "_event": "Dixie Fire - Greenville Run",
+    "_init": "12z Aug 4 (5 AM PDT)",
+    "_notes": "NE flank jumped containment; destroyed 75% of Greenville in <30 min; 40 mph gusts; red flag; peak PM-evening; hero=F12; 12z synoptic cycle goes to F48",
+    "_timeline": "F0=12z(5AM) F5=17z(10AM) F8=20z(1PM event start) F12=00z+1(5PM hero) F16=04z+1(9PM) F18=06z+1(11PM) F24=12z+1(5AM+1)",
+    "essential_fhrs": [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    "trimmable_fhrs": [0, 3, 5, 20, 22, 24],
+    "timing": {
+      "best_fhrs": [8, 10, 11, 12, 13, 14, 15, 16],
+      "buildup_fhrs": [0, 3, 5, 6, 7]
+    }
+  },
+  "20220906_12z": {
+    "_event": "CA Heat Wave + Mosquito Fire",
+    "_init": "12z Sep 6 (5 AM PDT)",
+    "_notes": "Sacramento 116F all-time record; Mosquito Fire ignited ~6 PM PDT (F13/01z); pyroCb 41,000+ ft; overnight extreme behavior; hero=F14; 12z synoptic cycle goes to F48",
+    "_timeline": "F0=12z(5AM) F6=18z(11AM) F10=22z(3PM) F13=01z+1(6PM ignition) F14=02z+1(7PM hero) F18=06z+1(11PM) F24=12z+1(5AM+1)",
+    "essential_fhrs": [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+    "trimmable_fhrs": [0, 3, 5, 6, 7, 22, 24],
+    "timing": {
+      "best_fhrs": [10, 12, 13, 14, 15, 16, 17, 18],
+      "buildup_fhrs": [0, 3, 5, 6, 7, 8, 9]
+    }
+  },
+  "20240725_12z": {
+    "_event": "Park Fire First Burn Period",
+    "_init": "12z Jul 25 (5 AM PDT)",
+    "_notes": "Arson ignition Jul 24 in Bidwell Park; first full burn period Jul 25; 5,000 acres/hr; 4th largest CA fire; hottest month on record; hero=F10; 12z synoptic cycle goes to F48",
+    "_timeline": "F0=12z(5AM) F5=17z(10AM) F8=20z(1PM peak start) F10=22z(3PM hero) F14=02z+1(7PM) F18=06z+1(11PM) F24=12z+1(5AM+1)",
+    "essential_fhrs": [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+    "trimmable_fhrs": [0, 3, 5, 18, 20, 24],
+    "timing": {
+      "best_fhrs": [8, 9, 10, 11, 12, 13, 14],
+      "buildup_fhrs": [0, 3, 5, 6, 7]
+    }
+  },
+  "20250107_00z": {
+    "_event": "LA Santa Ana Outbreak (Palisades/Eaton)",
+    "_init": "00z Jan 7 (4 PM PST Jan 6)",
+    "_notes": "Palisades Fire 10:30 AM PST (F18:30/18:30z); Eaton Fire 6:18 PM PST (F26:18/02:18z+1); hurricane-force 100 mph Santa Ana; 31+ dead; $50B+; hero=F20; 00z synoptic cycle goes to F48",
+    "_timeline": "F0=00z(4PM-1) F12=12z(4AM) F18=18z(10AM Palisades) F20=20z(12PM hero) F24=00z+1(4PM) F26=02z+1(6PM Eaton) F30=06z+1(10PM) F36=12z+1(4AM+1)",
+    "essential_fhrs": [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36],
+    "trimmable_fhrs": [0, 3, 6, 9, 12, 14, 15, 38, 40, 42, 44, 48],
+    "timing": {
+      "best_fhrs": [18, 19, 20, 22, 24, 26, 28, 30],
+      "buildup_fhrs": [0, 3, 6, 9, 12, 14, 15, 16, 17]
+    }
+  },
+  "20250107_18z": {
+    "_event": "Eaton Fire Onset",
+    "_init": "18z Jan 7 (10 AM PST)",
+    "_notes": "Eaton Fire ignited 6:18 PM PST (F8:18/02:18z+1); fierce Santa Ana 70 mph through Eaton Canyon; devastated Altadena overnight; 19 dead; hero=F10; 18z synoptic cycle goes to F48",
+    "_timeline": "F0=18z(10AM) F4=22z(2PM) F8=02z+1(6PM ignition) F10=04z+1(8PM hero) F14=08z+1(12AM) F18=12z+1(4AM) F24=18z+1(10AM+1)",
+    "essential_fhrs": [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    "trimmable_fhrs": [0, 2, 4, 5, 20, 22, 24],
+    "timing": {
+      "best_fhrs": [8, 9, 10, 11, 12, 13, 14],
+      "buildup_fhrs": [0, 2, 4, 5, 6, 7]
+    }
+  },
+  "20250702_18z": {
+    "_event": "Madre Fire Explosive Growth",
+    "_init": "18z Jul 2 (11 AM PDT)",
+    "_notes": "Ignited 1:07 PM PDT (F2:07/20:07z); 100 to 35,500 acres in hours; largest 2025 CA fire at 80,786 acres; triple-digit heat + canyon winds; hero=F6; 18z synoptic cycle goes to F48",
+    "_timeline": "F0=18z(11AM) F2=20z(1PM ignition) F6=00z+1(5PM hero) F10=04z+1(9PM) F16=10z+1(3AM+1)",
+    "essential_fhrs": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+    "trimmable_fhrs": [0, 16, 18, 20, 24],
+    "timing": {
+      "best_fhrs": [2, 4, 5, 6, 7, 8, 10, 12],
+      "buildup_fhrs": [0, 1]
+    }
+  },
+  "20250801_18z": {
+    "_event": "Gifford Fire Ignition",
+    "_init": "18z Aug 1 (11 AM PDT)",
+    "_notes": "Ignited 3:44 PM PDT (F4:44/22:44z); 800 acres in 15 minutes; mega-fire 131,614 acres; same Hwy 166 corridor as Madre; hero=F6; 18z synoptic cycle goes to F48",
+    "_timeline": "F0=18z(11AM) F4=22z(3PM ignition) F6=00z+1(5PM hero) F10=04z+1(9PM) F16=10z+1(3AM+1)",
+    "essential_fhrs": [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16],
+    "trimmable_fhrs": [0, 1, 18, 20, 24],
+    "timing": {
+      "best_fhrs": [4, 5, 6, 7, 8, 9, 10, 12],
+      "buildup_fhrs": [0, 1, 2, 3]
+    }
+  }
+}

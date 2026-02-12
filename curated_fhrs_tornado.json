@@ -1,0 +1,222 @@
+{
+  "20200303_03z": {
+    "name": "Nashville TN EF3/EF4",
+    "cycle_type": "non-synoptic (max F18)",
+    "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+    "trimmable_fhrs": [9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    "timing": {
+      "best_fhrs": [2, 3, 4, 5, 6],
+      "buildup_fhrs": [0, 1],
+      "notes": "03z init. Nashville EF3 touchdown 06:32 UTC = F3.5. Peak activity 06:30-08:30 UTC = F3-F5.5. Cookeville EF4 later. Nocturnal: storms already forming at init. F0-F1 capture LLJ buildup. hero_fhr=3. Full outbreak through F8 (11z). Extended trimmable through F18 for post-frontal environment."
+    }
+  },
+  "20200412_18z": {
+    "name": "Easter 2020 Outbreak",
+    "cycle_type": "synoptic (max F48)",
+    "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    "trimmable_fhrs": [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24],
+    "timing": {
+      "best_fhrs": [3, 4, 5, 6, 7, 8, 9],
+      "buildup_fhrs": [0, 1, 2],
+      "notes": "18z init. First tornado ~18z = F0. Peak 21z-03z = F3-F9. 141 tornadoes across 10 states including Bassfield-Soso EF4 (68mi track). hero_fhr=5. Already had timing data. Extended essential to F12 for overnight continuation. Trimmable through F24 for next-day residual activity."
+    }
+  },
+  "20210126_02z": {
+    "name": "Fultondale AL EF3",
+    "cycle_type": "non-synoptic (max F18)",
+    "essential_fhrs": [0, 1, 2, 3, 4, 5, 6],
+    "trimmable_fhrs": [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    "timing": {
+      "best_fhrs": [2, 3, 4],
+      "buildup_fhrs": [0, 1],
+      "notes": "02z init. Tornado struck at 04:40 UTC = F2.7. Peak 04:40-04:55 = F2.7-F2.9. hero_fhr=2. Nocturnal LLJ-driven supercell. F0-F1 capture pre-tornado shear buildup. F2-F4 is the active tornado window. F5-F6 for post-tornado environment and any subsequent activity. Trimmable covers rest of overnight into morning."
+    }
+  },
+  "20210325_15z": {
+    "name": "Birmingham/Eagle Point AL EF3",
+    "cycle_type": "non-synoptic (max F18)",
+    "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    "trimmable_fhrs": [11, 12, 13, 14, 15, 16, 17, 18],
+    "timing": {
+      "best_fhrs": [5, 6, 7, 8],
+      "buildup_fhrs": [0, 1, 2, 3, 4],
+      "notes": "15z init. First tornado 20z = F5. Peak 20z-23z = F5-F8. hero_fhr=3 (section best_fhr). Notes say FHR 5-8. 12 tornadoes across Birmingham metro. F0-F4 captures morning through early afternoon instability buildup (CAPE >2000 J/kg, warm sector development). F5-F8 is peak tornado window. F9-F10 for late activity."
+    }
+  },
+  "20210327_01z": {
+    "name": "Newnan GA EF4",
+    "cycle_type": "non-synoptic (max F18)",
+    "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7],
+    "trimmable_fhrs": [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    "timing": {
+      "best_fhrs": [3, 4, 5],
+      "buildup_fhrs": [0, 1, 2],
+      "notes": "01z init. Tornado touchdown 04:37 UTC Mar 26 = F3.6 after 01z. Peak 04:50-05:15 = F3.8-F4.25. hero_fhr=1 (section best_fhr). Notes say 01z at FHR 3-5. Nocturnal EF4 with 53min duration, 39mi track. F0-F2 capture nocturnal LLJ enhancement and pre-tornado environment. F3-F5 is the active tornado window with 170mph winds. F6-F7 captures dissipation and continued outbreak activity."
+    }
+  },
+  "20211211_00z": {
+    "name": "Quad-State Mayfield KY EF4",
+    "cycle_type": "synoptic (max F48)",
+    "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+    "trimmable_fhrs": [9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    "timing": {
+      "best_fhrs": [1, 2, 3, 4, 5],
+      "buildup_fhrs": [0, 1],
+      "notes": "00z init. First tornado 01z Dec 11 = F1. Peak 03-05z = F3-F5. hero_fhr=3. Already had timing data. 166-mile track across 4 states over 4 hours. 71 tornadoes in outbreak. F0-F1 for buildup. F1-F5 core of Quad-State tornado. F6-F8 for continued outbreak activity. Trimmable extends to F18 for full overnight period."
+    }
+  },
+  "20211210_23z": {
+    "name": "Edwardsville IL Amazon EF3",
+    "cycle_type": "non-synoptic (max F18)",
+    "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7],
+    "trimmable_fhrs": [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    "timing": {
+      "best_fhrs": [3, 4, 5],
+      "buildup_fhrs": [0, 1, 2],
+      "notes": "23z init. Tornado at 02:27 UTC Dec 11 = F3.45 after 23z. Peak 02:27-02:35 = F3.5. hero_fhr=5. Same historic outbreak as Quad-State. Amazon warehouse collapse killed 6. F0-F2 captures pre-storm environment and St. Louis metro instability. F3-F5 is the active tornado/warehouse collapse window. F6-F7 for continued outbreak activity. Extended trimmable through F18."
+    }
+  },
+  "20220305_18z": {
+    "name": "Winterset IA EF4",
+    "cycle_type": "synoptic (max F48)",
+    "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+    "trimmable_fhrs": [9, 10, 11, 12, 16, 17, 18, 19, 20, 21, 22, 23, 24],
+    "timing": {
+      "best_fhrs": [4, 5, 6],
+      "buildup_fhrs": [0, 1, 2, 3],
+      "notes": "18z init. First tornado 22:26 UTC = F4.4. Peak 22:30-00:00 = F4.5-F6. hero_fhr=5. Already had timing data. 70mi track, 94min on ground. Cold-core setup with extreme low-level CAPE. F0-F3 captures moisture return and boundary layer destabilization. F4-F6 is the peak tornado window. F7-F8 for continued track into Newton. Trimmable extends through F24."
+    }
+  },
+  "20220429_22z": {
+    "name": "Andover KS EF3",
+    "cycle_type": "non-synoptic (max F18)",
+    "essential_fhrs": [0, 1, 2, 3, 4, 5, 6],
+    "trimmable_fhrs": [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    "timing": {
+      "best_fhrs": [2, 3, 4],
+      "buildup_fhrs": [0, 1],
+      "notes": "22z init. Tornado at 01:10 UTC Apr 30 = F3.2 after 22z. Peak 01:10-01:31 = F3.2-F3.5. hero_fhr=4 (fhr_offset=4 from 18z archive). Notes say 22z at FHR 0-2 or 21z FHR 1-3. Dryline-initiated supercell east of Wichita. F0-F1 captures dryline and instability. F2-F4 is the active tornado window. F5-F6 for post-tornado environment."
+    }
+  },
+  "20230324_22z": {
+    "name": "Rolling Fork MS EF4",
+    "cycle_type": "non-synoptic (max F18)",
+    "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7],
+    "trimmable_fhrs": [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    "timing": {
+      "best_fhrs": [2, 3, 4, 5],
+      "buildup_fhrs": [0, 1],
+      "notes": "22z init. Tornado at 01:00 UTC Mar 25 = F3 after 22z. Peak 01:15-02:00 = F3.25-F4. hero_fhr=4. High-end EF4 at 195mph, 59mi track. Evening onset transitioning to nocturnal. F0-F1 for pre-storm environment setup. F2-F5 core tornado window through Rolling Fork, Midnight, Silver City. F6-F7 for continued outbreak activity (32 tornadoes total). Trimmable through F18."
+    }
+  },
+  "20230621_22z": {
+    "name": "Matador TX EF3",
+    "cycle_type": "non-synoptic (max F18)",
+    "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7],
+    "trimmable_fhrs": [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    "timing": {
+      "best_fhrs": [2, 3, 4, 5],
+      "buildup_fhrs": [0, 1],
+      "notes": "22z init. Tornado at 00:50 UTC Jun 22 = F2.8 after 22z. Peak 01:00-01:10 = F3. hero_fhr=4. Already had essential_fhrs data. High Plains dryline supercell. F0-F1 captures late afternoon heating and dryline convergence. F2-F5 is the supercell and tornado window. Same cell also produced 109mph winds and 4-inch hail. F6-F7 for post-storm environment."
+    }
+  },
+  "20231209_15z": {
+    "name": "Dec 2023 TN Outbreak",
+    "cycle_type": "non-synoptic (max F18)",
+    "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    "trimmable_fhrs": [11, 12, 13, 14, 15, 16, 17, 18],
+    "timing": {
+      "best_fhrs": [4, 5, 6, 7, 8],
+      "buildup_fhrs": [0, 1, 2, 3],
+      "notes": "15z init. First tornado 18z = F3. Peak 19:41-20:49 UTC = F4.7-F5.8. hero_fhr=3 (section best_fhr). Notes say FHR 4-7. 39 tornadoes including Clarksville EF3 (47.75mi track, 150mph). Late-season December outbreak with summer-like instability. F0-F3 captures morning instability buildup with anomalous December warmth. F4-F8 is the peak tornado activity window. F9-F10 for continued outbreak. Trimmable through F18."
+    }
+  },
+  "20240426_18z": {
+    "name": "Elkhorn-Blair NE EF4",
+    "cycle_type": "synoptic (max F48)",
+    "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+    "trimmable_fhrs": [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24],
+    "timing": {
+      "best_fhrs": [2, 3, 4, 5],
+      "buildup_fhrs": [0, 1],
+      "notes": "18z init. First tornado 20:30 UTC = F2.5. Peak 20:49-21:29 = F2.8-F3.5. hero_fhr=3. Already had timing data. 32mi track through Omaha metro, 1900yd wide. Zero fatalities despite urban path. F0-F1 captures frontal advance and instability. F2-F5 is peak tornado window. F6-F8 for continued outbreak (35 tornadoes total). Trimmable extends through F24."
+    }
+  },
+  "20240428_01z": {
+    "name": "Sulphur/Marietta OK EF3-EF4",
+    "cycle_type": "non-synoptic (max F18)",
+    "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7],
+    "trimmable_fhrs": [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    "timing": {
+      "best_fhrs": [2, 3, 4, 5],
+      "buildup_fhrs": [0, 1],
+      "notes": "01z init. Sulphur EF3 at 03:25 UTC = F2.4. Marietta EF4 at 04:08+ UTC = F3+. Peak 03:25-05:00 = F2.4-F4. hero_fhr=1 (section best_fhr). Notes say 01z at FHR 2-4 or 00z at FHR 3-5. Nocturnal event with two violent tornadoes. F0-F1 for nocturnal LLJ enhancement and pre-tornado setup. F2-F5 for both Sulphur EF3 and Marietta EF4 tornado windows. F6-F7 for continued overnight activity. Part of April 25-28 outbreak."
+    }
+  },
+  "20240506_23z": {
+    "name": "Barnsdall OK EF4",
+    "cycle_type": "non-synoptic (max F18)",
+    "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7],
+    "trimmable_fhrs": [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    "timing": {
+      "best_fhrs": [3, 4, 5, 6],
+      "buildup_fhrs": [0, 1, 2],
+      "notes": "23z init. Tornado at 02:12 UTC May 7 = F3.2 after 23z. Peak 02:30-03:00 = F3.5-F4. hero_fhr=5 (from 18z archive). Notes say 23z at FHR 3-4 or 00z at FHR 2-4. 180mph EF4, 40.8mi nocturnal track. Triple-point initiation. F0-F2 for pre-tornado dryline/warm front environment and LLJ buildup. F3-F6 is the active tornado window including rapid EF1-to-EF4 intensification. F7 for dissipation. Part of May 6-10 100+ tornado outbreak."
+    }
+  },
+  "20240521_17z": {
+    "name": "Greenfield IA EF4",
+    "cycle_type": "non-synoptic (max F18)",
+    "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+    "trimmable_fhrs": [9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    "timing": {
+      "best_fhrs": [4, 5, 6],
+      "buildup_fhrs": [0, 1, 2, 3],
+      "notes": "17z init. First tornado 21z = F4. Peak 21:30-22:00 = F4.5-F5. hero_fhr=5. Notes say 17z at FHR 4-6 or 18z at FHR 3-5. DOW-measured 309-318mph (3rd ever 300mph+ observation). 42.4mi track, 48min. F0-F3 captures afternoon heating, dryline/warm front intersection, CAPE >3000 J/kg buildup. F4-F6 is the peak tornado window. F7-F8 for continued activity (13 tornadoes total)."
+    }
+  },
+  "20240526_00z": {
+    "name": "Valley View TX EF3",
+    "cycle_type": "synoptic (max F48)",
+    "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+    "trimmable_fhrs": [21, 22, 23, 24],
+    "timing": {
+      "best_fhrs": [4, 5, 6, 7],
+      "buildup_fhrs": [0, 1, 2, 3],
+      "notes": "00z init (synoptic, max F48). First tornado 04:30 UTC May 26 = F4.5. Peak 05:00-06:30 = F5-F6.5. hero_fhr=17 (previously evaluated for broader outbreak context). Nocturnal 48mi long-track EF3, 7 dead at I-35 truck stop and mobile home park. F0-F3 captures evening environment setup and LLJ acceleration. F4-F7 is the actual nocturnal tornado window (Valley View devastation). F8-F15 covers morning transition and environment evolution. F16-F20 captures any continued daytime convection per previously curated hero_fhr=17. Part of May 19-27 outbreak sequence."
+    }
+  },
+  "20250315_14z": {
+    "name": "Kentwood-Carson LA/MS EF4",
+    "cycle_type": "non-synoptic (max F18)",
+    "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+    "trimmable_fhrs": [9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    "timing": {
+      "best_fhrs": [3, 4, 5],
+      "buildup_fhrs": [0, 1, 2],
+      "notes": "14z init. First tornado 17:17 UTC = F3.3 after 14z. Peak 17:30-18:30 = F3.5-F4.5. hero_fhr=2 (section best_fhr). Notes say 14z at FHR 3-5. 67mi track, 80min, 170mph EF4. F0-F2 for morning instability buildup and warm front setup. F3-F5 is the peak tornado window through Kentwood, Tylertown. F6-F8 for continued outbreak (100+ tornadoes). Trimmable through F18."
+    }
+  },
+  "20250516_17z": {
+    "name": "St. Louis MO EF3",
+    "cycle_type": "non-synoptic (max F18)",
+    "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+    "trimmable_fhrs": [9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    "timing": {
+      "best_fhrs": [2, 3, 4, 5],
+      "buildup_fhrs": [0, 1],
+      "notes": "17z init. Tornado at 19:41 UTC = F2.7 after 17z. Peak 19:45-20:15 = F2.75-F3.25. hero_fhr=5 (section best_fhr). Notes say 17z FHR 2-4 or 18z FHR 1-3. First St. Louis metro tornado since 1959. $1.6B damage. 23mi track through urban core. F0-F1 captures warm front and instability setup. F2-F5 is peak tornado window (Clayton through Edwardsville). F6-F8 for continued outbreak activity (10 tornadoes). Same outbreak as Somerset-London EF4."
+    }
+  },
+  "20250517_01z": {
+    "name": "Somerset-London KY EF4",
+    "cycle_type": "non-synoptic (max F18)",
+    "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+    "trimmable_fhrs": [9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    "timing": {
+      "best_fhrs": [2, 3, 4, 5],
+      "buildup_fhrs": [0, 1],
+      "notes": "01z init. Tornado at 02:57 UTC May 17 = F1.95. Peak 03:30-04:30 = F2.5-F3.5. hero_fhr=1 (section best_fhr). Notes say 01z FHR 0-3 or 00z FHR 3-6. Nocturnal EF4, 60mi track, 1700yd wide, 90min. 19 dead. Debris to 27,000ft. F0-F1 for nocturnal LLJ ramp-up and pre-tornado shear. F2-F5 is peak tornado window (Somerset through London). F6-F8 for continued activity (20 tornadoes in outbreak). Deadliest US tornado since 2021 Quad-State."
+    }
+  }
+}

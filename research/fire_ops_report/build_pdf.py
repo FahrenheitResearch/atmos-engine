@@ -1,0 +1,392 @@
+r"""
+Build operational fire weather PDF report using ReportBuilder.
+Run: cd C:/Users/drew/hrrr-maps && python research/fire_ops_report/build_pdf.py
+"""
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+
+from tools.agent_tools.report_builder import ReportBuilder, ReportConfig
+
+OUT_DIR = os.path.dirname(os.path.abspath(__file__))
+FIG = os.path.join(OUT_DIR)  # figures are already here
+
+# Change CWD to output dir so Figure path resolution works correctly
+os.chdir(OUT_DIR)
+
+# ── Config ──────────────────────────────────────────────────────────────────
+config = ReportConfig(
+    title="Operational Fire Weather Report: Eastern NM / TX Panhandle",
+    author="wxsection.com AI Agent Swarm (5 parallel agents)",
+    date="February 9, 2026 -- 19:30 UTC",
+    report_type="forecast",
+    institution="wxsection.com",
+)
+
+rb = ReportBuilder(config, output_dir=OUT_DIR)
+
+# ── Abstract ────────────────────────────────────────────────────────────────
+rb.set_abstract(
+    "Two active fires are burning under SPC CRITICAL fire weather conditions "
+    "across eastern New Mexico and the Texas Panhandle on February 9, 2026. "
+    "A fire along Amarillo Lake near North Hughes Street has forced school "
+    "evacuations and road closures. A larger fire burns east of Tucumcari, NM "
+    "in open Quay County terrain. Surface observations show sustained winds of "
+    "22 kt gusting to 35 kt (40 mph) with relative humidity as low as 7-11% "
+    "and temperatures 25 deg F above normal. The entire troposphere is desiccated "
+    "with no moisture at any level. HRRR analysis shows a nocturnal low-level jet "
+    "that will load momentum overnight with NO meaningful RH recovery, creating "
+    "a secondary extreme fire weather window tomorrow morning. This report was "
+    "generated autonomously by 5 parallel AI agents using 6 data sources, "
+    "producing 40+ cross-section products, Google Street View imagery, and "
+    "GFS extended-range forecasts."
+)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Section 1: Executive Summary / Active Alerts
+# ══════════════════════════════════════════════════════════════════════════════
+s1 = rb.add_section("Active Fires and Alerts",
+r"""Two fires are burning in the SPC Critical fire weather zone:
+
+\begin{enumerate}[leftmargin=2em]
+\item \textbf{Amarillo Lake Fire (Amarillo, TX)} --- Fire along Amarillo Lake near North Hughes St / NW 5th Ave. Amarillo PD blocking traffic, North Heights High School students bused to other campuses. Response ongoing.
+\item \textbf{Fire East of Tucumcari, NM (Quay County)} --- Larger fire in open terrain east of Tucumcari. Limited reporting; area under active Red Flag Warning with 7--13\% RH and 30~kt gusts.
+\end{enumerate}
+
+\subsection{NWS Red Flag Warnings}
+Three simultaneous Red Flag Warnings are active:
+\begin{itemize}[leftmargin=2em]
+\item \textbf{NWS Albuquerque} (NMZ104, 123, 125, 126) --- San Miguel, Guadalupe, Quay, Curry counties. SW 20--25 mph, gusts 35 mph. RH 7--13\%. 11 AM--6 PM MST.
+\item \textbf{NWS Amarillo} (20 zones, TX/OK panhandles) --- SW 20--25 mph, gusts \textbf{40 mph}. RH as low as \textbf{7\%}. Temps 70s--80s\,$^\circ$F. ERC 70th--89th percentile (4/5). Until 7 PM CST.
+\item \textbf{NWS Lubbock} (Parmer, Castro, Bailey) --- SW 20--25 mph, gusts 35 mph. RH 9\%. Until 7 PM CST.
+\end{itemize}
+
+\subsection{SPC Fire Weather Outlook}
+Day 1: \textbf{CRITICAL} for eastern NM through TX Panhandle to western KS. Both Tucumcari and Amarillo are squarely within the Critical zone. Day 2: No highlighted areas---this is a sharp one-day event driven by a passing system.""")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Section 2: Surface Observations
+# ══════════════════════════════════════════════════════════════════════════════
+s2 = rb.add_section("Surface Observations",
+r"""METAR observations at 1953 UTC (1:53 PM CST / 12:53 PM MST) reveal textbook critical fire weather conditions across the fire corridor.""")
+
+rb.add_table(s2,
+    caption="Surface Observations at 1953 UTC, February 9, 2026",
+    headers=["Station", "Location", "Wind", "Gust", "Temp", "Dewpt", "RH", "Altimeter"],
+    rows=[
+        ["KTCC", "Tucumcari NM", "210/22kt", "30kt (pk 35)", "74F (23C)", "16F (-9C)", "~11%", "29.97\""],
+        ["KAMA", "Amarillo TX",  "230/19kt", "32kt (pk 33)", "76F (24C)", "17F (-8C)", "~10%", "30.02\""],
+        ["KCQC", "Clines Corners NM", "300/18kt", "28kt (pk 31)", "60F (16C)", "11F (-12C)", "~14%", "30.17\""],
+        ["KLBB", "Lubbock TX",   "220/13kt", "20kt", "74F (23C)", "19F (-7C)", "~12%", "30.08\""],
+        ["KABQ", "Albuquerque NM", "340/4kt", "---", "60F (16C)", "23F (-5C)", "~24%", "30.17\""],
+    ],
+    label="tab:metar",
+)
+
+s2a = rb.add_section("Key Observational Findings", level=2, content=
+r"""\begin{itemize}[leftmargin=2em]
+\item \textbf{Peak gusts: 35~kt (40~mph) at Tucumcari at 19:19Z, 33~kt (38~mph) at Amarillo at 19:17Z} --- exceeding Red Flag criteria.
+\item \textbf{Temperature-dewpoint spread: 30--33\,$^\circ$C (55--60\,$^\circ$F)} --- extreme atmospheric desiccation.
+\item \textbf{Pressure falling rapidly:} KTCC dropped 4~mb in 3 hours; KAMA dropped 3.1~mb/3hr --- deepening trough driving wind acceleration.
+\item \textbf{Wind shift approaching from the west:} Clines Corners (105.7$^\circ$W) reports WNW 300$^\circ$ while fire locations show SW 210--230$^\circ$. The trough/cold front is propagating eastward toward the fires.
+\item \textbf{Conditions still worsening} --- observations taken early-to-mid afternoon; peak heating 1--2 hours away.
+\end{itemize}""")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Section 3: HRRR Cross-Section Analysis
+# ══════════════════════════════════════════════════════════════════════════════
+s3 = rb.add_section("HRRR Cross-Section Analysis",
+r"""The following cross-sections were generated from the HRRR 3-km model (cycle 20260209 19Z) along a W--E transect at 35.17$^\circ$N from 105$^\circ$W to 102$^\circ$W, cutting through the Sangre de Cristo foothills, across the Canadian Escarpment, through Tucumcari, and onto the High Plains.""")
+
+# Fire Wx composite
+rb.add_figure(s3,
+    os.path.join(FIG, "tucumcari_firewx_WE.png"),
+    "HRRR Fire Weather Composite, W-E through Tucumcari (35.17N). Deep red/dark red indicates RH below 20% through the full troposphere. Cross-hatching shows RH below 15% extending from surface through 700 hPa. Strong SW wind barbs throughout. Terrain drops from ~2000m (west) to ~1200m (east) --- classic downslope acceleration zone.",
+    label="fig:firewx-we")
+
+# Wind speed
+rb.add_figure(s3,
+    os.path.join(FIG, "tucumcari_wind_WE.png"),
+    "HRRR Wind Speed, W-E through Tucumcari. Surface winds 15-25 kt across the transect. 700 hPa layer shows 30-40 kt --- the momentum source mixing to the surface. Low-level jet visible at 800-700 hPa. Strongest surface winds in the 150-250 km zone east of the terrain break.",
+    label="fig:wind-we")
+
+# RH
+rb.add_figure(s3,
+    os.path.join(FIG, "tucumcari_rh_WE.png"),
+    "HRRR Relative Humidity, W-E through Tucumcari. The entire atmosphere is bone dry --- uniformly below 20% RH from surface to 400 hPa. No moisture at any level. This is a deep, well-mixed dry airmass with zero chance of precipitation.",
+    label="fig:rh-we")
+
+# 2-panel: omega + isentropic
+rb.add_figure_grid(s3,
+    [
+        {"path": os.path.join(FIG, "tucumcari_omega_WE.png"),
+         "caption": "Omega (vertical velocity). Weak subsidence across most of the transect reinforcing dryness."},
+        {"path": os.path.join(FIG, "tucumcari_isen_rh_WE.png"),
+         "caption": "Isentropic RH. Compressed isentropes near terrain indicate downslope acceleration. Dry on all theta surfaces."},
+    ],
+    caption="Vertical velocity and isentropic analysis through the Tucumcari fire zone",
+    ncols=2, label="fig:omega-isen")
+
+# Isentropic wind
+rb.add_figure(s3,
+    os.path.join(FIG, "tucumcari_isen_wind_WE.png"),
+    "HRRR Isentropic Wind Speed, W-E through Tucumcari. Strong wind maximum at 310-320K theta levels (40+ kt). Momentum transfer from mountain crest to plains visible. Classic downslope windstorm signature with compressed isentropes and accelerating flow.",
+    label="fig:isen-wind")
+
+# N-S transect
+rb.add_figure(s3,
+    os.path.join(FIG, "tucumcari_wind_NS.png"),
+    "HRRR Wind Speed, N-S through fire area at 103.3W (36.5N to 34N). Jet stream directly overhead at 200-300 hPa (80+ kt). Strongest surface winds centered on the 35-36N zone --- right over the fire area. No frontal boundaries providing relief.",
+    label="fig:wind-ns")
+
+# ── Tucumcari-Amarillo corridor ──
+s3b = rb.add_section("Tucumcari to Amarillo Corridor",
+r"""The 175-km corridor between the two fires shows uniformly critical conditions with no terrain sheltering.""",
+level=2)
+
+rb.add_figure_grid(s3b,
+    [
+        {"path": os.path.join(FIG, "tucumcari_amarillo_firewx.png"),
+         "caption": "Fire Weather Composite. Uniformly critical conditions along the entire corridor."},
+        {"path": os.path.join(FIG, "tucumcari_amarillo_wind.png"),
+         "caption": "Wind Speed. 15-25 kt sustained winds with no localized sheltering."},
+    ],
+    caption="Tucumcari to Amarillo transect: the entire corridor is one continuous fire danger zone",
+    ncols=2, label="fig:corridor")
+
+rb.add_figure(s3b,
+    os.path.join(FIG, "tucumcari_amarillo_temp.png"),
+    "Temperature cross-section, Tucumcari to Amarillo. 0C isotherm near 630 hPa. Surface temperatures 18-24C (65-76F) --- 25F above normal for February.",
+    label="fig:corridor-temp")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Section 4: Fire Risk Scoring
+# ══════════════════════════════════════════════════════════════════════════════
+s4 = rb.add_section("HRRR Fire Risk Analysis",
+r"""Quantitative fire risk scores from the wxsection.com fire risk engine, based on HRRR data along 100-km transects centered on each fire location.""")
+
+rb.add_table(s4,
+    caption="HRRR Fire Risk Scores: Tucumcari NM",
+    headers=["Metric", "Current (FHR 0)", "Peak (FHR +6)"],
+    rows=[
+        ["Risk Score", "40/100 (MODERATE)", "58/100 (ELEVATED)"],
+        ["Min RH", "12.3%", "6.1% (below 8% critical)"],
+        ["VPD", "20.6 hPa", "21.4 hPa (extreme)"],
+        ["Max Wind", "9.7 kt", "17.8 kt"],
+    ],
+    label="tab:risk-tucumcari",
+)
+
+rb.add_table(s4,
+    caption="HRRR Fire Risk Scores: Amarillo TX",
+    headers=["Metric", "Current (FHR 0)", "Peak (FHR +6)"],
+    rows=[
+        ["Risk Score", "45/100 (MODERATE)", "44/100 (MODERATE)"],
+        ["Min RH", "10.6%", "10.9%"],
+        ["VPD", "21.5 hPa", "21.5 hPa (extreme)"],
+        ["Max Wind", "9.9 kt", "10.2 kt"],
+    ],
+    label="tab:risk-amarillo",
+)
+
+s4a = rb.add_section("National Context", level=2, content=
+r"""The NM/TX corridor is the \textbf{\#1 fire risk in the nation} by a wide margin. National scan scores: High Plains South 60, Texas Panhandle 59, Arizona 41, all other regions 7--19 (LOW). Note: HRRR point risk scores understate observed conditions---surface observations show 22G30-35~kt vs model 10~kt mean. The model captures the thermodynamic extremes (RH 6--11\%, VPD 20+ hPa) but underresolves peak gusts.""")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Section 5: Temporal Evolution
+# ══════════════════════════════════════════════════════════════════════════════
+s5 = rb.add_section("Temporal Evolution (HRRR FHR 0--18)",
+r"""Seven forecast timesteps at 3-hour intervals track the fire weather evolution from this afternoon through tomorrow morning. The critical finding: \textbf{there is no meaningful overnight humidity recovery}.""")
+
+# FHR 00 vs 09 vs 18
+rb.add_figure_grid(s5,
+    [
+        {"path": os.path.join(FIG, "temporal", "tucumcari_firewx_fhr00.png"),
+         "caption": "FHR 00 (19Z, 1 PM CST): Critical conditions established. Deep cross-hatching."},
+        {"path": os.path.join(FIG, "temporal", "tucumcari_firewx_fhr09.png"),
+         "caption": "FHR 09 (04Z, 10 PM CST): Winds remain elevated. LLJ developing at 700-800 hPa."},
+    ],
+    caption="Fire weather composite evolution: afternoon through evening",
+    ncols=2, label="fig:temporal-1")
+
+rb.add_figure(s5,
+    os.path.join(FIG, "temporal", "tucumcari_firewx_fhr18.png"),
+    "FHR 18 (13Z, 7 AM CST Feb 10): Even at dawn, fire wx composite still shows deep red shading and cross-hatching. The atmosphere is primed for another extreme fire weather day as soon as morning heating begins. The nocturnal LLJ is loaded and ready to mix down.",
+    label="fig:temporal-fhr18")
+
+# Wind temporal grid
+rb.add_figure_grid(s5,
+    [
+        {"path": os.path.join(FIG, "temporal", "tucumcari_wind_fhr00.png"),
+         "caption": "FHR 00: Moderate surface winds, 700 hPa jet mixing down."},
+        {"path": os.path.join(FIG, "temporal", "tucumcari_wind_fhr09.png"),
+         "caption": "FHR 09: Nocturnal LLJ developing at 700-800 hPa."},
+        {"path": os.path.join(FIG, "temporal", "tucumcari_wind_fhr18.png"),
+         "caption": "FHR 18: Peak nocturnal LLJ. Momentum loaded aloft."},
+        {"path": os.path.join(FIG, "temporal", "tucumcari_rh_fhr18.png"),
+         "caption": "FHR 18: RH still below 25% in boundary layer at dawn."},
+    ],
+    caption="Wind speed and RH evolution through the overnight period. The nocturnal LLJ concentrates momentum at 700--800 hPa with no boundary layer humidity recovery.",
+    ncols=2, label="fig:temporal-wind-grid")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Section 6: GFS Extended Forecast (if available)
+# ══════════════════════════════════════════════════════════════════════════════
+gfs_dir = os.path.join(FIG, "gfs")
+if os.path.isdir(gfs_dir) and os.listdir(gfs_dir):
+    s6 = rb.add_section("GFS Extended-Range Forecast",
+    r"""The GFS 0.25$^\circ$ model (cycle 20260209 12Z) provides multi-day context beyond the HRRR 18-hour window.""")
+
+    gfs_files = sorted(os.listdir(gfs_dir))
+    # Group by fhr
+    for f in gfs_files:
+        if f.endswith('.png'):
+            fpath = os.path.join(gfs_dir, f)
+            # Parse filename for caption
+            parts = f.replace('.png','').split('_')
+            product = parts[1] if len(parts) > 1 else ''
+            fhr_str = parts[-1] if len(parts) > 1 else ''
+            fhr_num = fhr_str.replace('fhr','')
+
+            product_names = {'firewx': 'Fire Weather Composite', 'wind': 'Wind Speed', 'rh': 'Relative Humidity'}
+            pname = product_names.get(product, product)
+
+            try:
+                fhr_int = int(fhr_num)
+                valid_hr = 12 + fhr_int
+                day_offset = valid_hr // 24
+                hour = valid_hr % 24
+                day_labels = {0: 'Feb 9', 1: 'Feb 10', 2: 'Feb 11', 3: 'Feb 12', 4: 'Feb 13'}
+                day_str = day_labels.get(day_offset, f'+{day_offset}d')
+                caption = f"GFS {pname}, FHR {fhr_num} (valid {hour:02d}Z {day_str})"
+            except ValueError:
+                caption = f"GFS {pname} ({fhr_str})"
+
+            rb.add_figure(s6, fpath, caption, width="0.85\\textwidth")
+
+    # GIFs note
+    gif_files = [f for f in gfs_files if f.endswith('.gif')]
+    if gif_files:
+        rb.add_section("GFS Animated Evolution", level=2, content=
+            "GFS animated GIFs showing multi-day fire weather evolution are available in the "
+            "\\texttt{gfs/} subdirectory but cannot be embedded in PDF. Files: " +
+            ", ".join(f"\\texttt{{{f.replace('_', chr(92)+'_')}}}" for f in gif_files))
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Section 7: Street View Fuel Assessment (if available)
+# ══════════════════════════════════════════════════════════════════════════════
+sv_dir = os.path.join(FIG, "streetview")
+if os.path.isdir(sv_dir):
+    sv_files = [f for f in sorted(os.listdir(sv_dir)) if f.endswith(('.jpg','.png'))]
+    if sv_files:
+        s7 = rb.add_section("Google Street View Fuel Assessment",
+        r"""Ground-level imagery from Google Street View provides direct assessment of fuel types, terrain, and built environment in the fire-affected areas. These images show the landscape conditions that fire weather conditions are acting upon.""")
+
+        sv_pairs = []
+        for f in sv_files:
+            fpath = os.path.join(sv_dir, f)
+            # Generate caption from filename
+            name = f.replace('.jpg','').replace('.png','').replace('_',' ').title()
+            sv_pairs.append({"path": fpath, "caption": name})
+
+        # Add as grids of 2
+        for i in range(0, len(sv_pairs), 2):
+            batch = sv_pairs[i:i+2]
+            if len(batch) == 2:
+                rb.add_figure_grid(s7, batch,
+                    caption=f"Street View imagery: {batch[0]['caption']} and {batch[1]['caption']}",
+                    ncols=2)
+            else:
+                rb.add_figure(s7, batch[0]['path'], batch[0]['caption'])
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Section 8: Fire Behavior Assessment
+# ══════════════════════════════════════════════════════════════════════════════
+s8 = rb.add_section("Fire Behavior Assessment",
+r"""\subsection{Tucumcari Area Fire (Quay County)}
+\begin{itemize}[leftmargin=2em]
+\item \textbf{Fuel type:} Cured winter grassland on the eastern NM High Plains
+\item \textbf{Terrain:} Flat to gently rolling, 1200--1300\,m elevation, no barriers
+\item \textbf{Spread potential:} EXTREME --- 11\% RH + 22G30~kt + cured grass = rapid rates
+\item \textbf{Direction of spread:} NE to ENE (winds from 210$^\circ$)
+\item \textbf{Escape potential:} Very high --- flat terrain, sparse population, limited suppression
+\item \textbf{Structure threat:} Scattered ranch structures; I-40 corridor at risk
+\end{itemize}
+
+\subsection{Amarillo Lake Fire}
+\begin{itemize}[leftmargin=2em]
+\item \textbf{Location:} Urban/wildland interface near North Hughes St / NW 5th Ave
+\item \textbf{Fuel type:} Grass and brush around lake, urban structures downwind
+\item \textbf{Conditions:} 10\% RH, 19G32~kt --- extreme for urban interface fire
+\item \textbf{School impact:} North Heights HS evacuated (students bused)
+\item \textbf{Traffic:} Hughes St blocked by APD
+\end{itemize}""")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Section 9: Forecast and Risk Outlook
+# ══════════════════════════════════════════════════════════════════════════════
+s9 = rb.add_section("Forecast and Operational Outlook", content=
+rb.add_alert_box(
+    "CRITICAL: A cold front arrives around midnight (06Z) with a sharp wind shift "
+    "to northerly. This could stress the southern flanks of any active fires. "
+    "Fire behavior may shift dramatically at frontal passage.",
+    color="red", title="WIND SHIFT WARNING"
+) + r"""
+
+\subsection{Timeline}
+\begin{description}[leftmargin=2em]
+\item[NOW through 01Z (7 PM CST):] \textbf{Peak danger.} SW 20--25G35~kt, RH 7--11\%. Boundary layer mixing bringing 700~hPa momentum to surface.
+\item[01Z--06Z (evening):] Pre-frontal winds remain elevated. LLJ developing at 700--800~hPa.
+\item[~06Z (midnight):] Cold front passage. Wind shift to N/NW. \textbf{Southern fire flanks at risk.}
+\item[06Z--13Z (overnight):] \textbf{NO meaningful RH recovery.} Boundary layer stays 10--25\% even overnight. Fuels will not recover moisture. LLJ peaks.
+\item[After 16Z Feb 10 (10 AM MST):] \textbf{Next-morning surge risk.} Loaded LLJ mixes down with still-dry column. Secondary extreme window possible.
+\item[Day 2--3 (Feb 10--11):] SPC shows no highlighted areas. Pattern breaks.
+\item[Mid-week:] Rain and storms return. Genuine relief.
+\end{description}
+
+\subsection{Pattern Similarity}
+This setup closely resembles the \textbf{Smokehouse Creek Fire} (February 26, 2024) --- Texas Panhandle, 1M+ acres. Same SW wind pattern, extreme low RH, cured winter grass. Key difference: today's ERC is 70th--89th percentile (vs 90th+ for Smokehouse Creek).
+
+\subsection{Seasonal Context (NIFC Monthly Outlook)}
+\begin{itemize}[leftmargin=2em]
+\item Above-normal fine fuel loading over eastern NM
+\item Above-normal significant fire potential through March--April
+\item La Ni\~na pattern driving heightened risk
+\item NM snowpack at 40--50\% of normal
+\item TDEM has pre-deployed state wildfire response resources across western TX
+\end{itemize}""")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Section 10: Data Sources and Methodology
+# ══════════════════════════════════════════════════════════════════════════════
+s10 = rb.add_section("Data Sources and Methodology", content=
+r"""This report was generated autonomously by the wxsection.com AI Agent Research Platform using 5 parallel intelligence agents:
+
+\begin{enumerate}[leftmargin=2em]
+\item \textbf{SPC/NWS Intelligence Agent} --- SPC fire weather outlooks (Day 1/2), NWS alerts (NM, TX), HRRR fire risk scoring, national fire risk scan
+\item \textbf{Surface Observations Agent} --- METAR data from 6 stations with trend analysis, peak gust extraction, pressure tendency
+\item \textbf{Cross-Section Agent} --- 10 static HRRR cross-sections (wind, RH, fire wx, omega, temperature, isentropic) across multiple transects
+\item \textbf{Temporal Evolution Agent} --- 21 HRRR forecast frames (7 FHRs $\times$ 3 products) + 3 animated GIFs
+\item \textbf{Web Intelligence Agent} --- Open-source fire intelligence from 15+ sources including Texas A\&M Forest Service, NIFC situation reports, local news
+\end{enumerate}
+
+\textbf{Additional products:} GFS 0.25$^\circ$ extended-range cross-sections, Google Street View fuel assessment imagery.
+
+\textbf{Models:} HRRR 3-km (cycle 20260209 19Z), GFS 0.25$^\circ$ (cycle 20260209 12Z).
+
+\textbf{Platform:} wxsection.com atmospheric cross-section generator with AI agent research tools (MCP server, 22 tools, 6 API endpoints).""")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Compile
+# ══════════════════════════════════════════════════════════════════════════════
+print("Saving LaTeX...")
+tex_path = rb.save_latex()
+print(f"LaTeX saved: {tex_path}")
+
+print("Compiling PDF...")
+try:
+    pdf_path = rb.compile_pdf(passes=2)
+    print(f"PDF compiled: {pdf_path}")
+except Exception as e:
+    print(f"PDF compilation error: {e}")
+    print("LaTeX source saved; fix errors and recompile manually.")

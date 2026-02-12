@@ -1,0 +1,357 @@
+{
+  "metadata": {
+    "generated": "2026-02-11",
+    "description": "Optimal HRRR init cycles for 20 tornado events, optimized for mesoscale accuracy and pre-storm environment capture",
+    "methodology": "Synoptic cycles (00/06/12/18z) preferred for better data assimilation; target F03-F08 for first tornado; 2-4h buildup before storms essential for CAPE/shear/helicity fields; lower FHR always better for supercell-scale features",
+    "total_events": 20,
+    "changed_count": 15,
+    "unchanged_count": 5
+  },
+  "events": [
+    {
+      "original_key": "20200303_03z",
+      "recommended_key": "20200303_00z",
+      "changed": true,
+      "rationale": "00z synoptic cycle puts Nashville EF3 (06:32 UTC) at F06 and Cookeville EF4 at F07-F08, with 48h range; full nocturnal LLJ buildup visible from F00; superior data assimilation vs 03z non-synoptic; captures the critical 0-1km SRH ramp-up in the pre-storm environment",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      "trimmable_fhrs": [11, 12, 14, 16, 18, 20, 24],
+      "timing": {
+        "first_tornado_utc": "06:32 UTC Mar 3",
+        "peak_utc": "06:30-08:30 UTC",
+        "best_fhrs": [5, 6, 7, 8],
+        "buildup_fhrs": [0, 1, 2, 3, 4]
+      },
+      "secondary_cycles": []
+    },
+    {
+      "original_key": "20200412_18z",
+      "recommended_key": "20200412_18z",
+      "changed": false,
+      "rationale": "18z synoptic cycle is already optimal for Easter 2020 outbreak; first tornadoes at F00, Bassfield EF4 at F05, peak activity F03-F09; 48h range captures entire multi-day event including overnight continuation; synoptic quality data assimilation with full warm sector evolution",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "trimmable_fhrs": [13, 14, 15, 16, 18, 20, 22, 24],
+      "timing": {
+        "first_tornado_utc": "18:00 UTC Apr 12",
+        "peak_utc": "21:00-03:00 UTC",
+        "best_fhrs": [3, 4, 5, 6, 7, 8, 9],
+        "buildup_fhrs": [0, 1, 2]
+      },
+      "secondary_cycles": []
+    },
+    {
+      "original_key": "20210126_02z",
+      "recommended_key": "20210126_00z",
+      "changed": true,
+      "rationale": "00z synoptic cycle puts Fultondale EF3 (04:40 UTC) at F04-F05, with 48h range and superior data assimilation; captures nocturnal LLJ spin-up and warm sector moistening from F00; critical for resolving the unusual January 60F dewpoints and extreme low-level helicity that drove this nocturnal supercell",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7],
+      "trimmable_fhrs": [8, 9, 10, 12, 14, 16, 18],
+      "timing": {
+        "first_tornado_utc": "04:40 UTC Jan 26",
+        "peak_utc": "04:40-04:55 UTC",
+        "best_fhrs": [4, 5],
+        "buildup_fhrs": [0, 1, 2, 3]
+      },
+      "secondary_cycles": []
+    },
+    {
+      "original_key": "20210325_15z",
+      "recommended_key": "20210325_12z",
+      "changed": true,
+      "rationale": "12z synoptic cycle puts first tornado (20:00 UTC) at F08, peak activity at F08-F11; provides full morning-through-afternoon buildup F00-F07 showing cap erosion, boundary layer destabilization, and warm sector deepening; 48h range; far superior data assimilation vs 15z non-synoptic; essential for capturing the squall line/embedded supercell transition",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      "trimmable_fhrs": [12, 13, 14, 16, 18, 20, 24],
+      "timing": {
+        "first_tornado_utc": "20:00 UTC Mar 25",
+        "peak_utc": "20:00-23:00 UTC",
+        "best_fhrs": [8, 9, 10, 11],
+        "buildup_fhrs": [0, 1, 2, 3, 4, 5, 6, 7]
+      },
+      "secondary_cycles": []
+    },
+    {
+      "original_key": "20210327_01z",
+      "recommended_key": "20210326_00z",
+      "changed": true,
+      "rationale": "00z synoptic cycle (Mar 26) puts Newnan EF4 touchdown (04:37 UTC) at F04-F05; 48h range; full pre-storm environment capture F00-F03 shows nocturnal LLJ acceleration and helicity ramp-up; current key 20210327_01z has wrong date -- tornado was Mar 25-26, not Mar 27; 00z synoptic gives best data assimilation for this violent nocturnal EF4",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+      "trimmable_fhrs": [9, 10, 12, 14, 16, 18],
+      "timing": {
+        "first_tornado_utc": "04:37 UTC Mar 26",
+        "peak_utc": "04:50-05:15 UTC",
+        "best_fhrs": [4, 5, 6],
+        "buildup_fhrs": [0, 1, 2, 3]
+      },
+      "secondary_cycles": []
+    },
+    {
+      "original_key": "20211211_00z",
+      "recommended_key": "20211211_00z",
+      "changed": false,
+      "rationale": "00z synoptic cycle (Dec 11) is already optimal for Quad-State tornado; first tornado at F01, Mayfield EF4 devastation at F03-F04, 48h range; captures the entire 166-mile 4-state track from F01-F05; synoptic quality data assimilation is critical for resolving the anomalous December instability and extreme LLJ",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+      "trimmable_fhrs": [9, 10, 12, 14, 16, 18],
+      "timing": {
+        "first_tornado_utc": "01:00 UTC Dec 11",
+        "peak_utc": "03:00-05:00 UTC",
+        "best_fhrs": [1, 2, 3, 4, 5],
+        "buildup_fhrs": [0, 1]
+      },
+      "secondary_cycles": []
+    },
+    {
+      "original_key": "20211210_23z",
+      "recommended_key": "20211211_00z",
+      "changed": true,
+      "rationale": "00z synoptic cycle (Dec 11) puts Edwardsville Amazon tornado (02:27 UTC) at F02-F03 with excellent mesoscale accuracy AND synoptic data assimilation; current key 23z non-synoptic has inferior assimilation; 00z also enables sharing the same cycle as the Quad-State event for combined outbreak analysis; captures the warm front environment near St. Louis at very low FHR",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6],
+      "trimmable_fhrs": [7, 8, 9, 10, 12, 14, 16, 18],
+      "timing": {
+        "first_tornado_utc": "02:27 UTC Dec 11",
+        "peak_utc": "02:27-02:35 UTC",
+        "best_fhrs": [2, 3],
+        "buildup_fhrs": [0, 1]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20211210_18z",
+          "reason": "18z synoptic provides full evening warm sector evolution from F00 through tornado at F08; better for understanding environmental destabilization and LLJ onset"
+        }
+      ]
+    },
+    {
+      "original_key": "20220305_18z",
+      "recommended_key": "20220305_18z",
+      "changed": false,
+      "rationale": "18z synoptic cycle is already optimal; first tornado (22:26 UTC) at F04, peak activity F04-F06; provides full afternoon buildup F00-F03 showing boundary layer moistening, CAPE accumulation, and the dryline surge; 48h range; synoptic quality captures the cold-core setup with extreme low-level SRH perfectly",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+      "trimmable_fhrs": [9, 10, 12, 16, 18, 20, 24],
+      "timing": {
+        "first_tornado_utc": "22:26 UTC Mar 5",
+        "peak_utc": "22:30-00:00 UTC",
+        "best_fhrs": [4, 5, 6],
+        "buildup_fhrs": [0, 1, 2, 3]
+      },
+      "secondary_cycles": []
+    },
+    {
+      "original_key": "20220429_22z",
+      "recommended_key": "20220429_18z",
+      "changed": true,
+      "rationale": "18z synoptic cycle puts Andover EF3 (01:10 UTC Apr 30) at F07 with 48h range; full afternoon dryline evolution visible F00-F06; synoptic data assimilation far superior to 22z non-synoptic; captures the critical dryline surge and discrete supercell initiation east of Wichita; F07 is still excellent mesoscale resolution for a Great Plains supercell",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+      "trimmable_fhrs": [9, 10, 12, 14, 16, 18],
+      "timing": {
+        "first_tornado_utc": "01:10 UTC Apr 30",
+        "peak_utc": "01:10-01:31 UTC",
+        "best_fhrs": [6, 7, 8],
+        "buildup_fhrs": [0, 1, 2, 3, 4, 5]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20220430_00z",
+          "reason": "00z synoptic at F01-F02 provides the freshest mesoscale data for the actual tornado, complementing 18z environmental analysis"
+        }
+      ]
+    },
+    {
+      "original_key": "20230324_22z",
+      "recommended_key": "20230324_18z",
+      "changed": true,
+      "rationale": "18z synoptic cycle puts Rolling Fork EF4 (01:00 UTC Mar 25) at F07 with 48h range; captures the critical evening transition: warm sector moistening, LLJ onset, and warm front focus F00-F06; synoptic data assimilation critical for resolving the focused supercell corridor; 22z non-synoptic misses the afternoon environment setup; F07 still excellent for supercell-scale features",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+      "trimmable_fhrs": [10, 12, 14, 16, 18],
+      "timing": {
+        "first_tornado_utc": "01:00 UTC Mar 25",
+        "peak_utc": "01:15-02:00 UTC",
+        "best_fhrs": [6, 7, 8],
+        "buildup_fhrs": [0, 1, 2, 3, 4, 5]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20230325_00z",
+          "reason": "00z synoptic at F01-F02 gives freshest mesoscale for the actual tornado; pair with 18z for complete analysis"
+        }
+      ]
+    },
+    {
+      "original_key": "20230621_22z",
+      "recommended_key": "20230621_18z",
+      "changed": true,
+      "rationale": "18z synoptic cycle puts Matador EF3 (00:50 UTC Jun 22) at F06-F07; captures the entire afternoon heating cycle, dryline evolution, and supercell initiation F00-F05; synoptic quality critical for resolving steep lapse rates and dryline position on the High Plains; 22z non-synoptic offers inferior data assimilation; F06-F07 still excellent for a discrete supercell",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+      "trimmable_fhrs": [9, 10, 12, 14, 16, 18],
+      "timing": {
+        "first_tornado_utc": "00:50 UTC Jun 22",
+        "peak_utc": "01:00-01:10 UTC",
+        "best_fhrs": [6, 7],
+        "buildup_fhrs": [0, 1, 2, 3, 4, 5]
+      },
+      "secondary_cycles": []
+    },
+    {
+      "original_key": "20231209_15z",
+      "recommended_key": "20231209_12z",
+      "changed": true,
+      "rationale": "12z synoptic cycle puts first tornado (18:00 UTC) at F06, Clarksville EF3 peak (19:41-20:49 UTC) at F07-F09; provides full morning-to-afternoon buildup F00-F05 capturing cap erosion, instability growth, and December warm sector development; 48h range; far superior data assimilation vs 15z non-synoptic; essential for resolving the anomalous December CAPE and deep-layer shear",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      "trimmable_fhrs": [11, 12, 14, 16, 18, 20, 24],
+      "timing": {
+        "first_tornado_utc": "18:00 UTC Dec 9",
+        "peak_utc": "19:41-20:49 UTC",
+        "best_fhrs": [6, 7, 8, 9],
+        "buildup_fhrs": [0, 1, 2, 3, 4, 5]
+      },
+      "secondary_cycles": []
+    },
+    {
+      "original_key": "20240426_18z",
+      "recommended_key": "20240426_18z",
+      "changed": false,
+      "rationale": "18z synoptic cycle is already optimal; Elkhorn-Blair EF4 first tornado at F02 (20:30 UTC), peak at F02-F03; superlative mesoscale accuracy combined with synoptic data assimilation; captures the supercell maturation phase through the Omaha metro at F02-F03; F00-F01 provides immediate pre-storm environment; 48h range",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+      "trimmable_fhrs": [9, 10, 12, 14, 16, 18, 20, 24],
+      "timing": {
+        "first_tornado_utc": "20:30 UTC Apr 26",
+        "peak_utc": "20:49-21:29 UTC",
+        "best_fhrs": [2, 3, 4],
+        "buildup_fhrs": [0, 1]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20240426_12z",
+          "reason": "12z synoptic provides morning environment and KS supercell initiation; tornado at F08-F09 with full afternoon buildup for broader outbreak analysis"
+        }
+      ]
+    },
+    {
+      "original_key": "20240428_01z",
+      "recommended_key": "20240428_00z",
+      "changed": true,
+      "rationale": "00z synoptic cycle puts Sulphur EF3 (03:25 UTC) at F03 and Marietta EF4 (04:08 UTC) at F04; ideal F03-F05 range for violent nocturnal tornadoes; 48h range; synoptic data assimilation critical for resolving the dryline remnant and nocturnal LLJ that drove Oklahoma's first violent tornado in 8 years; 01z non-synoptic has inferior assimilation and only F18 max range",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+      "trimmable_fhrs": [9, 10, 12, 14, 16, 18],
+      "timing": {
+        "first_tornado_utc": "03:25 UTC Apr 28",
+        "peak_utc": "03:25-05:00 UTC",
+        "best_fhrs": [3, 4, 5],
+        "buildup_fhrs": [0, 1, 2]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20240427_18z",
+          "reason": "18z synoptic (Apr 27) captures full evening dryline evolution and LLJ onset; tornadoes at F09-F11 with complete warm sector setup"
+        }
+      ]
+    },
+    {
+      "original_key": "20240506_23z",
+      "recommended_key": "20240507_00z",
+      "changed": true,
+      "rationale": "00z synoptic cycle (May 7) puts Barnsdall EF4 touchdown (02:12 UTC) at F02, peak intensity at F02-F03; outstanding mesoscale accuracy for the rapid EF1-to-EF4 intensification; synoptic data assimilation captures the triple point and nocturnal LLJ precisely; 23z non-synoptic has inferior assimilation; 48h range vs 18h for non-synoptic",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7],
+      "trimmable_fhrs": [8, 9, 10, 12, 14, 16, 18],
+      "timing": {
+        "first_tornado_utc": "02:12 UTC May 7",
+        "peak_utc": "02:30-03:00 UTC",
+        "best_fhrs": [2, 3, 4],
+        "buildup_fhrs": [0, 1]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20240506_18z",
+          "reason": "18z synoptic captures full evening environment: dryline/warm front triple point evolution, CAPE buildup, and transition to nocturnal mode; tornado at F08 with complete setup"
+        }
+      ]
+    },
+    {
+      "original_key": "20240521_17z",
+      "recommended_key": "20240521_18z",
+      "changed": true,
+      "rationale": "18z synoptic cycle puts Greenfield EF4 (21:00 UTC) at F03, DOW-measured 309mph peak at F03-F04; ideal mesoscale accuracy for one of only three 300mph+ observations ever; synoptic data assimilation far superior to 17z non-synoptic; captures the warm front and dryline intersection; 48h range vs 18h",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+      "trimmable_fhrs": [9, 10, 12, 14, 16, 18],
+      "timing": {
+        "first_tornado_utc": "21:00 UTC May 21",
+        "peak_utc": "21:30-22:00 UTC",
+        "best_fhrs": [3, 4, 5],
+        "buildup_fhrs": [0, 1, 2]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20240521_12z",
+          "reason": "12z synoptic provides morning-through-afternoon buildup showing cap erosion and instability development; tornado at F09 with complete diurnal heating cycle"
+        }
+      ]
+    },
+    {
+      "original_key": "20240526_00z",
+      "recommended_key": "20240526_00z",
+      "changed": false,
+      "rationale": "00z synoptic cycle is already optimal; Valley View EF3 first tornado (04:30 UTC) at F04, peak activity F05-F06; provides excellent nocturnal LLJ evolution from F00; captures the isolated supercell ahead of the convective line; 48h range; synoptic quality data assimilation",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+      "trimmable_fhrs": [9, 10, 11, 12, 14, 16, 18],
+      "timing": {
+        "first_tornado_utc": "04:30 UTC May 26",
+        "peak_utc": "05:00-06:30 UTC",
+        "best_fhrs": [4, 5, 6, 7],
+        "buildup_fhrs": [0, 1, 2, 3]
+      },
+      "secondary_cycles": []
+    },
+    {
+      "original_key": "20250315_14z",
+      "recommended_key": "20250315_12z",
+      "changed": true,
+      "rationale": "12z synoptic cycle puts Kentwood-Carson EF4 touchdown (17:17 UTC) at F05, peak intensity near Tylertown at F05-F06; provides full morning buildup F00-F04 showing warm front evolution, Gulf moisture surge, and instability growth; 48h range; far superior data assimilation vs 14z non-synoptic; captures the 100+ tornado outbreak environment across the Deep South",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      "trimmable_fhrs": [11, 12, 14, 16, 18, 20, 24],
+      "timing": {
+        "first_tornado_utc": "17:17 UTC Mar 15",
+        "peak_utc": "17:30-18:30 UTC",
+        "best_fhrs": [5, 6, 7],
+        "buildup_fhrs": [0, 1, 2, 3, 4]
+      },
+      "secondary_cycles": []
+    },
+    {
+      "original_key": "20250516_17z",
+      "recommended_key": "20250516_12z",
+      "changed": true,
+      "rationale": "12z synoptic cycle puts St. Louis EF3 (19:41 UTC) at F07-F08 with full morning-to-afternoon buildup F00-F06; captures cap erosion, surface low development, warm front drape across STL, and boundary layer destabilization; 48h range extends through the nighttime Somerset-London EF4; superior data assimilation vs 17z non-synoptic; F07-F08 in ideal range for supercell-scale resolution",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      "trimmable_fhrs": [11, 12, 14, 16, 18, 20, 24],
+      "timing": {
+        "first_tornado_utc": "19:41 UTC May 16",
+        "peak_utc": "19:45-20:15 UTC",
+        "best_fhrs": [7, 8, 9],
+        "buildup_fhrs": [0, 1, 2, 3, 4, 5, 6]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20250516_18z",
+          "reason": "18z synoptic at F01-F02 provides the freshest possible mesoscale data for the actual St. Louis supercell; complements 12z environmental analysis"
+        }
+      ]
+    },
+    {
+      "original_key": "20250517_01z",
+      "recommended_key": "20250517_00z",
+      "changed": true,
+      "rationale": "00z synoptic cycle puts Somerset-London EF4 touchdown (02:57 UTC) at F02-F03 and London devastation at F03-F04; exceptional mesoscale accuracy for a 60mi 1700yd-wide nocturnal EF4; 48h range; synoptic data assimilation captures the nocturnal LLJ acceleration and extreme helicity (STP); 01z non-synoptic has inferior assimilation and only 18h range",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+      "trimmable_fhrs": [9, 10, 12, 14, 16, 18],
+      "timing": {
+        "first_tornado_utc": "02:57 UTC May 17",
+        "peak_utc": "03:30-04:30 UTC",
+        "best_fhrs": [2, 3, 4, 5],
+        "buildup_fhrs": [0, 1]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20250516_18z",
+          "reason": "18z synoptic (May 16) captures the full daytime-to-nocturnal transition and LLJ spin-up; tornado at F08-F10 with complete evening environment evolution; also covers St. Louis EF3 at F01-F02 for combined outbreak analysis"
+        }
+      ]
+    }
+  ]
+}

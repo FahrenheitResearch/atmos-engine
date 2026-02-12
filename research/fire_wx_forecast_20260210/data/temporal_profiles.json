@@ -1,0 +1,1110 @@
+{
+  "north": {
+    "label": "Northern CRIT (MT)",
+    "fhrs": {
+      "24": {
+        "valid_time_utc": "2026-02-11 06Z",
+        "rh_surface": {
+          "min": 56.34,
+          "max": 92.69,
+          "mean": 78.84
+        },
+        "rh_850hPa": {
+          "min": 45.47,
+          "max": 88.25,
+          "mean": 61.87
+        },
+        "rh_700hPa": {
+          "min": 46.56,
+          "max": 97.19,
+          "mean": 73.04
+        },
+        "rh_min_below_500hPa": 31.25,
+        "wind_surface_kt": {
+          "min": 2.28,
+          "max": 27.08,
+          "mean": 14.24
+        },
+        "wind_850hPa_kt": {
+          "min": 5.82,
+          "max": 27.4,
+          "mean": 21.11
+        },
+        "wind_700hPa_kt": {
+          "min": 8.78,
+          "max": 29.73,
+          "mean": 18.45
+        },
+        "wind_max_below_700hPa_kt": 29.73,
+        "temp_surface_C": {
+          "min": -7.4,
+          "max": 2.6,
+          "mean": -0.36
+        },
+        "temp_850hPa_C": {
+          "min": -3.15,
+          "max": 0.35,
+          "mean": -0.64
+        },
+        "temp_700hPa_C": {
+          "min": -13.65,
+          "max": -11.4,
+          "mean": -12.4
+        },
+        "vpd_surface_hPa": {
+          "min": 0.35,
+          "max": 2.66,
+          "mean": 1.26
+        },
+        "vpd_850hPa": {
+          "min": 0.57,
+          "max": 3.25,
+          "mean": 2.23
+        },
+        "vpd_max_below_500hPa": 3.27
+      },
+      "27": {
+        "valid_time_utc": "2026-02-11 09Z",
+        "rh_surface": {
+          "min": 55.06,
+          "max": 91.44,
+          "mean": 74.59
+        },
+        "rh_850hPa": {
+          "min": 37.19,
+          "max": 86.81,
+          "mean": 57.91
+        },
+        "rh_700hPa": {
+          "min": 41.34,
+          "max": 90.5,
+          "mean": 67.37
+        },
+        "rh_min_below_500hPa": 23.27,
+        "wind_surface_kt": {
+          "min": 2.65,
+          "max": 25.13,
+          "mean": 13.39
+        },
+        "wind_850hPa_kt": {
+          "min": 5.43,
+          "max": 32.62,
+          "mean": 23.33
+        },
+        "wind_700hPa_kt": {
+          "min": 14.47,
+          "max": 27.11,
+          "mean": 20.39
+        },
+        "wind_max_below_700hPa_kt": 34.16,
+        "temp_surface_C": {
+          "min": -7.65,
+          "max": 2.6,
+          "mean": -0.6
+        },
+        "temp_850hPa_C": {
+          "min": -3.4,
+          "max": 0.1,
+          "mean": -0.75
+        },
+        "temp_700hPa_C": {
+          "min": -13.65,
+          "max": -11.15,
+          "mean": -12.35
+        },
+        "vpd_surface_hPa": {
+          "min": 0.32,
+          "max": 3.23,
+          "mean": 1.52
+        },
+        "vpd_850hPa": {
+          "min": 0.63,
+          "max": 3.86,
+          "mean": 2.46
+        },
+        "vpd_max_below_500hPa": 4.17
+      },
+      "30": {
+        "valid_time_utc": "2026-02-11 12Z",
+        "rh_surface": {
+          "min": 52.69,
+          "max": 91.06,
+          "mean": 75.55
+        },
+        "rh_850hPa": {
+          "min": 38.81,
+          "max": 98.44,
+          "mean": 65.41
+        },
+        "rh_700hPa": {
+          "min": 34.75,
+          "max": 97.38,
+          "mean": 62.57
+        },
+        "rh_min_below_500hPa": 14.72,
+        "wind_surface_kt": {
+          "min": 0.46,
+          "max": 24.4,
+          "mean": 11.95
+        },
+        "wind_850hPa_kt": {
+          "min": 1.4,
+          "max": 30.13,
+          "mean": 20.84
+        },
+        "wind_700hPa_kt": {
+          "min": 13.56,
+          "max": 25.24,
+          "mean": 19.75
+        },
+        "wind_max_below_700hPa_kt": 30.13,
+        "temp_surface_C": {
+          "min": -7.65,
+          "max": 2.1,
+          "mean": -1.1
+        },
+        "temp_850hPa_C": {
+          "min": -3.65,
+          "max": -0.15,
+          "mean": -1.32
+        },
+        "temp_700hPa_C": {
+          "min": -13.4,
+          "max": -11.15,
+          "mean": -12.17
+        },
+        "vpd_surface_hPa": {
+          "min": 0.54,
+          "max": 2.66,
+          "mean": 1.38
+        },
+        "vpd_850hPa": {
+          "min": 0.08,
+          "max": 3.7,
+          "mean": 1.96
+        },
+        "vpd_max_below_500hPa": 3.88
+      },
+      "33": {
+        "valid_time_utc": "2026-02-11 15Z",
+        "rh_surface": {
+          "min": 49.53,
+          "max": 91.19,
+          "mean": 72.13
+        },
+        "rh_850hPa": {
+          "min": 47.41,
+          "max": 94.94,
+          "mean": 64.86
+        },
+        "rh_700hPa": {
+          "min": 33.28,
+          "max": 75.56,
+          "mean": 55.03
+        },
+        "rh_min_below_500hPa": 10.18,
+        "wind_surface_kt": {
+          "min": 1.33,
+          "max": 21.72,
+          "mean": 10.45
+        },
+        "wind_850hPa_kt": {
+          "min": 1.6,
+          "max": 24.51,
+          "mean": 16.15
+        },
+        "wind_700hPa_kt": {
+          "min": 9.67,
+          "max": 21.33,
+          "mean": 15.45
+        },
+        "wind_max_below_700hPa_kt": 24.51,
+        "temp_surface_C": {
+          "min": -7.65,
+          "max": 2.1,
+          "mean": -1.14
+        },
+        "temp_850hPa_C": {
+          "min": -3.9,
+          "max": -0.65,
+          "mean": -1.43
+        },
+        "temp_700hPa_C": {
+          "min": -12.65,
+          "max": -11.15,
+          "mean": -11.92
+        },
+        "vpd_surface_hPa": {
+          "min": 0.53,
+          "max": 3.26,
+          "mean": 1.56
+        },
+        "vpd_850hPa": {
+          "min": 0.25,
+          "max": 3.06,
+          "mean": 1.95
+        },
+        "vpd_max_below_500hPa": 3.43
+      },
+      "36": {
+        "valid_time_utc": "2026-02-11 18Z",
+        "rh_surface": {
+          "min": 47.22,
+          "max": 85.25,
+          "mean": 64.21
+        },
+        "rh_850hPa": {
+          "min": 44.34,
+          "max": 90.56,
+          "mean": 64.05
+        },
+        "rh_700hPa": {
+          "min": 26.94,
+          "max": 83.81,
+          "mean": 48.88
+        },
+        "rh_min_below_500hPa": 9.43,
+        "wind_surface_kt": {
+          "min": 0.76,
+          "max": 14.49,
+          "mean": 8.95
+        },
+        "wind_850hPa_kt": {
+          "min": 0.76,
+          "max": 14.44,
+          "mean": 11.37
+        },
+        "wind_700hPa_kt": {
+          "min": 7.0,
+          "max": 20.38,
+          "mean": 13.92
+        },
+        "wind_max_below_700hPa_kt": 20.38,
+        "temp_surface_C": {
+          "min": -6.15,
+          "max": 4.6,
+          "mean": 1.0
+        },
+        "temp_850hPa_C": {
+          "min": -2.65,
+          "max": -0.15,
+          "mean": -1.17
+        },
+        "temp_700hPa_C": {
+          "min": -12.65,
+          "max": -10.15,
+          "mean": -11.51
+        },
+        "vpd_surface_hPa": {
+          "min": 0.99,
+          "max": 3.71,
+          "mean": 2.35
+        },
+        "vpd_850hPa": {
+          "min": 0.47,
+          "max": 3.3,
+          "mean": 2.05
+        },
+        "vpd_max_below_500hPa": 3.71
+      },
+      "39": {
+        "valid_time_utc": "2026-02-11 21Z",
+        "rh_surface": {
+          "min": 40.91,
+          "max": 70.62,
+          "mean": 54.92
+        },
+        "rh_850hPa": {
+          "min": 41.91,
+          "max": 89.56,
+          "mean": 65.4
+        },
+        "rh_700hPa": {
+          "min": 18.97,
+          "max": 55.72,
+          "mean": 31.97
+        },
+        "rh_min_below_500hPa": 6.51,
+        "wind_surface_kt": {
+          "min": 1.29,
+          "max": 11.05,
+          "mean": 6.71
+        },
+        "wind_850hPa_kt": {
+          "min": 1.76,
+          "max": 10.85,
+          "mean": 8.09
+        },
+        "wind_700hPa_kt": {
+          "min": 9.83,
+          "max": 20.43,
+          "mean": 15.63
+        },
+        "wind_max_below_700hPa_kt": 20.43,
+        "temp_surface_C": {
+          "min": -4.15,
+          "max": 8.1,
+          "mean": 3.06
+        },
+        "temp_850hPa_C": {
+          "min": -1.9,
+          "max": 2.1,
+          "mean": -0.1
+        },
+        "temp_700hPa_C": {
+          "min": -11.65,
+          "max": -8.4,
+          "mean": -10.05
+        },
+        "vpd_surface_hPa": {
+          "min": 1.95,
+          "max": 5.43,
+          "mean": 3.48
+        },
+        "vpd_850hPa": {
+          "min": 0.55,
+          "max": 4.13,
+          "mean": 2.15
+        },
+        "vpd_max_below_500hPa": 5.43
+      },
+      "42": {
+        "valid_time_utc": "2026-02-12 00Z",
+        "rh_surface": {
+          "min": 36.34,
+          "max": 70.56,
+          "mean": 53.97
+        },
+        "rh_850hPa": {
+          "min": 36.22,
+          "max": 80.38,
+          "mean": 61.13
+        },
+        "rh_700hPa": {
+          "min": 16.81,
+          "max": 45.94,
+          "mean": 24.65
+        },
+        "rh_min_below_500hPa": 6.04,
+        "wind_surface_kt": {
+          "min": 0.91,
+          "max": 15.1,
+          "mean": 6.25
+        },
+        "wind_850hPa_kt": {
+          "min": 2.07,
+          "max": 19.04,
+          "mean": 7.95
+        },
+        "wind_700hPa_kt": {
+          "min": 8.93,
+          "max": 17.67,
+          "mean": 14.67
+        },
+        "wind_max_below_700hPa_kt": 19.04,
+        "temp_surface_C": {
+          "min": -2.9,
+          "max": 8.6,
+          "mean": 3.31
+        },
+        "temp_850hPa_C": {
+          "min": -1.15,
+          "max": 3.1,
+          "mean": 0.44
+        },
+        "temp_700hPa_C": {
+          "min": -10.9,
+          "max": -7.65,
+          "mean": -9.23
+        },
+        "vpd_surface_hPa": {
+          "min": 1.98,
+          "max": 5.76,
+          "mean": 3.59
+        },
+        "vpd_850hPa": {
+          "min": 1.1,
+          "max": 4.49,
+          "mean": 2.49
+        },
+        "vpd_max_below_500hPa": 5.76
+      },
+      "45": {
+        "valid_time_utc": "2026-02-12 03Z",
+        "rh_surface": {
+          "min": 35.28,
+          "max": 72.06,
+          "mean": 57.93
+        },
+        "rh_850hPa": {
+          "min": 35.28,
+          "max": 80.62,
+          "mean": 57.13
+        },
+        "rh_700hPa": {
+          "min": 16.36,
+          "max": 42.47,
+          "mean": 25.95
+        },
+        "rh_min_below_500hPa": 7.92,
+        "wind_surface_kt": {
+          "min": 1.73,
+          "max": 18.48,
+          "mean": 8.25
+        },
+        "wind_850hPa_kt": {
+          "min": 2.01,
+          "max": 22.0,
+          "mean": 9.69
+        },
+        "wind_700hPa_kt": {
+          "min": 7.52,
+          "max": 15.16,
+          "mean": 13.19
+        },
+        "wind_max_below_700hPa_kt": 24.88,
+        "temp_surface_C": {
+          "min": -2.4,
+          "max": 5.85,
+          "mean": 2.69
+        },
+        "temp_850hPa_C": {
+          "min": -0.65,
+          "max": 3.1,
+          "mean": 0.82
+        },
+        "temp_700hPa_C": {
+          "min": -10.65,
+          "max": -7.4,
+          "mean": -8.76
+        },
+        "vpd_surface_hPa": {
+          "min": 2.26,
+          "max": 5.25,
+          "mean": 3.08
+        },
+        "vpd_850hPa": {
+          "min": 1.17,
+          "max": 4.74,
+          "mean": 2.82
+        },
+        "vpd_max_below_500hPa": 5.25
+      },
+      "48": {
+        "valid_time_utc": "2026-02-12 06Z",
+        "rh_surface": {
+          "min": 39.78,
+          "max": 77.0,
+          "mean": 59.88
+        },
+        "rh_850hPa": {
+          "min": 27.77,
+          "max": 72.88,
+          "mean": 47.24
+        },
+        "rh_700hPa": {
+          "min": 14.71,
+          "max": 66.44,
+          "mean": 32.5
+        },
+        "rh_min_below_500hPa": 9.08,
+        "wind_surface_kt": {
+          "min": 1.92,
+          "max": 20.39,
+          "mean": 9.87
+        },
+        "wind_850hPa_kt": {
+          "min": 1.94,
+          "max": 24.3,
+          "mean": 13.04
+        },
+        "wind_700hPa_kt": {
+          "min": 7.26,
+          "max": 16.8,
+          "mean": 12.62
+        },
+        "wind_max_below_700hPa_kt": 27.29,
+        "temp_surface_C": {
+          "min": -2.65,
+          "max": 4.35,
+          "mean": 2.23
+        },
+        "temp_850hPa_C": {
+          "min": -0.4,
+          "max": 3.1,
+          "mean": 1.31
+        },
+        "temp_700hPa_C": {
+          "min": -10.4,
+          "max": -7.15,
+          "mean": -8.32
+        },
+        "vpd_surface_hPa": {
+          "min": 1.76,
+          "max": 5.02,
+          "mean": 2.86
+        },
+        "vpd_850hPa": {
+          "min": 1.62,
+          "max": 5.04,
+          "mean": 3.58
+        },
+        "vpd_max_below_500hPa": 5.04
+      }
+    }
+  },
+  "south": {
+    "label": "Southern CRIT (AZ/NM)",
+    "fhrs": {
+      "24": {
+        "valid_time_utc": "2026-02-11 06Z",
+        "rh_surface": {
+          "min": 10.55,
+          "max": 30.62,
+          "mean": 19.27
+        },
+        "rh_850hPa": {
+          "min": 19.48,
+          "max": 23.36,
+          "mean": 21.24
+        },
+        "rh_700hPa": {
+          "min": 7.92,
+          "max": 29.42,
+          "mean": 21.46
+        },
+        "rh_min_below_500hPa": 4.59,
+        "wind_surface_kt": {
+          "min": 0.51,
+          "max": 29.25,
+          "mean": 7.67
+        },
+        "wind_850hPa_kt": {
+          "min": 0.98,
+          "max": 6.37,
+          "mean": 3.23
+        },
+        "wind_700hPa_kt": {
+          "min": 11.98,
+          "max": 27.69,
+          "mean": 16.55
+        },
+        "wind_max_below_700hPa_kt": 35.79,
+        "temp_surface_C": {
+          "min": 8.35,
+          "max": 14.35,
+          "mean": 11.19
+        },
+        "temp_850hPa_C": {
+          "min": 10.35,
+          "max": 14.35,
+          "mean": 12.2
+        },
+        "temp_700hPa_C": {
+          "min": 2.6,
+          "max": 5.6,
+          "mean": 3.75
+        },
+        "vpd_surface_hPa": {
+          "min": 7.98,
+          "max": 12.94,
+          "mean": 10.79
+        },
+        "vpd_850hPa": {
+          "min": 9.63,
+          "max": 12.94,
+          "mean": 11.24
+        },
+        "vpd_max_below_500hPa": 13.56
+      },
+      "27": {
+        "valid_time_utc": "2026-02-11 09Z",
+        "rh_surface": {
+          "min": 12.06,
+          "max": 30.81,
+          "mean": 22.65
+        },
+        "rh_850hPa": {
+          "min": 23.19,
+          "max": 29.19,
+          "mean": 26.45
+        },
+        "rh_700hPa": {
+          "min": 14.36,
+          "max": 39.59,
+          "mean": 26.58
+        },
+        "rh_min_below_500hPa": 4.39,
+        "wind_surface_kt": {
+          "min": 0.35,
+          "max": 23.39,
+          "mean": 7.5
+        },
+        "wind_850hPa_kt": {
+          "min": 0.35,
+          "max": 5.2,
+          "mean": 3.59
+        },
+        "wind_700hPa_kt": {
+          "min": 15.22,
+          "max": 28.07,
+          "mean": 19.46
+        },
+        "wind_max_below_700hPa_kt": 28.07,
+        "temp_surface_C": {
+          "min": 7.1,
+          "max": 13.35,
+          "mean": 9.77
+        },
+        "temp_850hPa_C": {
+          "min": 7.6,
+          "max": 13.35,
+          "mean": 10.15
+        },
+        "temp_700hPa_C": {
+          "min": 2.6,
+          "max": 5.35,
+          "mean": 3.34
+        },
+        "vpd_surface_hPa": {
+          "min": 7.35,
+          "max": 11.77,
+          "mean": 9.39
+        },
+        "vpd_850hPa": {
+          "min": 7.46,
+          "max": 11.77,
+          "mean": 9.22
+        },
+        "vpd_max_below_500hPa": 12.11
+      },
+      "30": {
+        "valid_time_utc": "2026-02-11 12Z",
+        "rh_surface": {
+          "min": 13.69,
+          "max": 37.44,
+          "mean": 23.78
+        },
+        "rh_850hPa": {
+          "min": 24.3,
+          "max": 37.44,
+          "mean": 31.42
+        },
+        "rh_700hPa": {
+          "min": 18.12,
+          "max": 40.62,
+          "mean": 30.66
+        },
+        "rh_min_below_500hPa": 6.59,
+        "wind_surface_kt": {
+          "min": 0.76,
+          "max": 20.37,
+          "mean": 7.08
+        },
+        "wind_850hPa_kt": {
+          "min": 1.03,
+          "max": 7.26,
+          "mean": 4.43
+        },
+        "wind_700hPa_kt": {
+          "min": 10.02,
+          "max": 28.47,
+          "mean": 19.33
+        },
+        "wind_max_below_700hPa_kt": 28.47,
+        "temp_surface_C": {
+          "min": 4.85,
+          "max": 12.85,
+          "mean": 8.94
+        },
+        "temp_850hPa_C": {
+          "min": 4.85,
+          "max": 12.85,
+          "mean": 8.42
+        },
+        "temp_700hPa_C": {
+          "min": 2.85,
+          "max": 4.1,
+          "mean": 3.2
+        },
+        "vpd_surface_hPa": {
+          "min": 5.4,
+          "max": 11.23,
+          "mean": 8.77
+        },
+        "vpd_850hPa": {
+          "min": 5.4,
+          "max": 11.23,
+          "mean": 7.8
+        },
+        "vpd_max_below_500hPa": 11.23
+      },
+      "33": {
+        "valid_time_utc": "2026-02-11 15Z",
+        "rh_surface": {
+          "min": 16.72,
+          "max": 40.91,
+          "mean": 28.86
+        },
+        "rh_850hPa": {
+          "min": 24.8,
+          "max": 40.91,
+          "mean": 33.25
+        },
+        "rh_700hPa": {
+          "min": 19.41,
+          "max": 48.41,
+          "mean": 37.31
+        },
+        "rh_min_below_500hPa": 8.43,
+        "wind_surface_kt": {
+          "min": 1.68,
+          "max": 30.03,
+          "mean": 9.19
+        },
+        "wind_850hPa_kt": {
+          "min": 1.68,
+          "max": 6.72,
+          "mean": 4.4
+        },
+        "wind_700hPa_kt": {
+          "min": 0.62,
+          "max": 25.5,
+          "mean": 12.14
+        },
+        "wind_max_below_700hPa_kt": 31.52,
+        "temp_surface_C": {
+          "min": 2.85,
+          "max": 12.35,
+          "mean": 7.45
+        },
+        "temp_850hPa_C": {
+          "min": 3.85,
+          "max": 12.35,
+          "mean": 7.52
+        },
+        "temp_700hPa_C": {
+          "min": 1.1,
+          "max": 2.85,
+          "mean": 2.39
+        },
+        "vpd_surface_hPa": {
+          "min": 4.54,
+          "max": 10.79,
+          "mean": 7.47
+        },
+        "vpd_850hPa": {
+          "min": 4.81,
+          "max": 10.79,
+          "mean": 7.18
+        },
+        "vpd_max_below_500hPa": 10.79
+      },
+      "36": {
+        "valid_time_utc": "2026-02-11 18Z",
+        "rh_surface": {
+          "min": 15.28,
+          "max": 37.31,
+          "mean": 25.37
+        },
+        "rh_850hPa": {
+          "min": 20.47,
+          "max": 25.22,
+          "mean": 23.95
+        },
+        "rh_700hPa": {
+          "min": 22.31,
+          "max": 52.69,
+          "mean": 39.33
+        },
+        "rh_min_below_500hPa": 8.18,
+        "wind_surface_kt": {
+          "min": 2.6,
+          "max": 19.16,
+          "mean": 8.32
+        },
+        "wind_850hPa_kt": {
+          "min": 2.6,
+          "max": 7.8,
+          "mean": 4.77
+        },
+        "wind_700hPa_kt": {
+          "min": 3.23,
+          "max": 20.02,
+          "mean": 9.51
+        },
+        "wind_max_below_700hPa_kt": 20.02,
+        "temp_surface_C": {
+          "min": 3.35,
+          "max": 14.6,
+          "mean": 10.6
+        },
+        "temp_850hPa_C": {
+          "min": 11.6,
+          "max": 14.35,
+          "mean": 12.9
+        },
+        "temp_700hPa_C": {
+          "min": 0.85,
+          "max": 2.85,
+          "mean": 2.13
+        },
+        "vpd_surface_hPa": {
+          "min": 4.87,
+          "max": 12.94,
+          "mean": 9.71
+        },
+        "vpd_850hPa": {
+          "min": 10.25,
+          "max": 12.58,
+          "mean": 11.34
+        },
+        "vpd_max_below_500hPa": 12.94
+      },
+      "39": {
+        "valid_time_utc": "2026-02-11 21Z",
+        "rh_surface": {
+          "min": 15.3,
+          "max": 32.16,
+          "mean": 22.65
+        },
+        "rh_850hPa": {
+          "min": 15.66,
+          "max": 23.41,
+          "mean": 19.98
+        },
+        "rh_700hPa": {
+          "min": 25.34,
+          "max": 53.97,
+          "mean": 38.12
+        },
+        "rh_min_below_500hPa": 14.38,
+        "wind_surface_kt": {
+          "min": 0.6,
+          "max": 17.29,
+          "mean": 8.24
+        },
+        "wind_850hPa_kt": {
+          "min": 3.4,
+          "max": 13.31,
+          "mean": 7.21
+        },
+        "wind_700hPa_kt": {
+          "min": 4.66,
+          "max": 19.63,
+          "mean": 9.68
+        },
+        "wind_max_below_700hPa_kt": 19.63,
+        "temp_surface_C": {
+          "min": 5.35,
+          "max": 19.1,
+          "mean": 13.29
+        },
+        "temp_850hPa_C": {
+          "min": 16.35,
+          "max": 19.1,
+          "mean": 17.85
+        },
+        "temp_700hPa_C": {
+          "min": 0.35,
+          "max": 4.1,
+          "mean": 2.58
+        },
+        "vpd_surface_hPa": {
+          "min": 6.06,
+          "max": 18.01,
+          "mean": 12.12
+        },
+        "vpd_850hPa": {
+          "min": 14.94,
+          "max": 18.01,
+          "mean": 16.39
+        },
+        "vpd_max_below_500hPa": 18.01
+      },
+      "42": {
+        "valid_time_utc": "2026-02-12 00Z",
+        "rh_surface": {
+          "min": 17.61,
+          "max": 39.44,
+          "mean": 26.63
+        },
+        "rh_850hPa": {
+          "min": 17.61,
+          "max": 28.86,
+          "mean": 23.54
+        },
+        "rh_700hPa": {
+          "min": 31.56,
+          "max": 59.19,
+          "mean": 45.48
+        },
+        "rh_min_below_500hPa": 17.61,
+        "wind_surface_kt": {
+          "min": 3.6,
+          "max": 17.34,
+          "mean": 11.45
+        },
+        "wind_850hPa_kt": {
+          "min": 3.6,
+          "max": 13.92,
+          "mean": 10.12
+        },
+        "wind_700hPa_kt": {
+          "min": 5.77,
+          "max": 19.31,
+          "mean": 10.77
+        },
+        "wind_max_below_700hPa_kt": 19.31,
+        "temp_surface_C": {
+          "min": 5.85,
+          "max": 19.1,
+          "mean": 12.99
+        },
+        "temp_850hPa_C": {
+          "min": 15.6,
+          "max": 19.1,
+          "mean": 17.29
+        },
+        "temp_700hPa_C": {
+          "min": -0.65,
+          "max": 4.35,
+          "mean": 2.41
+        },
+        "vpd_surface_hPa": {
+          "min": 6.19,
+          "max": 17.91,
+          "mean": 11.22
+        },
+        "vpd_850hPa": {
+          "min": 13.02,
+          "max": 17.91,
+          "mean": 15.16
+        },
+        "vpd_max_below_500hPa": 17.91
+      },
+      "45": {
+        "valid_time_utc": "2026-02-12 03Z",
+        "rh_surface": {
+          "min": 23.66,
+          "max": 60.88,
+          "mean": 37.02
+        },
+        "rh_850hPa": {
+          "min": 23.66,
+          "max": 50.28,
+          "mean": 37.18
+        },
+        "rh_700hPa": {
+          "min": 34.59,
+          "max": 76.5,
+          "mean": 55.75
+        },
+        "rh_min_below_500hPa": 23.66,
+        "wind_surface_kt": {
+          "min": 3.4,
+          "max": 20.66,
+          "mean": 12.09
+        },
+        "wind_850hPa_kt": {
+          "min": 3.4,
+          "max": 8.96,
+          "mean": 6.56
+        },
+        "wind_700hPa_kt": {
+          "min": 3.77,
+          "max": 21.09,
+          "mean": 11.78
+        },
+        "wind_max_below_700hPa_kt": 24.96,
+        "temp_surface_C": {
+          "min": 4.85,
+          "max": 15.6,
+          "mean": 10.47
+        },
+        "temp_850hPa_C": {
+          "min": 12.1,
+          "max": 15.6,
+          "mean": 14.15
+        },
+        "temp_700hPa_C": {
+          "min": -0.15,
+          "max": 3.1,
+          "mean": 1.83
+        },
+        "vpd_surface_hPa": {
+          "min": 4.45,
+          "max": 12.16,
+          "mean": 8.11
+        },
+        "vpd_850hPa": {
+          "min": 7.37,
+          "max": 12.16,
+          "mean": 10.21
+        },
+        "vpd_max_below_500hPa": 12.16
+      },
+      "48": {
+        "valid_time_utc": "2026-02-12 06Z",
+        "rh_surface": {
+          "min": 28.89,
+          "max": 77.0,
+          "mean": 51.18
+        },
+        "rh_850hPa": {
+          "min": 28.89,
+          "max": 61.12,
+          "mean": 44.24
+        },
+        "rh_700hPa": {
+          "min": 39.47,
+          "max": 92.94,
+          "mean": 70.56
+        },
+        "rh_min_below_500hPa": 22.41,
+        "wind_surface_kt": {
+          "min": 0.98,
+          "max": 18.22,
+          "mean": 9.49
+        },
+        "wind_850hPa_kt": {
+          "min": 0.98,
+          "max": 6.33,
+          "mean": 4.45
+        },
+        "wind_700hPa_kt": {
+          "min": 2.28,
+          "max": 24.08,
+          "mean": 10.8
+        },
+        "wind_max_below_700hPa_kt": 24.08,
+        "temp_surface_C": {
+          "min": 3.6,
+          "max": 13.6,
+          "mean": 8.6
+        },
+        "temp_850hPa_C": {
+          "min": 10.1,
+          "max": 13.6,
+          "mean": 12.37
+        },
+        "temp_700hPa_C": {
+          "min": -0.15,
+          "max": 2.1,
+          "mean": 1.01
+        },
+        "vpd_surface_hPa": {
+          "min": 1.94,
+          "max": 8.89,
+          "mean": 5.58
+        },
+        "vpd_850hPa": {
+          "min": 5.22,
+          "max": 8.89,
+          "mean": 8.02
+        },
+        "vpd_max_below_500hPa": 8.89
+      }
+    }
+  }
+}

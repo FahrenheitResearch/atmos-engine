@@ -1,0 +1,882 @@
+{
+  "20200810_12z": {
+    "name": "Iowa Derecho",
+    "suggested_sections": [
+      {
+        "label": "W-E along derecho propagation path through Iowa",
+        "start": [
+          42.0,
+          -96.5
+        ],
+        "end": [
+          41.8,
+          -90.0
+        ],
+        "products": [
+          "wind_speed",
+          "theta_e",
+          "omega"
+        ],
+        "best_fhr": 6,
+        "markers": [
+          {
+            "label": "Des Moines",
+            "lat": 41.62,
+            "lon": -93.598
+          },
+          {
+            "label": "Marshalltown",
+            "lat": 42.043,
+            "lon": -92.908
+          },
+          {
+            "label": "Cedar Rapids",
+            "lat": 41.978,
+            "lon": -91.666
+          }
+        ]
+      },
+      {
+        "label": "N-S perpendicular through Cedar Rapids damage core",
+        "start": [
+          43.5,
+          -91.74
+        ],
+        "end": [
+          40.5,
+          -91.74
+        ],
+        "products": [
+          "shear",
+          "vorticity",
+          "wind_speed"
+        ],
+        "best_fhr": 6,
+        "markers": [
+          {
+            "label": "Cedar Rapids",
+            "lat": 41.978,
+            "lon": -91.666
+          }
+        ]
+      },
+      {
+        "label": "SW-NE pre-storm warm sector (Des Moines to Quad Cities)",
+        "start": [
+          41.55,
+          -93.66
+        ],
+        "end": [
+          42.5,
+          -90.5
+        ],
+        "products": [
+          "theta_e",
+          "moisture_transport",
+          "lapse_rate"
+        ],
+        "best_fhr": 4,
+        "markers": [
+          {
+            "label": "Des Moines",
+            "lat": 41.62,
+            "lon": -93.598
+          },
+          {
+            "label": "Cedar Rapids",
+            "lat": 41.978,
+            "lon": -91.666
+          }
+        ]
+      }
+    ]
+  },
+  "20211215_18z": {
+    "name": "December Midwest Derecho",
+    "suggested_sections": [
+      {
+        "label": "SW-NE along derecho path (Kansas to Iowa)",
+        "start": [
+          38.9,
+          -98.8
+        ],
+        "end": [
+          43.8,
+          -91.5
+        ],
+        "products": [
+          "wind_speed",
+          "theta_e",
+          "omega"
+        ],
+        "best_fhr": 4,
+        "markers": [
+          {
+            "label": "Russell KS",
+            "lat": 38.895,
+            "lon": -98.86
+          },
+          {
+            "label": "Omaha",
+            "lat": 41.257,
+            "lon": -95.995
+          }
+        ]
+      },
+      {
+        "label": "W-E through Nebraska warm sector at peak",
+        "start": [
+          41.0,
+          -98.0
+        ],
+        "end": [
+          41.0,
+          -92.0
+        ],
+        "products": [
+          "theta_e",
+          "shear",
+          "moisture_transport"
+        ],
+        "best_fhr": 3,
+        "markers": [
+          {
+            "label": "Omaha",
+            "lat": 41.257,
+            "lon": -95.995
+          }
+        ]
+      },
+      {
+        "label": "N-S through cold front / warm sector boundary",
+        "start": [
+          44.5,
+          -95.0
+        ],
+        "end": [
+          38.0,
+          -95.0
+        ],
+        "products": [
+          "wind_speed",
+          "vorticity",
+          "lapse_rate"
+        ],
+        "best_fhr": 4,
+        "markers": [
+          {
+            "label": "Kansas City",
+            "lat": 39.099,
+            "lon": -94.578
+          }
+        ]
+      }
+    ]
+  },
+  "20220512_16z": {
+    "name": "May SD Derecho",
+    "suggested_sections": [
+      {
+        "label": "SW-NE along derecho path (Nebraska to SE South Dakota)",
+        "start": [
+          41.5,
+          -100.0
+        ],
+        "end": [
+          44.5,
+          -96.0
+        ],
+        "products": [
+          "wind_speed",
+          "theta_e",
+          "omega"
+        ],
+        "best_fhr": 7,
+        "markers": [
+          {
+            "label": "Tripp 107mph",
+            "lat": 43.222,
+            "lon": -97.959
+          },
+          {
+            "label": "Sioux Falls",
+            "lat": 43.536,
+            "lon": -96.732
+          }
+        ]
+      },
+      {
+        "label": "W-E through Tripp peak wind zone",
+        "start": [
+          43.23,
+          -100.5
+        ],
+        "end": [
+          43.23,
+          -95.5
+        ],
+        "products": [
+          "wind_speed",
+          "shear",
+          "vorticity"
+        ],
+        "best_fhr": 7,
+        "markers": [
+          {
+            "label": "Tripp 107mph",
+            "lat": 43.222,
+            "lon": -97.959
+          },
+          {
+            "label": "Sioux Falls",
+            "lat": 43.536,
+            "lon": -96.732
+          }
+        ]
+      },
+      {
+        "label": "N-S through haboob/dust plume and gust front",
+        "start": [
+          45.5,
+          -98.0
+        ],
+        "end": [
+          41.0,
+          -98.0
+        ],
+        "products": [
+          "lapse_rate",
+          "q",
+          "wind_speed"
+        ],
+        "best_fhr": 6,
+        "markers": [
+          {
+            "label": "Tripp SD",
+            "lat": 43.222,
+            "lon": -97.959
+          }
+        ]
+      }
+    ]
+  },
+  "20220613_18z": {
+    "name": "Ohio Valley Derecho",
+    "suggested_sections": [
+      {
+        "label": "SW-NE along derecho path (Indiana to Ohio)",
+        "start": [
+          40.0,
+          -86.5
+        ],
+        "end": [
+          42.0,
+          -83.5
+        ],
+        "products": [
+          "wind_speed",
+          "theta_e",
+          "omega"
+        ],
+        "best_fhr": 8,
+        "markers": [
+          {
+            "label": "Fort Wayne",
+            "lat": 41.131,
+            "lon": -85.129
+          }
+        ]
+      },
+      {
+        "label": "W-E through Fort Wayne peak wind corridor",
+        "start": [
+          41.0,
+          -87.0
+        ],
+        "end": [
+          41.0,
+          -83.5
+        ],
+        "products": [
+          "wind_speed",
+          "shear",
+          "vorticity"
+        ],
+        "best_fhr": 8,
+        "markers": [
+          {
+            "label": "Fort Wayne",
+            "lat": 41.131,
+            "lon": -85.129
+          }
+        ]
+      },
+      {
+        "label": "N-S pre-storm instability (Michigan to Kentucky)",
+        "start": [
+          43.0,
+          -85.18
+        ],
+        "end": [
+          38.5,
+          -85.18
+        ],
+        "products": [
+          "theta_e",
+          "lapse_rate",
+          "moisture_transport"
+        ],
+        "best_fhr": 5,
+        "markers": [
+          {
+            "label": "White Pigeon",
+            "lat": 41.798,
+            "lon": -85.639
+          },
+          {
+            "label": "Fort Wayne",
+            "lat": 41.131,
+            "lon": -85.129
+          }
+        ]
+      }
+    ]
+  },
+  "20230629_12z": {
+    "name": "June Midwest Derecho",
+    "suggested_sections": [
+      {
+        "label": "W-E along derecho path through Illinois",
+        "start": [
+          40.0,
+          -93.0
+        ],
+        "end": [
+          39.0,
+          -85.5
+        ],
+        "products": [
+          "wind_speed",
+          "theta_e",
+          "omega"
+        ],
+        "best_fhr": 8,
+        "markers": [
+          {
+            "label": "Springfield",
+            "lat": 39.8,
+            "lon": -89.65
+          },
+          {
+            "label": "Taylorville",
+            "lat": 39.549,
+            "lon": -89.295
+          }
+        ]
+      },
+      {
+        "label": "N-S perpendicular through Roseville/Peoria damage core",
+        "start": [
+          42.0,
+          -89.8
+        ],
+        "end": [
+          37.5,
+          -89.8
+        ],
+        "products": [
+          "shear",
+          "vorticity",
+          "wind_speed"
+        ],
+        "best_fhr": 8,
+        "markers": [
+          {
+            "label": "Peoria",
+            "lat": 40.704,
+            "lon": -89.579
+          },
+          {
+            "label": "Springfield",
+            "lat": 39.8,
+            "lon": -89.65
+          }
+        ]
+      },
+      {
+        "label": "SW-NE pre-storm warm sector (Missouri to Quad Cities)",
+        "start": [
+          38.5,
+          -92.0
+        ],
+        "end": [
+          41.5,
+          -90.5
+        ],
+        "products": [
+          "theta_e",
+          "moisture_transport",
+          "lapse_rate"
+        ],
+        "best_fhr": 5,
+        "markers": [
+          {
+            "label": "Quincy IL",
+            "lat": 39.936,
+            "lon": -91.41
+          }
+        ]
+      }
+    ]
+  },
+  "20240516_18z": {
+    "name": "Houston Derecho",
+    "suggested_sections": [
+      {
+        "label": "W-E along derecho path through Houston metro",
+        "start": [
+          29.8,
+          -97.0
+        ],
+        "end": [
+          29.8,
+          -93.5
+        ],
+        "products": [
+          "wind_speed",
+          "theta_e",
+          "omega"
+        ],
+        "best_fhr": 5,
+        "markers": [
+          {
+            "label": "Katy",
+            "lat": 29.786,
+            "lon": -95.824
+          },
+          {
+            "label": "Houston DT",
+            "lat": 29.763,
+            "lon": -95.383
+          }
+        ]
+      },
+      {
+        "label": "N-S through downtown Houston damage core",
+        "start": [
+          31.0,
+          -95.37
+        ],
+        "end": [
+          28.5,
+          -95.37
+        ],
+        "products": [
+          "shear",
+          "wind_speed",
+          "moisture_transport"
+        ],
+        "best_fhr": 5,
+        "markers": [
+          {
+            "label": "Houston DT",
+            "lat": 29.763,
+            "lon": -95.383
+          }
+        ]
+      },
+      {
+        "label": "SW-NE Gulf moisture feed into Houston",
+        "start": [
+          28.5,
+          -96.5
+        ],
+        "end": [
+          30.5,
+          -94.0
+        ],
+        "products": [
+          "theta_e",
+          "q",
+          "moisture_transport"
+        ],
+        "best_fhr": 3,
+        "markers": [
+          {
+            "label": "Houston",
+            "lat": 29.763,
+            "lon": -95.383
+          }
+        ]
+      }
+    ]
+  },
+  "20240715_18z": {
+    "name": "July Chicago Derecho",
+    "suggested_sections": [
+      {
+        "label": "W-E along derecho path (Iowa through Illinois)",
+        "start": [
+          41.8,
+          -93.0
+        ],
+        "end": [
+          41.3,
+          -86.0
+        ],
+        "products": [
+          "wind_speed",
+          "theta_e",
+          "omega"
+        ],
+        "best_fhr": 7,
+        "markers": [
+          {
+            "label": "Iowa City",
+            "lat": 41.661,
+            "lon": -91.53
+          },
+          {
+            "label": "DeKalb",
+            "lat": 41.93,
+            "lon": -88.75
+          },
+          {
+            "label": "Joliet",
+            "lat": 41.525,
+            "lon": -88.082
+          }
+        ]
+      },
+      {
+        "label": "N-S perpendicular through Camp Grove peak wind zone",
+        "start": [
+          43.5,
+          -89.63
+        ],
+        "end": [
+          39.0,
+          -89.63
+        ],
+        "products": [
+          "shear",
+          "vorticity",
+          "wind_speed"
+        ],
+        "best_fhr": 7,
+        "markers": [
+          {
+            "label": "Davis Jct 101mph",
+            "lat": 42.102,
+            "lon": -89.093
+          },
+          {
+            "label": "Camp Grove 105mph",
+            "lat": 41.03,
+            "lon": -89.63
+          }
+        ]
+      },
+      {
+        "label": "SW-NE Channahon-Matteson tornado track transect",
+        "start": [
+          41.2,
+          -88.3
+        ],
+        "end": [
+          41.6,
+          -87.5
+        ],
+        "products": [
+          "vorticity",
+          "shear",
+          "omega"
+        ],
+        "best_fhr": 8,
+        "markers": [
+          {
+            "label": "Channahon",
+            "lat": 41.429,
+            "lon": -88.229
+          },
+          {
+            "label": "Matteson",
+            "lat": 41.504,
+            "lon": -87.713
+          }
+        ]
+      }
+    ]
+  },
+  "20250429_17z": {
+    "name": "Pennsylvania Derecho",
+    "suggested_sections": [
+      {
+        "label": "SW-NE along serial derecho path (Ohio to Pennsylvania)",
+        "start": [
+          39.0,
+          -83.5
+        ],
+        "end": [
+          41.5,
+          -77.0
+        ],
+        "products": [
+          "wind_speed",
+          "theta_e",
+          "omega"
+        ],
+        "best_fhr": 6,
+        "markers": [
+          {
+            "label": "Pittsburgh",
+            "lat": 40.441,
+            "lon": -79.996
+          },
+          {
+            "label": "Latrobe 79mph",
+            "lat": 40.321,
+            "lon": -79.379
+          }
+        ]
+      },
+      {
+        "label": "W-E through Pittsburgh/Cambria County peak damage zone",
+        "start": [
+          40.35,
+          -82.0
+        ],
+        "end": [
+          40.35,
+          -78.0
+        ],
+        "products": [
+          "wind_speed",
+          "shear",
+          "vorticity"
+        ],
+        "best_fhr": 6,
+        "markers": [
+          {
+            "label": "Pittsburgh",
+            "lat": 40.441,
+            "lon": -79.996
+          },
+          {
+            "label": "Latrobe",
+            "lat": 40.321,
+            "lon": -79.379
+          },
+          {
+            "label": "Johnstown",
+            "lat": 40.327,
+            "lon": -78.922
+          }
+        ]
+      },
+      {
+        "label": "N-S through Appalachian terrain-enhanced wind corridor",
+        "start": [
+          42.0,
+          -78.83
+        ],
+        "end": [
+          38.5,
+          -78.83
+        ],
+        "products": [
+          "omega",
+          "wind_speed",
+          "moisture_transport"
+        ],
+        "best_fhr": 7,
+        "markers": [
+          {
+            "label": "Johnstown",
+            "lat": 40.327,
+            "lon": -78.922
+          }
+        ]
+      }
+    ]
+  },
+  "20250620_18z": {
+    "name": "N Plains Derecho + Enderlin EF5",
+    "suggested_sections": [
+      {
+        "label": "S-N along Enderlin EF5 tornado track",
+        "start": [
+          46.5,
+          -97.85
+        ],
+        "end": [
+          47.0,
+          -97.6
+        ],
+        "products": [
+          "wind_speed",
+          "shear",
+          "vorticity"
+        ],
+        "best_fhr": 10,
+        "markers": [
+          {
+            "label": "Enderlin EF5",
+            "lat": 46.623,
+            "lon": -97.601
+          }
+        ]
+      },
+      {
+        "label": "W-E through ND supercell environment (Jamestown to Fargo)",
+        "start": [
+          46.8,
+          -99.5
+        ],
+        "end": [
+          46.8,
+          -96.0
+        ],
+        "products": [
+          "theta_e",
+          "omega",
+          "shear"
+        ],
+        "best_fhr": 8,
+        "markers": [
+          {
+            "label": "Jamestown",
+            "lat": 46.911,
+            "lon": -98.708
+          },
+          {
+            "label": "Enderlin",
+            "lat": 46.623,
+            "lon": -97.601
+          },
+          {
+            "label": "Fargo",
+            "lat": 46.877,
+            "lon": -96.79
+          }
+        ]
+      },
+      {
+        "label": "S-N through frontal boundary / helicity maximum",
+        "start": [
+          45.0,
+          -97.8
+        ],
+        "end": [
+          48.5,
+          -97.8
+        ],
+        "products": [
+          "vorticity",
+          "wind_speed",
+          "moisture_transport"
+        ],
+        "best_fhr": 9,
+        "markers": [
+          {
+            "label": "Enderlin",
+            "lat": 46.623,
+            "lon": -97.601
+          }
+        ]
+      }
+    ]
+  },
+  "20250728_18z": {
+    "name": "July N Plains Derecho",
+    "suggested_sections": [
+      {
+        "label": "W-E along derecho path through Sioux Center peak wind zone",
+        "start": [
+          43.2,
+          -98.5
+        ],
+        "end": [
+          43.0,
+          -93.5
+        ],
+        "products": [
+          "wind_speed",
+          "theta_e",
+          "omega"
+        ],
+        "best_fhr": 8,
+        "markers": [
+          {
+            "label": "Hudson SD",
+            "lat": 43.13,
+            "lon": -96.454
+          },
+          {
+            "label": "Sioux Center",
+            "lat": 43.08,
+            "lon": -96.176
+          }
+        ]
+      },
+      {
+        "label": "N-S through SE South Dakota / NW Iowa damage swath",
+        "start": [
+          44.5,
+          -96.5
+        ],
+        "end": [
+          41.5,
+          -96.5
+        ],
+        "products": [
+          "shear",
+          "vorticity",
+          "wind_speed"
+        ],
+        "best_fhr": 8,
+        "markers": [
+          {
+            "label": "Sioux Falls",
+            "lat": 43.536,
+            "lon": -96.732
+          },
+          {
+            "label": "Hudson SD",
+            "lat": 43.13,
+            "lon": -96.454
+          },
+          {
+            "label": "Sioux Center",
+            "lat": 43.08,
+            "lon": -96.176
+          }
+        ]
+      },
+      {
+        "label": "SW-NE Minnesota branch track",
+        "start": [
+          43.5,
+          -97.0
+        ],
+        "end": [
+          45.5,
+          -93.0
+        ],
+        "products": [
+          "wind_speed",
+          "moisture_transport",
+          "omega"
+        ],
+        "best_fhr": 10,
+        "markers": [
+          {
+            "label": "Sioux Falls",
+            "lat": 43.536,
+            "lon": -96.732
+          }
+        ]
+      }
+    ]
+  }
+}

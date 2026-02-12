@@ -1,0 +1,311 @@
+\section{Quantitative Fire Weather Analysis}
+\label{sec:quantitative}
+
+This section presents a rigorous numerical analysis of fire weather parameters extracted from the HRRR 06Z 9~February~2026 cycle along two critical-area transects: the Northern Rockies corridor (47\textdegree{}N, 113\textdegree{}W to 103\textdegree{}W across Montana) and the Four Corners corridor (35\textdegree{}N, 113\textdegree{}W to 105\textdegree{}W across Arizona and New Mexico). All values are extracted directly from HRRR cross-section data via the wxsection.com numerical API.
+
+%----------------------------------------------------------------------
+\subsection{Diurnal Evolution of Fire Weather Parameters}
+\label{sec:diurnal}
+
+Tables~\ref{tab:temporal_south} and~\ref{tab:temporal_north} summarize the temporal evolution of key fire weather parameters from FHR~24 (06Z 11~Feb) through FHR~48 (06Z 12~Feb), spanning one complete diurnal cycle. Values exceeding NWS Red Flag or extreme thresholds are shown in bold.
+
+\begin{table}[htbp]
+\centering
+\caption{Temporal evolution of fire weather parameters along the Southern CRIT transect (35\textdegree{}N, AZ/NM). Bold values exceed Red Flag or extreme thresholds. Valid times in UTC (subtract 7 hours for MST).}
+\label{tab:temporal_south}
+\small
+\begin{tabular}{@{}lccccccccc@{}}
+\toprule
+\textbf{Parameter} & \textbf{F24} & \textbf{F27} & \textbf{F30} & \textbf{F33} & \textbf{F36} & \textbf{F39} & \textbf{F42} & \textbf{F45} & \textbf{F48} \\
+Valid (UTC) & 06Z & 09Z & 12Z & 15Z & 18Z & 21Z & 00Z & 03Z & 06Z \\
+Valid (MST) & 23 & 02 & 05 & 08 & 11 & 14 & 17 & 20 & 23 \\
+\midrule
+\multicolumn{10}{l}{\textit{Relative Humidity (\%)}} \\
+\quad Min sfc RH & \textbf{10.6} & \textbf{12.1} & \textbf{13.7} & 16.7 & 15.3 & 15.3 & 17.6 & 23.7 & 28.9 \\
+\quad Mean sfc RH & 19.3 & 22.7 & 23.8 & 28.9 & 25.4 & 22.7 & 26.6 & 37.0 & 51.2 \\
+\quad Col.\ min $<$500 & \textbf{4.6} & \textbf{4.4} & \textbf{6.6} & \textbf{8.4} & \textbf{8.2} & \textbf{14.4} & 17.6 & 23.7 & 22.4 \\
+\midrule
+\multicolumn{10}{l}{\textit{Wind Speed (kt)}} \\
+\quad Max sfc wind & \textbf{29.2} & 23.4 & 20.4 & \textbf{30.0} & 19.2 & 17.3 & 17.3 & 20.7 & 18.2 \\
+\quad Mean sfc wind & 7.7 & 7.5 & 7.1 & 9.2 & 8.3 & 8.2 & 11.4 & 12.1 & 9.5 \\
+\quad Max $<$700\,hPa & \textbf{35.8} & \textbf{28.1} & \textbf{28.5} & \textbf{31.5} & 20.0 & 19.6 & 19.3 & 25.0 & 24.1 \\
+\midrule
+\multicolumn{10}{l}{\textit{Temperature (\textdegree{}C)}} \\
+\quad Max sfc temp & 14.4 & 13.4 & 12.9 & 12.4 & 14.6 & \textbf{19.1} & \textbf{19.1} & 15.6 & 13.6 \\
+\quad Mean sfc temp & 11.2 & 9.8 & 8.9 & 7.5 & 10.6 & 13.3 & 13.0 & 10.5 & 8.6 \\
+\midrule
+\multicolumn{10}{l}{\textit{Vapor Pressure Deficit (hPa)}} \\
+\quad Max sfc VPD & 12.9 & 11.8 & 11.2 & 10.8 & 12.9 & \textbf{18.0} & \textbf{17.9} & 12.2 & 8.9 \\
+\quad Mean sfc VPD & 10.8 & 9.4 & 8.8 & 7.5 & 9.7 & 12.1 & 11.2 & 8.1 & 5.6 \\
+\quad Max $<$500\,hPa & \textbf{13.6} & 12.1 & 11.2 & 10.8 & 12.9 & \textbf{18.0} & \textbf{17.9} & 12.2 & 8.9 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Temporal evolution of fire weather parameters along the Northern CRIT transect (47\textdegree{}N, Montana). Bold values exceed NWS thresholds. Valid times in UTC (subtract 7 hours for MST).}
+\label{tab:temporal_north}
+\small
+\begin{tabular}{@{}lccccccccc@{}}
+\toprule
+\textbf{Parameter} & \textbf{F24} & \textbf{F27} & \textbf{F30} & \textbf{F33} & \textbf{F36} & \textbf{F39} & \textbf{F42} & \textbf{F45} & \textbf{F48} \\
+Valid (UTC) & 06Z & 09Z & 12Z & 15Z & 18Z & 21Z & 00Z & 03Z & 06Z \\
+Valid (MST) & 23 & 02 & 05 & 08 & 11 & 14 & 17 & 20 & 23 \\
+\midrule
+\multicolumn{10}{l}{\textit{Relative Humidity (\%)}} \\
+\quad Min sfc RH & 56.3 & 55.1 & 52.7 & 49.5 & 47.2 & 40.9 & 36.3 & 35.3 & 39.8 \\
+\quad Mean sfc RH & 78.8 & 74.6 & 75.6 & 72.1 & 64.2 & 54.9 & 54.0 & 57.9 & 59.9 \\
+\quad Col.\ min $<$500 & 31.2 & 23.3 & \textbf{14.7} & \textbf{10.2} & \textbf{9.4} & \textbf{6.5} & \textbf{6.0} & \textbf{7.9} & \textbf{9.1} \\
+\midrule
+\multicolumn{10}{l}{\textit{Wind Speed (kt)}} \\
+\quad Max sfc wind & \textbf{27.1} & \textbf{25.1} & 24.4 & 21.7 & 14.5 & 11.0 & 15.1 & 18.5 & 20.4 \\
+\quad Mean sfc wind & 14.2 & 13.4 & 11.9 & 10.4 & 9.0 & 6.7 & 6.3 & 8.2 & 9.9 \\
+\quad Max $<$700\,hPa & 29.7 & \textbf{34.2} & \textbf{30.1} & 24.5 & 20.4 & 20.4 & 19.0 & 24.9 & \textbf{27.3} \\
+\midrule
+\multicolumn{10}{l}{\textit{Temperature (\textdegree{}C)}} \\
+\quad Max sfc temp & 2.6 & 2.6 & 2.1 & 2.1 & 4.6 & 8.1 & 8.6 & 5.9 & 4.4 \\
+\quad Mean sfc temp & $-$0.4 & $-$0.6 & $-$1.1 & $-$1.1 & 1.0 & 3.1 & 3.3 & 2.7 & 2.2 \\
+\midrule
+\multicolumn{10}{l}{\textit{Vapor Pressure Deficit (hPa)}} \\
+\quad Max sfc VPD & 2.7 & 3.2 & 2.7 & 3.3 & 3.7 & 5.4 & 5.8 & 5.2 & 5.0 \\
+\quad Mean sfc VPD & 1.3 & 1.5 & 1.4 & 1.6 & 2.4 & 3.5 & 3.6 & 3.1 & 2.9 \\
+\quad Max $<$500\,hPa & 3.3 & 4.2 & 3.9 & 3.4 & 3.7 & 5.4 & 5.8 & 5.2 & 5.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The diurnal signal is strikingly different between the two regions. In the southern corridor, the lowest surface RH values (10.6--13.7\%) actually occur during the overnight and early morning hours (FHR~24--30, valid 23~MST--05~MST on 10--11 Feb), driven by warm-air advection aloft rather than daytime heating. The peak VPD of 18.0~hPa occurs at FHR~39 (14~MST) when afternoon solar heating amplifies the existing warm, dry airmass. In the northern corridor, surface RH remains well above Red Flag thresholds throughout, but column minimum RH drops to an extreme 6.0\% at FHR~42 (17~MST), indicating a profoundly dry mid-tropospheric layer descending toward the surface.
+
+%----------------------------------------------------------------------
+\subsection{Red Flag Threshold Exceedance Analysis}
+\label{sec:thresholds}
+
+Table~\ref{tab:thresholds} quantifies the spatial extent of threshold exceedances at FHR~39 (21Z 11~Feb / 14~MST), near the peak fire danger window for the southern corridor.
+
+\begin{table}[htbp]
+\centering
+\caption{Red Flag and extreme threshold exceedance analysis at FHR~39. Percent values indicate the fraction of each transect meeting or exceeding the stated criterion. Column ``Col.~min'' refers to the lowest RH value found anywhere in the column below 500~hPa.}
+\label{tab:thresholds}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Threshold Criterion} & \textbf{Northern (MT)} & \textbf{Southern (AZ/NM)} \\
+\midrule
+\multicolumn{3}{l}{\textit{Relative Humidity}} \\
+\quad Surface RH $<$ 15\% (Red Flag) & 0.0\% & 0.0\% \\
+\quad Surface RH $<$ 20\% & 0.0\% & 28.5\% \\
+\quad Surface RH $<$ 25\% & 0.0\% & \textbf{74.0\%} \\
+\quad Column min RH $<$ 8\% (Extreme) & 0.0\% & 0.0\% \\
+\quad Minimum surface RH value & 40.9\% & 15.3\% \\
+\midrule
+\multicolumn{3}{l}{\textit{Wind Speed}} \\
+\quad Surface wind $>$ 25\,kt (Red Flag) & 0.0\% & 0.0\% \\
+\quad Max surface wind & 11.0\,kt & 17.3\,kt \\
+\quad Max wind below 700\,hPa & 20.4\,kt & 19.6\,kt \\
+\midrule
+\multicolumn{3}{l}{\textit{Vapor Pressure Deficit}} \\
+\quad Surface VPD $>$ 13\,hPa (Extreme) & 0.0\% & \textbf{42.1\%} \\
+\quad Surface VPD $>$ 20\,hPa (Off-charts) & 0.0\% & 0.0\% \\
+\quad Maximum surface VPD & 5.4\,hPa & \textbf{18.0\,hPa} \\
+\quad VPD maximum location & 108.2\textdegree{}W & 110.8\textdegree{}W \\
+\midrule
+\multicolumn{3}{l}{\textit{Multi-Threshold Overlap}} \\
+\quad RH${<}$15 \textit{and} wind${>}$25\,kt & 0.0\% & 0.0\% \\
+\quad RH${<}$15 \textit{and} VPD${>}$13\,hPa & 0.0\% & 0.0\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+At FHR~39, the southern corridor shows critically low humidity across the majority of the transect: 74.0\% of the cross-section distance has surface RH below 25\%, and 28.5\% has RH below 20\%. While the minimum surface RH of 15.3\% narrowly misses the strict 15\% Red Flag threshold, the margin is negligible, and at nearby FHR~24 the minimum RH was 10.6\%. The VPD picture is more alarming: 42.1\% of the transect exceeds the 13~hPa extreme fire danger threshold, with a peak of 18.0~hPa centered near 110.8\textdegree{}W (central Arizona). A VPD of 18~hPa indicates atmospheric moisture demand far exceeding what live vegetation can sustain, leading to rapid fuel desiccation.
+
+The northern corridor does not reach Red Flag surface humidity thresholds at any point, with the minimum surface RH of 40.9\%. However, the column minimum RH of 6.5\% at FHR~39---dropping to 6.0\% at FHR~42---indicates an extremely dry mid-tropospheric intrusion between 575 and 550~hPa that could descend to the surface through turbulent mixing.
+
+%----------------------------------------------------------------------
+\subsection{Regional Comparison: Northern Rockies vs.\ Four Corners}
+\label{sec:comparison}
+
+Table~\ref{tab:comparison} provides a head-to-head comparison of fire weather parameters at FHR~39 (21Z, peak afternoon conditions).
+
+\begin{table}[htbp]
+\centering
+\caption{Regional comparison of fire weather parameters at FHR~39 (21Z 11~Feb). The Red Flag threshold column shows NWS criteria. Bold values exceed these thresholds.}
+\label{tab:comparison}
+\begin{tabular}{@{}lccl@{}}
+\toprule
+\textbf{Parameter} & \textbf{Northern (MT)} & \textbf{Southern (AZ/NM)} & \textbf{Red Flag Threshold} \\
+\midrule
+Min surface RH (\%) & 40.9 & 15.3 & $<$15\% \\
+Mean surface RH (\%) & 54.9 & 22.6 & --- \\
+Max surface wind (kt) & 11.0 & 17.3 & $>$25\,kt \\
+Max VPD (hPa) & 5.4 & \textbf{18.0} & $>$13\,hPa \\
+Mean VPD (hPa) & 3.5 & 12.1 & --- \\
+Max lapse rate (\textdegree{}C/km) & \textbf{11.2} & \textbf{11.5} & $>$8.0 (very unstable) \\
+Mean near-sfc lapse rate (\textdegree{}C/km) & \textbf{8.8} & \textbf{10.1} & $>$9.8 (abs.\ unstable) \\
+850--500\,hPa lapse rate (\textdegree{}C/km) & 6.7 & \textbf{8.4} & $>$8.0 (very unstable) \\
+850--700\,hPa lapse rate (\textdegree{}C/km) & 6.8 & \textbf{10.1} & $>$9.8 (abs.\ unstable) \\
+Dry layer depth, RH${<}$20\% (hPa) & 0 & 75 & --- \\
+Max subsidence (hPa/hr) & +0.9 & +1.3 & --- \\
+Surface pressure range (hPa) & 779--946 & 763--862 & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The two regions present qualitatively different fire weather threats:
+
+\textbf{Southern corridor (AZ/NM)}: The dominant hazard is the combination of extreme dryness and absolute instability. The surface RH of 15--32\% sits at or near Red Flag levels across the entire transect. The VPD of 18.0~hPa is well into the ``extreme fire danger'' regime. The 850--700~hPa lapse rate of 10.1~\textdegree{}C/km exceeds the dry adiabatic lapse rate of 9.8~\textdegree{}C/km, indicating a \textit{superadiabatic} layer in the lowest 150~hPa above the surface. This absolute instability supports vigorous convective mixing, convective plume development from any fire start, and erratic fire behavior. The dry layer extends approximately 75~hPa above the surface. Surface temperatures reaching 19.1\textdegree{}C in mid-February are anomalously warm, amplifying the VPD.
+
+\textbf{Northern corridor (MT)}: While surface conditions are far from Red Flag thresholds, the mid-tropospheric dryness is extreme: column minimum RH of 6.5\% near 575~hPa. The near-surface lapse rates are steep---mean 8.8~\textdegree{}C/km with maxima reaching 11.2~\textdegree{}C/km at the 925--900~hPa layer. This steep lapse rate environment would rapidly transport any available dry air downward through turbulent mixing. The more critical fire weather concern in the north is the wind, with maximum sub-700~hPa winds of 20.4~kt and earlier FHRs showing 34.2~kt at FHR~27. If the mid-level dry air mixes to the surface under continued lapse-rate steepening, surface RH could drop precipitously.
+
+%----------------------------------------------------------------------
+\subsection{Peak Fire Danger Window Identification}
+\label{sec:peak_window}
+
+\begin{table}[htbp]
+\centering
+\caption{Identification of peak fire danger windows by parameter. Each entry shows the FHR, valid time (MST), and the extreme value attained.}
+\label{tab:peak_windows}
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Parameter} & \textbf{Peak FHR (MST)} & \textbf{Northern (MT)} & \textbf{Southern (AZ/NM)} \\
+\midrule
+Lowest surface RH & F42 / F24 & 36.3\% (17~MST) & \textbf{10.6\% (23~MST)} \\
+Lowest column RH & F42 / F27 & \textbf{6.0\%} (17~MST) & \textbf{4.4\%} (02~MST) \\
+Highest surface VPD & F42 / F39 & 5.8\,hPa (17~MST) & \textbf{18.0\,hPa (14~MST)} \\
+Highest surface wind & F24 / F33 & \textbf{27.1\,kt (23~MST)} & \textbf{30.0\,kt (08~MST)} \\
+Highest wind $<$700 & F27 / F24 & \textbf{34.2\,kt (02~MST)} & \textbf{35.8\,kt (23~MST)} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The peak fire danger windows are \textbf{not synchronous} between parameters or regions:
+
+\begin{itemize}
+\item \textbf{Southern corridor composite peak}: FHR~39 (14~MST 11~Feb) for VPD and overall fire danger. The afternoon solar heating superimposes on the pre-existing warm, dry airmass to produce the maximum moisture demand (VPD~=~18.0~hPa). However, the lowest RH values (10.6\%) actually occur at FHR~24 (23~MST 10~Feb) during the previous night, when synoptic-scale warm-air advection aloft is most intense. The composite peak danger---considering RH, VPD, temperature, and instability together---occurs during \textbf{12--18~MST on 11~February} (FHR~36--42).
+
+\item \textbf{Northern corridor composite peak}: FHR~39--42 (14--17~MST 11~Feb) for surface drying and instability. The lowest surface RH (36.3\%) and highest surface VPD (5.8~hPa) occur at FHR~42. However, the strongest winds occur much earlier, at FHR~24--27 (23~MST--02~MST) with gusts to 34~kt. The fire danger character evolves from a \textbf{wind-driven threat} during the overnight hours to an \textbf{instability-driven threat} during the afternoon when lapse rates peak above 11~\textdegree{}C/km.
+\end{itemize}
+
+%----------------------------------------------------------------------
+\subsection{Vertical Extent of Critical Conditions}
+\label{sec:vertical}
+
+\begin{figure}[htbp]
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+\includegraphics[width=\textwidth]{figures/indices_north_fire_wx_f39.png}
+\caption{Northern CRIT---Fire Weather Composite}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+\includegraphics[width=\textwidth]{figures/indices_south_fire_wx_f39.png}
+\caption{Southern CRIT---Fire Weather Composite}
+\end{subfigure}
+\caption{Fire weather composite cross-sections at FHR~39 (21Z 11~Feb / 14~MST). The composites depict RH shading with wind barbs, illustrating the vertical and horizontal extent of dry/windy conditions.}
+\label{fig:firewx_composite}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+\includegraphics[width=\textwidth]{figures/indices_north_lapse_f39.png}
+\caption{Northern CRIT---Lapse Rate}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+\includegraphics[width=\textwidth]{figures/indices_south_lapse_f39.png}
+\caption{Southern CRIT---Lapse Rate}
+\end{subfigure}
+\caption{Lapse rate cross-sections at FHR~39. Values exceeding 9.8~\textdegree{}C/km (dry adiabatic rate) indicate absolute instability. Both regions show superadiabatic layers near the surface, with the southern corridor exhibiting a deeper and more widespread absolutely unstable layer.}
+\label{fig:lapse_comparison}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+\includegraphics[width=\textwidth]{figures/indices_north_vpd_f39.png}
+\caption{Northern CRIT---VPD}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+\includegraphics[width=\textwidth]{figures/indices_south_vpd_f39.png}
+\caption{Southern CRIT---VPD}
+\end{subfigure}
+\caption{Vapor pressure deficit cross-sections at FHR~39. The southern corridor shows VPD values of 14--18~hPa through a deep near-surface layer, indicating extreme atmospheric moisture demand. The northern corridor VPD remains modest ($<$6~hPa) due to much lower temperatures.}
+\label{fig:vpd_comparison}
+\end{figure}
+
+Table~\ref{tab:vertical_rh} presents the vertical distribution of RH averaged across each transect at FHR~39, revealing the three-dimensional structure of the dry airmass.
+
+\begin{table}[htbp]
+\centering
+\caption{Vertical distribution of relative humidity at FHR~39 (21Z). ``N'' indicates the number of valid grid points at each level (fewer points at higher pressures reflect terrain masking). Bold values highlight critically dry layers.}
+\label{tab:vertical_rh}
+\small
+\begin{tabular}{@{}rrrrrrrr@{}}
+\toprule
+& \multicolumn{3}{c}{\textbf{Northern (MT)}} & \multicolumn{3}{c}{\textbf{Southern (AZ/NM)}} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-7}
+\textbf{Level (hPa)} & \textbf{Mean} & \textbf{Min} & \textbf{N} & \textbf{Mean} & \textbf{Min} & \textbf{N} \\
+\midrule
+925 & 57.5 & 44.3 & 87 & --- & --- & --- \\
+900 & 60.7 & 41.8 & 144 & --- & --- & --- \\
+875 & 65.8 & 41.1 & 171 & --- & --- & --- \\
+850 & 65.4 & 41.9 & 204 & \textbf{20.0} & \textbf{15.7} & 27 \\
+825 & 62.8 & 42.9 & 227 & \textbf{21.5} & \textbf{15.7} & 109 \\
+800 & 58.0 & 40.4 & 246 & \textbf{24.0} & \textbf{15.3} & 188 \\
+775 & 51.7 & 34.7 & 252 & 27.2 & \textbf{16.2} & 238 \\
+750 & 44.2 & 28.7 & 252 & 31.1 & \textbf{18.3} & 242 \\
+725 & 37.4 & 23.9 & 252 & 35.1 & 21.4 & 242 \\
+700 & 32.0 & \textbf{19.0} & 252 & 38.1 & 25.3 & 242 \\
+675 & 28.5 & \textbf{15.0} & 252 & 43.7 & 26.3 & 242 \\
+650 & 25.8 & \textbf{13.3} & 252 & 53.1 & 36.8 & 242 \\
+625 & 23.3 & \textbf{11.9} & 252 & 63.0 & 46.6 & 242 \\
+600 & 21.1 & \textbf{10.4} & 252 & 70.8 & 51.3 & 242 \\
+575 & \textbf{19.7} & \textbf{9.7} & 252 & 76.3 & 60.4 & 242 \\
+550 & \textbf{19.8} & \textbf{8.8} & 252 & 77.2 & 47.8 & 242 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The vertical RH structure reveals a fundamental contrast:
+
+\begin{itemize}
+\item \textbf{Southern corridor}: The dry layer is concentrated near the surface, with mean RH of 20--24\% in the 850--800~hPa layer and minimum values of 15.3\%. RH \textit{increases} with height, reaching 77\% by 550~hPa. This top-down drying pattern is characteristic of subsidence-driven warming, where sinking air in the lee of the Rockies produces an elevated mixed layer that has been dessicated through adiabatic compression. The dry layer extends from the surface to approximately 750~hPa, a depth of roughly 75--100~hPa.
+
+\item \textbf{Northern corridor}: The vertical structure is inverted---surface RH is moderate (55--66\%) while mid-tropospheric RH plunges to extreme values. Mean RH drops below 20\% at 575~hPa, but minimum values reach 8.8\% at 550~hPa and remain below 15\% through a deep 675--550~hPa layer. This mid-level dry slot likely originates from stratospheric or upper-tropospheric air descending in the rear of the advancing trough system. The dry air has not yet mixed to the surface at FHR~39, but the superadiabatic lapse rates (mean 8.8~\textdegree{}C/km near the surface) suggest active turbulent mixing that may eventually erode the moist surface layer.
+\end{itemize}
+
+Table~\ref{tab:vertical_lapse} highlights the vertical distribution of lapse rates, which govern the likelihood of turbulent mixing, convective plume development, and erratic fire behavior.
+
+\begin{table}[htbp]
+\centering
+\caption{Vertical distribution of lapse rates at FHR~39. Bold values indicate very unstable ($>$8~\textdegree{}C/km) or absolutely unstable ($>$9.8~\textdegree{}C/km) conditions. Layer lapse rates from temperature differences are also shown.}
+\label{tab:vertical_lapse}
+\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Layer} & \textbf{Northern (MT)} & \textbf{Southern (AZ/NM)} \\
+\midrule
+\multicolumn{3}{l}{\textit{Product lapse rates (mean / max, \textdegree{}C/km)}} \\
+\quad 925\,hPa & \textbf{9.7 / 11.2} & --- \\
+\quad 900\,hPa & \textbf{10.0 / 11.0} & --- \\
+\quad 875\,hPa & \textbf{8.9 / 10.7} & --- \\
+\quad 850\,hPa & 8.0 / \textbf{10.5} & \textbf{9.3 / 9.9} \\
+\quad 825\,hPa & 7.3 / 9.3 & \textbf{10.2 / 11.5} \\
+\quad 800\,hPa & 6.6 / 9.0 & \textbf{10.0 / 11.5} \\
+\quad 775\,hPa & 6.3 / 8.8 & \textbf{9.8 / 11.1} \\
+\quad 750\,hPa & 6.1 / 7.6 & \textbf{8.9 / 10.8} \\
+\midrule
+\multicolumn{3}{l}{\textit{Bulk layer lapse rates (\textdegree{}C/km)}} \\
+\quad 850--700\,hPa (mean / max) & 6.8 / 7.7 & \textbf{10.1 / 10.5} \\
+\quad 850--500\,hPa (mean / max) & 6.7 / 7.3 & \textbf{8.4 / 8.5} \\
+\quad 700--500\,hPa (mean / max) & 6.6 / 7.6 & 7.3 / 7.5 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The southern corridor exhibits absolutely unstable conditions (lapse rate $>$9.8~\textdegree{}C/km) through a remarkably deep 850--775~hPa layer, with mean lapse rates of 9.3--10.2~\textdegree{}C/km and individual grid-column maxima exceeding 11~\textdegree{}C/km. The bulk 850--700~hPa lapse rate of 10.1~\textdegree{}C/km exceeds the dry adiabatic rate, confirming absolute instability through the entire lower troposphere. This has direct implications for fire behavior: any fire plume entering this layer would undergo uninhibited vertical acceleration, producing convective columns, spot fires from lofted embers, and potentially fire-generated thunderstorms (pyroCb). Even without an active fire, dust devils and fire whirls are likely.
+
+In the northern corridor, the superadiabatic layer is confined to the lowest 100--150~hPa (925--875~hPa), with mean lapse rates of 9.7--10.0~\textdegree{}C/km. Above 850~hPa, lapse rates decrease to conditionally unstable values (6--8~\textdegree{}C/km). The steep near-surface lapse rates drive vigorous mechanical and thermal turbulence that would enhance any fire spread through the surface layer.
+
+\textbf{Summary of peak danger window}: The most critical fire weather conditions occur in the southern corridor between \textbf{FHR~36--42 (11--17~MST on 11~February~2026)}, where the combination of near-Red-Flag humidity (15--25\% RH), extreme VPD (12--18~hPa), absolutely unstable lapse rates (10+~\textdegree{}C/km through 850--775~hPa), and anomalously warm surface temperatures (14--19\textdegree{}C) creates conditions highly favorable for rapid fire spread and extreme fire behavior. The northern corridor poses a secondary risk during the same afternoon window, principally through instability-driven turbulent mixing of mid-level dry air toward the surface.

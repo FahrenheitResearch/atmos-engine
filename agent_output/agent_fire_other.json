@@ -1,0 +1,755 @@
+{
+  "20200907_18z": {
+    "suggested_sections": [
+      {
+        "label": "W-E Cascades downslope through Santiam Canyon",
+        "start": [
+          44.7,
+          -121.0
+        ],
+        "end": [
+          44.7,
+          -123.5
+        ],
+        "products": [
+          "wind_speed",
+          "fire_wx",
+          "omega"
+        ],
+        "best_fhr": 8,
+        "markers": [
+          {
+            "lat": 44.736,
+            "lon": -122.15,
+            "label": "Detroit"
+          },
+          {
+            "lat": 44.756,
+            "lon": -122.42,
+            "label": "Gates"
+          },
+          {
+            "lat": 44.4,
+            "lon": -121.85,
+            "label": "Santiam Pass"
+          }
+        ]
+      },
+      {
+        "label": "W-E Columbia Gorge gap wind transect",
+        "start": [
+          45.6,
+          -120.5
+        ],
+        "end": [
+          45.6,
+          -123.0
+        ],
+        "products": [
+          "wind_speed",
+          "rh",
+          "temperature"
+        ],
+        "best_fhr": 9,
+        "markers": [
+          {
+            "lat": 45.67,
+            "lon": -121.87,
+            "label": "Cascade Locks"
+          },
+          {
+            "lat": 45.71,
+            "lon": -121.52,
+            "label": "Hood River"
+          }
+        ]
+      },
+      {
+        "label": "N-S through western OR fire complex (Portland to Medford)",
+        "start": [
+          45.8,
+          -122.5
+        ],
+        "end": [
+          42.5,
+          -122.5
+        ],
+        "products": [
+          "wind_speed",
+          "fire_wx",
+          "vpd"
+        ],
+        "best_fhr": 8,
+        "markers": [
+          {
+            "lat": 44.736,
+            "lon": -122.15,
+            "label": "Detroit"
+          },
+          {
+            "lat": 43.75,
+            "lon": -122.46,
+            "label": "Oakridge"
+          },
+          {
+            "lat": 42.33,
+            "lon": -122.88,
+            "label": "Medford"
+          }
+        ]
+      }
+    ]
+  },
+  "20200908_00z": {
+    "suggested_sections": [
+      {
+        "label": "E-W Cascades downslope winds (Santiam transect)",
+        "start": [
+          44.75,
+          -121.0
+        ],
+        "end": [
+          44.75,
+          -123.5
+        ],
+        "products": [
+          "wind_speed",
+          "fire_wx",
+          "omega"
+        ],
+        "best_fhr": 12,
+        "markers": [
+          {
+            "lat": 44.736,
+            "lon": -122.15,
+            "label": "Detroit"
+          },
+          {
+            "lat": 44.756,
+            "lon": -122.42,
+            "label": "Gates"
+          }
+        ]
+      },
+      {
+        "label": "N-S through OR fire corridor (Columbia to Rogue)",
+        "start": [
+          46.0,
+          -122.3
+        ],
+        "end": [
+          42.0,
+          -122.3
+        ],
+        "products": [
+          "wind_speed",
+          "smoke",
+          "temperature"
+        ],
+        "best_fhr": 14,
+        "markers": [
+          {
+            "lat": 44.736,
+            "lon": -122.15,
+            "label": "Detroit"
+          },
+          {
+            "lat": 43.75,
+            "lon": -122.46,
+            "label": "Oakridge"
+          },
+          {
+            "lat": 42.33,
+            "lon": -122.88,
+            "label": "Medford"
+          }
+        ]
+      },
+      {
+        "label": "W-E Rogue Valley transect (Alameda fire zone)",
+        "start": [
+          42.4,
+          -123.5
+        ],
+        "end": [
+          42.4,
+          -121.5
+        ],
+        "products": [
+          "fire_wx",
+          "rh",
+          "vpd"
+        ],
+        "best_fhr": 10,
+        "markers": [
+          {
+            "lat": 42.25,
+            "lon": -122.79,
+            "label": "Talent"
+          },
+          {
+            "lat": 42.28,
+            "lon": -122.82,
+            "label": "Phoenix"
+          }
+        ]
+      }
+    ]
+  },
+  "20201021_12z": {
+    "suggested_sections": [
+      {
+        "label": "W-E downslope through fire zone (Gore Range to Front Range plains)",
+        "start": [
+          40.15,
+          -107.0
+        ],
+        "end": [
+          40.15,
+          -104.8
+        ],
+        "products": [
+          "wind_speed",
+          "fire_wx",
+          "omega"
+        ],
+        "best_fhr": 12,
+        "markers": [
+          {
+            "lat": 40.1,
+            "lon": -106.1,
+            "label": "Ignition"
+          },
+          {
+            "lat": 40.25,
+            "lon": -105.82,
+            "label": "Grand Lake"
+          },
+          {
+            "lat": 40.38,
+            "lon": -105.52,
+            "label": "Estes Park"
+          }
+        ]
+      },
+      {
+        "label": "SW-NE Continental Divide transect (Leadville to Ft Collins)",
+        "start": [
+          39.3,
+          -107.0
+        ],
+        "end": [
+          40.8,
+          -105.0
+        ],
+        "products": [
+          "wind_speed",
+          "rh",
+          "vpd"
+        ],
+        "best_fhr": 14,
+        "markers": [
+          {
+            "lat": 40.1,
+            "lon": -106.1,
+            "label": "Ignition"
+          },
+          {
+            "lat": 40.25,
+            "lon": -105.82,
+            "label": "Grand Lake"
+          }
+        ]
+      },
+      {
+        "label": "N-S through Front Range fire corridor (WY border to Denver)",
+        "start": [
+          41.0,
+          -105.8
+        ],
+        "end": [
+          39.0,
+          -105.8
+        ],
+        "products": [
+          "fire_wx",
+          "smoke",
+          "omega"
+        ],
+        "best_fhr": 10,
+        "markers": [
+          {
+            "lat": 40.25,
+            "lon": -105.82,
+            "label": "Grand Lake"
+          },
+          {
+            "lat": 40.1,
+            "lon": -105.8,
+            "label": "Ignition"
+          }
+        ]
+      }
+    ]
+  },
+  "20211230_06z": {
+    "suggested_sections": [
+      {
+        "label": "W-E downslope mountain wave (Continental Divide to eastern plains)",
+        "start": [
+          39.95,
+          -106.3
+        ],
+        "end": [
+          39.95,
+          -104.1
+        ],
+        "products": [
+          "wind_speed",
+          "fire_wx",
+          "omega"
+        ],
+        "best_fhr": 12,
+        "markers": [
+          {
+            "lat": 39.955,
+            "lon": -105.21,
+            "label": "Ignition"
+          },
+          {
+            "lat": 39.978,
+            "lon": -105.13,
+            "label": "Louisville"
+          },
+          {
+            "lat": 39.953,
+            "lon": -105.17,
+            "label": "Superior"
+          }
+        ]
+      },
+      {
+        "label": "NW-SE foothills to plains (Estes Park to Castle Rock)",
+        "start": [
+          40.7,
+          -106.0
+        ],
+        "end": [
+          39.2,
+          -104.3
+        ],
+        "products": [
+          "wind_speed",
+          "temperature",
+          "rh"
+        ],
+        "best_fhr": 13,
+        "markers": [
+          {
+            "lat": 39.978,
+            "lon": -105.13,
+            "label": "Louisville"
+          },
+          {
+            "lat": 39.953,
+            "lon": -105.17,
+            "label": "Superior"
+          }
+        ]
+      },
+      {
+        "label": "N-S along Front Range foothills wind corridor (Cheyenne to CO Springs)",
+        "start": [
+          41.0,
+          -105.2
+        ],
+        "end": [
+          38.8,
+          -104.9
+        ],
+        "products": [
+          "wind_speed",
+          "omega",
+          "vpd"
+        ],
+        "best_fhr": 11,
+        "markers": [
+          {
+            "lat": 39.978,
+            "lon": -105.13,
+            "label": "Louisville"
+          },
+          {
+            "lat": 39.953,
+            "lon": -105.17,
+            "label": "Superior"
+          }
+        ]
+      }
+    ]
+  },
+  "20220422_12z": {
+    "suggested_sections": [
+      {
+        "label": "SW-NE across Sangre de Cristo range through fire zone",
+        "start": [
+          35.0,
+          -106.5
+        ],
+        "end": [
+          36.6,
+          -104.3
+        ],
+        "products": [
+          "wind_speed",
+          "fire_wx",
+          "omega"
+        ],
+        "best_fhr": 10,
+        "markers": [
+          {
+            "lat": 35.74,
+            "lon": -105.41,
+            "label": "Hermits Peak"
+          },
+          {
+            "lat": 35.97,
+            "lon": -105.33,
+            "label": "Mora"
+          },
+          {
+            "lat": 35.59,
+            "lon": -105.22,
+            "label": "Las Vegas NM"
+          }
+        ]
+      },
+      {
+        "label": "W-E through Hermits Peak downslope corridor (Jemez to plains)",
+        "start": [
+          35.82,
+          -106.8
+        ],
+        "end": [
+          35.82,
+          -104.2
+        ],
+        "products": [
+          "wind_speed",
+          "rh",
+          "vpd"
+        ],
+        "best_fhr": 12,
+        "markers": [
+          {
+            "lat": 35.74,
+            "lon": -105.41,
+            "label": "Hermits Peak"
+          },
+          {
+            "lat": 35.97,
+            "lon": -105.33,
+            "label": "Mora"
+          }
+        ]
+      },
+      {
+        "label": "N-S through Sangre de Cristo fire corridor (Taos to Santa Fe)",
+        "start": [
+          36.8,
+          -105.4
+        ],
+        "end": [
+          34.8,
+          -105.4
+        ],
+        "products": [
+          "fire_wx",
+          "dewpoint_dep",
+          "temperature"
+        ],
+        "best_fhr": 8,
+        "markers": [
+          {
+            "lat": 35.74,
+            "lon": -105.41,
+            "label": "Hermits Peak"
+          },
+          {
+            "lat": 35.97,
+            "lon": -105.33,
+            "label": "Mora"
+          },
+          {
+            "lat": 35.59,
+            "lon": -105.22,
+            "label": "Las Vegas NM"
+          }
+        ]
+      }
+    ]
+  },
+  "20220909_18z": {
+    "suggested_sections": [
+      {
+        "label": "W-E Cascade downslope through Cedar Creek fire origin",
+        "start": [
+          43.73,
+          -123.3
+        ],
+        "end": [
+          43.73,
+          -121.2
+        ],
+        "products": [
+          "wind_speed",
+          "fire_wx",
+          "omega"
+        ],
+        "best_fhr": 9,
+        "markers": [
+          {
+            "lat": 43.73,
+            "lon": -122.17,
+            "label": "Fire Origin"
+          },
+          {
+            "lat": 43.75,
+            "lon": -122.46,
+            "label": "Oakridge"
+          }
+        ]
+      },
+      {
+        "label": "SW-NE from Oakridge through fire zone to Bend",
+        "start": [
+          43.2,
+          -123.2
+        ],
+        "end": [
+          44.3,
+          -121.0
+        ],
+        "products": [
+          "wind_speed",
+          "rh",
+          "vpd"
+        ],
+        "best_fhr": 8,
+        "markers": [
+          {
+            "lat": 43.75,
+            "lon": -122.46,
+            "label": "Oakridge"
+          },
+          {
+            "lat": 43.76,
+            "lon": -122.5,
+            "label": "Westfir"
+          },
+          {
+            "lat": 43.73,
+            "lon": -122.17,
+            "label": "Fire Origin"
+          }
+        ]
+      },
+      {
+        "label": "N-S through central Cascades fire corridor",
+        "start": [
+          44.8,
+          -122.1
+        ],
+        "end": [
+          42.7,
+          -122.1
+        ],
+        "products": [
+          "fire_wx",
+          "smoke",
+          "temperature"
+        ],
+        "best_fhr": 10,
+        "markers": [
+          {
+            "lat": 43.73,
+            "lon": -122.17,
+            "label": "Fire Origin"
+          }
+        ]
+      }
+    ]
+  },
+  "20240226_12z": {
+    "suggested_sections": [
+      {
+        "label": "SW-NE through TX Panhandle fire zone (Stinnett to Canadian)",
+        "start": [
+          35.2,
+          -101.5
+        ],
+        "end": [
+          36.5,
+          -99.5
+        ],
+        "products": [
+          "wind_speed",
+          "fire_wx",
+          "rh"
+        ],
+        "best_fhr": 10,
+        "markers": [
+          {
+            "lat": 35.84,
+            "lon": -101.44,
+            "label": "Ignition"
+          },
+          {
+            "lat": 35.91,
+            "lon": -100.38,
+            "label": "Canadian"
+          }
+        ]
+      },
+      {
+        "label": "W-E dryline and wind corridor transect",
+        "start": [
+          35.8,
+          -102.0
+        ],
+        "end": [
+          35.8,
+          -99.0
+        ],
+        "products": [
+          "dewpoint_dep",
+          "wind_speed",
+          "vpd"
+        ],
+        "best_fhr": 12,
+        "markers": [
+          {
+            "lat": 35.84,
+            "lon": -101.44,
+            "label": "Ignition"
+          },
+          {
+            "lat": 35.67,
+            "lon": -101.4,
+            "label": "Borger"
+          }
+        ]
+      },
+      {
+        "label": "N-S cold front passage transect",
+        "start": [
+          37.0,
+          -100.5
+        ],
+        "end": [
+          34.5,
+          -100.5
+        ],
+        "products": [
+          "wind_speed",
+          "temperature",
+          "fire_wx"
+        ],
+        "best_fhr": 8,
+        "markers": [
+          {
+            "lat": 35.91,
+            "lon": -100.38,
+            "label": "Canadian"
+          }
+        ]
+      }
+    ]
+  },
+  "20240227_12z": {
+    "suggested_sections": [
+      {
+        "label": "W-E expansion corridor (Panhandle to Oklahoma border)",
+        "start": [
+          35.9,
+          -101.5
+        ],
+        "end": [
+          35.9,
+          -99.0
+        ],
+        "products": [
+          "wind_speed",
+          "fire_wx",
+          "rh"
+        ],
+        "best_fhr": 8,
+        "markers": [
+          {
+            "lat": 35.84,
+            "lon": -101.44,
+            "label": "Stinnett"
+          },
+          {
+            "lat": 35.91,
+            "lon": -100.38,
+            "label": "Canadian"
+          }
+        ]
+      },
+      {
+        "label": "NW-SE post-frontal wind corridor",
+        "start": [
+          36.8,
+          -101.0
+        ],
+        "end": [
+          35.0,
+          -99.5
+        ],
+        "products": [
+          "wind_speed",
+          "temperature",
+          "vpd"
+        ],
+        "best_fhr": 10,
+        "markers": [
+          {
+            "lat": 35.84,
+            "lon": -101.44,
+            "label": "Stinnett"
+          },
+          {
+            "lat": 36.32,
+            "lon": -99.75,
+            "label": "Gage OK"
+          }
+        ]
+      },
+      {
+        "label": "N-S through Canadian TX into fire zone (OK border to Lubbock)",
+        "start": [
+          37.0,
+          -100.2
+        ],
+        "end": [
+          34.5,
+          -100.2
+        ],
+        "products": [
+          "fire_wx",
+          "smoke",
+          "dewpoint_dep"
+        ],
+        "best_fhr": 6,
+        "markers": [
+          {
+            "lat": 35.91,
+            "lon": -100.38,
+            "label": "Canadian"
+          }
+        ]
+      }
+    ]
+  }
+}

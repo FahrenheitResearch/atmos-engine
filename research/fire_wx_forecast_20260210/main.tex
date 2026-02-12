@@ -1,0 +1,139 @@
+\documentclass[11pt,letterpaper]{article}
+
+% --- Geometry ---
+\usepackage[margin=1in]{geometry}
+
+% --- Fonts & Encoding ---
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{mathptmx}           % Times Roman for body text
+\usepackage{amsmath,amssymb}
+
+% --- Graphics ---
+\usepackage{graphicx}
+\graphicspath{{./figures/}}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{subcaption}
+
+% --- Tables ---
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{tabularx}
+
+% --- Typography ---
+\usepackage{microtype}
+\usepackage{textcomp}
+\usepackage{xspace}
+
+% --- Colors & Links ---
+\usepackage[dvipsnames]{xcolor}
+\usepackage[colorlinks=true,linkcolor=MidnightBlue,citecolor=MidnightBlue,urlcolor=MidnightBlue]{hyperref}
+
+% --- Section formatting ---
+\usepackage{titlesec}
+\titleformat{\section}{\normalfont\Large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\normalfont\large\bfseries}{\thesubsection.}{0.5em}{}
+\titleformat{\subsubsection}{\normalfont\normalsize\bfseries}{}{0em}{}
+
+% --- Floats ---
+\usepackage{float}
+\usepackage[section]{placeins}
+
+% --- Abstract ---
+\usepackage{abstract}
+\renewcommand{\abstractnamefont}{\normalfont\bfseries}
+\renewcommand{\abstracttextfont}{\normalfont\small}
+
+% --- Header/Footer ---
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\itshape Fire Weather Cross-Section Forecast}
+\fancyhead[R]{\small\itshape Valid: 10 February 2026}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% --- Custom commands ---
+\newcommand{\degC}{$^\circ$C\xspace}
+\newcommand{\degN}{$^\circ$N\xspace}
+\newcommand{\degW}{$^\circ$W\xspace}
+\newcommand{\kts}{~kt\xspace}
+\newcommand{\redflag}[1]{\textcolor{BrickRed}{\textbf{#1}}}
+\newcommand{\elevated}[1]{\textcolor{BurntOrange}{\textbf{#1}}}
+\newcommand{\critical}[1]{\textcolor{Red}{\textbf{#1}}}
+
+% ============================================================================
+\begin{document}
+
+% --- Title ---
+\begin{center}
+{\LARGE\bfseries Three-Dimensional Fire Weather Forecast\\[4pt]
+HRRR Cross-Section Analysis\\[4pt]
+\textcolor{BrickRed}{SPC Day 1 Critical Fire Weather Areas}\\[16pt]}
+
+{\large
+Valid: \textbf{10 February 2026} (06z Feb 10 -- 06z Feb 11)\\[4pt]
+HRRR Cycle: \textbf{20260209 06z} | Forecast Hours: 24--48\\[8pt]}
+
+{\normalsize\itshape
+Autonomous Fire Weather Research Agent\\
+wxsection.com Atmospheric Cross-Section Platform\\[4pt]
+Generated: 9 February 2026\\[4pt]}
+\end{center}
+
+% --- Alert Box ---
+\noindent\fcolorbox{BrickRed}{Salmon!20}{%
+\begin{minipage}{\dimexpr\textwidth-2\fboxsep-2\fboxrule}
+\centering\bfseries\large
+SPC CRITICAL FIRE WEATHER --- Two Areas\\[4pt]
+\normalsize
+\textbf{Northern Rockies:} Central Montana / Northern Wyoming\\
+\textbf{Four Corners:} Arizona / New Mexico / Southern Colorado\\[4pt]
+\normalfont\itshape
+This forecast supplements standard NWS/SPC guidance with three-dimensional\\
+atmospheric cross-section analysis not available in operational products.
+\end{minipage}}
+
+\vspace{12pt}
+
+\begin{abstract}
+The Storm Prediction Center has issued a Day 1 Critical Fire Weather Outlook valid February 10, 2026, highlighting two regions of critical fire weather potential: the Northern Rockies corridor spanning central Montana and northern Wyoming, and the Four Corners region across Arizona, New Mexico, and southern Colorado. This report provides three-dimensional atmospheric analysis using vertical cross-sections extracted from the HRRR (High-Resolution Rapid Refresh) 3-km model via the wxsection.com cross-section data platform. Analysis encompasses 19 atmospheric products across multiple transects and forecast hours, revealing the vertical structure of wind fields, humidity distributions, temperature profiles, subsidence patterns, and composite fire weather conditions that standard two-dimensional forecast products cannot capture. Cross-section analysis reveals the altitude, depth, and intensity of critical fire weather parameters through the atmospheric column, enabling identification of mixing potential, terrain-channeled wind acceleration, subsidence-driven drying, and the vertical extent of extreme fire danger conditions.
+\end{abstract}
+
+\vspace{12pt}
+\noindent\rule{\textwidth}{0.4pt}
+
+\tableofcontents
+\vspace{12pt}
+\noindent\rule{\textwidth}{0.4pt}
+\newpage
+
+% --- Body ---
+\input{sections/01_situation_overview}
+\input{sections/02_northern_analysis}
+\input{sections/03_southern_analysis}
+\input{sections/04_synoptic_analysis}
+\input{sections/05_quantitative_analysis}
+\input{sections/06_forecast_discussion}
+
+% --- Methodology ---
+\section*{Methodology and Data Sources}
+
+All cross-section data and visualizations in this report were generated from the HRRR (High-Resolution Rapid Refresh) 3-km model, cycle 20260209 06z, using the wxsection.com atmospheric cross-section API. Cross-sections are interpolated along great-circle paths between specified endpoints at 40 standard pressure levels from the surface to 200~hPa, with approximately 200 horizontal grid points per transect. The wxsection.com platform extracts data from HRRR GRIB2 files archived on NOAA's Big Data Program (Amazon Web Services) and converts them to memory-mapped format for rapid access.
+
+\medskip
+\noindent\textbf{API Endpoints Used:}
+\begin{itemize}
+\item \texttt{/api/v1/cross-section} --- PNG cross-section visualization (19 products)
+\item \texttt{/api/v1/data} --- Numerical JSON data for quantitative analysis
+\item \texttt{/api/v1/capabilities} --- Model and product discovery
+\end{itemize}
+
+\medskip
+\noindent\textbf{Model:} HRRR v4, 3-km horizontal resolution, 50 vertical levels, produced by NOAA/NCEP Global Systems Laboratory.
+
+\medskip
+\noindent\textbf{Disclaimer:} This is an AI-generated research analysis and \textbf{does not replace} official NWS forecasts, SPC outlooks, or IMET briefings. All operational fire weather decisions should be based on official NWS products and local IMET guidance.
+
+\end{document}

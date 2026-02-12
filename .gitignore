@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+
+# Data files (GRIB, NetCDF, cache)
+data/
+outputs/
+cache/
+grib_files/
+*.grib2
+*.idx
+*.nc
+*.npz
+
+# Images (screenshots, test outputs)
+*.png
+*.jpg
+*.jpeg
+*.gif
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# Zone identifiers (Windows/WSL)
+*:Zone.Identifier
+
+# Environment / secrets
+.env
+*.env
+.env.*
+
+# Agent context (local only, not committed)
+AGENT_CONTEXT.md
+
+# OS
+.DS_Store
+Thumbs.db

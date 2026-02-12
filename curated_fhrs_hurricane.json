@@ -1,0 +1,137 @@
+{
+  "20200826_18z": {
+    "_name": "Hurricane Laura Cat 4 — Cameron LA landfall 0600 UTC Aug 27 (F12)",
+    "essential_fhrs": [0, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    "trimmable_fhrs": [1, 2, 3, 4, 5, 19, 20, 21, 22, 23, 24],
+    "timing": {
+      "best_fhrs": [9, 10, 11, 12, 13, 14],
+      "buildup_fhrs": [0, 6, 7, 8]
+    }
+  },
+  "20200916_00z": {
+    "_name": "Hurricane Sally Cat 2 — Gulf Shores AL landfall 0945 UTC Sep 16 (F10), slow-mover",
+    "essential_fhrs": [0, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    "trimmable_fhrs": [1, 2, 3, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28],
+    "timing": {
+      "best_fhrs": [7, 8, 9, 10, 11, 12],
+      "buildup_fhrs": [0, 4, 5, 6]
+    }
+  },
+  "20201009_12z": {
+    "_name": "Hurricane Delta Cat 2 — Creole LA landfall 2300 UTC Oct 9 (F11)",
+    "essential_fhrs": [0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+    "trimmable_fhrs": [1, 2, 3, 4, 17, 18, 19, 20, 21, 22, 23, 24],
+    "timing": {
+      "best_fhrs": [8, 9, 10, 11, 12, 13, 14],
+      "buildup_fhrs": [0, 5, 6, 7]
+    }
+  },
+  "20201028_12z": {
+    "_name": "Hurricane Zeta Cat 3 — Cocodrie LA landfall 2100 UTC Oct 28 (F9), fast-mover 25mph",
+    "essential_fhrs": [0, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+    "trimmable_fhrs": [1, 2, 3, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24],
+    "timing": {
+      "best_fhrs": [7, 8, 9, 10, 11],
+      "buildup_fhrs": [0, 4, 5, 6]
+    }
+  },
+  "20201108_18z": {
+    "_name": "TS Eta — FL Keys crossing ~0400 UTC Nov 9 (F10), complex looping track",
+    "essential_fhrs": [0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+    "trimmable_fhrs": [1, 2, 3, 4, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24],
+    "timing": {
+      "best_fhrs": [7, 8, 9, 10, 11, 12],
+      "buildup_fhrs": [0, 5, 6]
+    }
+  },
+  "20210829_06z": {
+    "_name": "Hurricane Ida Cat 4 — Port Fourchon LA landfall 1655 UTC Aug 29 (F11), 150mph",
+    "essential_fhrs": [0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+    "trimmable_fhrs": [1, 2, 3, 4, 17, 18, 19, 20, 21, 22, 23, 24],
+    "timing": {
+      "best_fhrs": [7, 8, 9, 10, 11, 12],
+      "buildup_fhrs": [0, 5, 6]
+    }
+  },
+  "20210913_18z": {
+    "_name": "Hurricane Nicholas Cat 1 — Matagorda TX landfall 0530 UTC Sep 14 (F12), heavy rain",
+    "essential_fhrs": [0, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    "trimmable_fhrs": [1, 2, 3, 4, 5, 19, 20, 21, 22, 23, 24],
+    "timing": {
+      "best_fhrs": [9, 10, 11, 12, 13, 14],
+      "buildup_fhrs": [0, 6, 7, 8]
+    }
+  },
+  "20220928_12z": {
+    "_name": "Hurricane Ian Cat 4 — Cayo Costa FL landfall 1905 UTC Sep 28 (F7), briefly Cat 5 offshore, $112B",
+    "essential_fhrs": [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    "trimmable_fhrs": [1, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24],
+    "timing": {
+      "best_fhrs": [4, 5, 6, 7, 8, 9],
+      "buildup_fhrs": [0, 2, 3]
+    }
+  },
+  "20221110_00z": {
+    "_name": "Hurricane Nicole Cat 1 — Vero Beach FL landfall 0745 UTC Nov 10 (F8), rare Nov hurricane",
+    "essential_fhrs": [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    "trimmable_fhrs": [1, 2, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24],
+    "timing": {
+      "best_fhrs": [5, 6, 7, 8, 9, 10],
+      "buildup_fhrs": [0, 3, 4]
+    }
+  },
+  "20230830_00z": {
+    "_name": "Hurricane Idalia Cat 3 — Keaton Beach FL Big Bend landfall 1145 UTC Aug 30 (F12), RI to Cat 4 peak at ~F8-F9",
+    "essential_fhrs": [0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+    "trimmable_fhrs": [1, 2, 3, 4, 17, 18, 19, 20, 21, 22, 23, 24],
+    "timing": {
+      "best_fhrs": [8, 9, 10, 11, 12, 13],
+      "buildup_fhrs": [0, 5, 6, 7]
+    }
+  },
+  "20230916_06z": {
+    "_name": "Post-Tropical Lee — closest Maine approach ~F10-F12, NS landfall ~F14, enormous wind field, ET structure",
+    "essential_fhrs": [0, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+    "trimmable_fhrs": [1, 2, 3, 17, 18, 19, 20, 21, 22, 23, 24],
+    "timing": {
+      "best_fhrs": [7, 8, 9, 10, 11, 12, 13, 14],
+      "buildup_fhrs": [0, 4, 5, 6]
+    }
+  },
+  "20240708_00z": {
+    "_name": "Hurricane Beryl Cat 1 — Matagorda TX landfall 0900 UTC Jul 8 (F9), former Cat 5, Houston power crisis",
+    "essential_fhrs": [0, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+    "trimmable_fhrs": [1, 2, 3, 16, 17, 18, 19, 20, 21, 22, 23, 24],
+    "timing": {
+      "best_fhrs": [6, 7, 8, 9, 10, 11, 12],
+      "buildup_fhrs": [0, 4, 5]
+    }
+  },
+  "20240805_00z": {
+    "_name": "Hurricane Debby Cat 1 — Steinhatchee FL landfall 1100 UTC Aug 5 (F11), slow-mover, 20-30in rain SC",
+    "essential_fhrs": [0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    "trimmable_fhrs": [1, 2, 3, 4, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28],
+    "timing": {
+      "best_fhrs": [8, 9, 10, 11, 12, 13],
+      "buildup_fhrs": [0, 5, 6, 7]
+    }
+  },
+  "20240926_18z": {
+    "_name": "Hurricane Helene Cat 4 — Perry FL landfall 0310 UTC Sep 27 (F9), catastrophic WNC flooding F12-F24",
+    "essential_fhrs": [0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24],
+    "trimmable_fhrs": [1, 2, 3, 4, 25, 26, 27, 28, 29, 30, 31, 32],
+    "timing": {
+      "best_fhrs": [7, 8, 9, 10, 11, 12],
+      "buildup_fhrs": [0, 5, 6]
+    }
+  },
+  "20241009_12z": {
+    "_name": "Hurricane Milton Cat 3 — Siesta Key FL landfall 0030 UTC Oct 10 (F12.5), tornado outbreak F6-F12",
+    "essential_fhrs": [0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    "trimmable_fhrs": [1, 2, 3, 4, 19, 20, 21, 22, 23, 24],
+    "timing": {
+      "best_fhrs": [9, 10, 11, 12, 13],
+      "buildup_fhrs": [0, 5, 6, 7, 8]
+    }
+  }
+}

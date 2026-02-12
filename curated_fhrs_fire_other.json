@@ -1,0 +1,123 @@
+{
+  "20200907_18z": {
+    "_name": "PNW Labor Day Windstorm Onset",
+    "_init": "18z Sep 7 (11 AM PDT) — synoptic cycle, F48 max",
+    "_rationale": "East wind onset evening Sep 7 local (F7), peak overnight F9-F16. hero=F8. Dense hourly coverage F4-F18 captures 2-3h before onset through sustained peak. F0-F3 baseline/buildup, F19-F24 post-peak winding down.",
+    "essential_fhrs": [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    "trimmable_fhrs": [0, 1, 2, 3, 19, 20, 21, 22, 23, 24],
+    "timing": {
+      "best_fhrs": [6, 7, 8, 9, 10, 11, 12, 14],
+      "buildup_fhrs": [0, 1, 2, 3, 4, 5]
+    }
+  },
+  "20200908_00z": {
+    "_name": "PNW Windstorm - Catastrophic Spread",
+    "_init": "00z Sep 8 (5 PM PDT Sep 7) — synoptic cycle, F48 max",
+    "_rationale": "Continuation event. Wind already blowing at init. Peak daytime Sep 8: F18-F30 UTC = 18z is F18, midday is ~F17-F20. hero=F6 (peak of overnight/early morning phase). Dense F0-F24 captures full overnight-through-daytime catastrophic period. Every hour matters in a multi-day wind event.",
+    "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    "trimmable_fhrs": [19, 20, 21, 22, 23, 24, 26, 28, 30],
+    "timing": {
+      "best_fhrs": [4, 5, 6, 7, 8, 10, 12, 14],
+      "buildup_fhrs": [0, 1, 2, 3]
+    }
+  },
+  "20220909_18z": {
+    "_name": "Cedar Creek East-Wind Event",
+    "_init": "18z Sep 9 (11 AM PDT) — synoptic cycle, F48 max",
+    "_rationale": "East winds already underway at init (started 08 PDT). Morning winds picked up pre-init; peak evening surge F6-F12 (00-06 UTC Sep 10). hero=F9. Dense F0-F16 captures ongoing winds through evening surge and into overnight. F17-F24 for winding down.",
+    "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+    "trimmable_fhrs": [17, 18, 19, 20, 21, 22, 23, 24],
+    "timing": {
+      "best_fhrs": [6, 7, 8, 9, 10, 11, 12],
+      "buildup_fhrs": [0, 1, 2, 3, 4, 5]
+    }
+  },
+  "20201021_12z": {
+    "_name": "East Troublesome Blowup",
+    "_init": "12z Oct 21 (6 AM MDT) — synoptic cycle, F48 max",
+    "_rationale": "Blowup started ~F6 (18 UTC), peak F10-F18 (22 UTC through 06 UTC Oct 22). hero=F12. 6000 acres/hour spread, crossed Continental Divide overnight. Dense F4-F22 captures full buildup through overnight fire run. F0-F3 morning baseline before winds ramp up.",
+    "essential_fhrs": [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+    "trimmable_fhrs": [0, 1, 2, 3, 21, 22, 23, 24],
+    "timing": {
+      "best_fhrs": [8, 10, 11, 12, 13, 14, 16, 18],
+      "buildup_fhrs": [0, 2, 4, 5, 6, 7]
+    }
+  },
+  "20211230_06z": {
+    "_name": "Marshall Fire Windstorm",
+    "_init": "06z Dec 30 (11 PM MST Dec 29) — synoptic cycle, F48 max",
+    "_rationale": "Winds developed mid-morning ~F8-F10. First 911 call 18:09 UTC = F12. Peak 19-22 UTC = F13-F16. Mountain wave sustained 11 hours. hero=F12. Dense F6-F20 captures wind ramp-up through sustained extreme gusts and fire spread. F0-F5 overnight baseline, F21-F24 late evening winding down.",
+    "essential_fhrs": [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+    "trimmable_fhrs": [0, 1, 2, 3, 4, 5, 21, 22, 23, 24],
+    "timing": {
+      "best_fhrs": [10, 11, 12, 13, 14, 15, 16],
+      "buildup_fhrs": [0, 2, 4, 6, 7, 8, 9]
+    }
+  },
+  "20220422_12z": {
+    "_name": "Hermits Peak/Calf Canyon",
+    "_init": "12z Apr 22 (6 AM MDT) — synoptic cycle, F48 max",
+    "_rationale": "Red Flag Warning 09 MDT (F3). Winds ramping F3-F6, peak F8-F15 (20-03 UTC). hero=F10. Prescribed fire escape merged during extreme winds 60-74 mph. Dense F3-F18 captures Red Flag period through evening wind maximum. F0-F2 pre-RFW baseline.",
+    "essential_fhrs": [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    "trimmable_fhrs": [0, 1, 2, 19, 20, 21, 22, 23, 24],
+    "timing": {
+      "best_fhrs": [6, 8, 9, 10, 11, 12, 14, 15],
+      "buildup_fhrs": [0, 1, 2, 3, 4, 5]
+    }
+  },
+  "20240226_12z": {
+    "_name": "Smokehouse Creek Ignition",
+    "_init": "12z Feb 26 (6 AM CST) — synoptic cycle, F48 max",
+    "_rationale": "Winds building all morning F2-F6. Ignition 20:20 UTC = F8. Cold front passage ~20:15 UTC = F8 (wind shift). Peak spread F8-F16. hero=F10. Dense F4-F18 captures wind ramp-up, ignition, cold front wind shift, and peak spread period. F0-F3 morning baseline, F19-F24 overnight diminishing.",
+    "essential_fhrs": [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    "trimmable_fhrs": [0, 1, 2, 3, 19, 20, 21, 22, 23, 24],
+    "timing": {
+      "best_fhrs": [7, 8, 9, 10, 11, 12, 14, 16],
+      "buildup_fhrs": [0, 2, 4, 5, 6]
+    }
+  },
+  "20240227_12z": {
+    "_name": "Smokehouse Creek Day 2",
+    "_init": "12z Feb 27 (6 AM CST) — synoptic cycle, F48 max",
+    "_rationale": "Post-frontal. Winds calm overnight, pick back up F2 (14 UTC). Peak afternoon F6-F12 (18-00 UTC). hero=F8. Fire expanded 500K to 850K+ acres, crossed into OK. Dense F2-F14 captures full wind ramp through peak spread. F0-F1 early morning calm baseline.",
+    "essential_fhrs": [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+    "trimmable_fhrs": [0, 1, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24],
+    "timing": {
+      "best_fhrs": [4, 6, 7, 8, 9, 10, 12],
+      "buildup_fhrs": [0, 1, 2, 3]
+    }
+  },
+  "20210629_12z": {
+    "_name": "PNW Heat Dome Peak (Lytton 121.3F)",
+    "_init": "12z Jun 29 (5 AM PDT) — synoptic cycle, F48 max",
+    "_rationale": "Absolute peak of heat dome. Morning heating ramps F0-F4, peak afternoon F8-F12 (20-00 UTC = 1-5 PM PDT). hero=F8. Lytton record set mid-afternoon. Include F0-F14 for full diurnal heating cycle through early evening cooling onset. Original was very sparse (only F4,6,8) — expanding significantly.",
+    "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    "trimmable_fhrs": [13, 14, 15, 16, 17, 18],
+    "timing": {
+      "best_fhrs": [4, 6, 7, 8, 9, 10, 11, 12],
+      "buildup_fhrs": [0, 1, 2, 3]
+    }
+  },
+  "20210628_12z": {
+    "_name": "PNW Heat Dome Day 1 (Portland 116F)",
+    "_init": "12z Jun 28 (5 AM PDT) — synoptic cycle, F48 max",
+    "_rationale": "Portland 116F record set mid-afternoon (~F8-F10). Ridge building all day. Peak 20-00 UTC = F8-F12. hero=F10. Include F0-F14 for full diurnal heating cycle. Original was sparse (only F6,8,10,12) — expanding to hourly coverage through peak heating and early evening.",
+    "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+    "trimmable_fhrs": [15, 16, 17, 18, 19, 20, 21, 22, 23, 24],
+    "timing": {
+      "best_fhrs": [6, 7, 8, 9, 10, 11, 12],
+      "buildup_fhrs": [0, 2, 4, 5, 6]
+    }
+  },
+  "20250704_00z": {
+    "_name": "TX MCV Flooding (135 dead)",
+    "_init": "00z Jul 4 — synoptic cycle, F48 max",
+    "_rationale": "MCV developing from overnight storms at init. Peak rainfall 06-12 UTC = F6-F12. Flash flooding onset 09-10 UTC = F9-F10. Guadalupe R 26ft in 45min. hero=F8. Dense F0-F16 captures full MCV lifecycle from development through peak rainfall through flooding. F17-F24 post-event residual convection and aftermath.",
+    "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+    "trimmable_fhrs": [17, 18, 19, 20, 21, 22, 23, 24],
+    "timing": {
+      "best_fhrs": [5, 6, 7, 8, 9, 10, 11, 12],
+      "buildup_fhrs": [0, 1, 2, 3, 4]
+    }
+  }
+}

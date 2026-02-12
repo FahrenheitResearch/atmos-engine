@@ -1,0 +1,108 @@
+\documentclass[11pt,letterpaper]{article}
+
+% --- Geometry ---
+\usepackage[margin=1in]{geometry}
+
+% --- Fonts & Encoding ---
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{mathptmx}           % Times Roman for body text
+\usepackage{amsmath,amssymb}
+
+% --- Graphics ---
+\usepackage{graphicx}
+\graphicspath{{./figures/}}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{subcaption}
+
+% --- Tables ---
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{multirow}
+
+% --- Typography ---
+\usepackage{microtype}
+\usepackage{textcomp}           % \textdegree
+\usepackage{xspace}
+
+% --- Colors & Links ---
+\usepackage[dvipsnames]{xcolor}
+\usepackage[colorlinks=true,linkcolor=MidnightBlue,citecolor=MidnightBlue,urlcolor=MidnightBlue]{hyperref}
+
+% --- Bibliography ---
+\usepackage[round,authoryear]{natbib}
+\bibliographystyle{plainnat}
+
+% --- Section formatting ---
+\usepackage{titlesec}
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection.}{0.5em}{}
+\titleformat{\subsubsection}{\normalfont\normalsize\itshape}{\thesubsubsection.}{0.5em}{}
+
+% --- Floats ---
+\usepackage{float}
+\usepackage[section]{placeins}  % \FloatBarrier at each section
+
+% --- Abstract ---
+\usepackage{abstract}
+\renewcommand{\abstractnamefont}{\normalfont\bfseries}
+\renewcommand{\abstracttextfont}{\normalfont\small}
+
+% --- Custom commands ---
+\newcommand{\degC}{$^\circ$C\xspace}
+\newcommand{\degN}{$^\circ$N\xspace}
+\newcommand{\degW}{$^\circ$W\xspace}
+
+% ============================================================================
+\begin{document}
+
+% --- Title ---
+\begin{center}
+{\LARGE\bfseries Three-Dimensional Atmospheric Reconstruction of the\\[4pt]
+2018 Camp Fire Using HRRR Cross-Section Analysis\\[16pt]}
+
+{\large
+Autonomous Atmospheric Research Agent$^{1}$\quad
+Drew$^{2}$\\[8pt]}
+
+{\normalsize\itshape
+$^{1}$AI Research Agent, Claude Code / Anthropic\\
+$^{2}$wxsection.com\\[8pt]}
+
+{\normalsize
+8 February 2026\\[4pt]}
+\end{center}
+
+\begin{abstract}
+The 2018 Camp Fire destroyed the town of Paradise, California, in fewer than four hours on 8 November 2018, killing 85 people and burning 18,804 structures---the deadliest and most destructive wildfire in California history. This study reconstructs the three-dimensional atmospheric environment of the Camp Fire using vertical cross-sections extracted from the HRRR (High-Resolution Rapid Refresh) 3-km model via the wxsection.com cross-section data API. Analysis of 44 cross-sections spanning 19 visualization products across multiple transects and forecast hours reveals an atmospheric environment of compound extremity: (1) a low-level easterly jet of 35--39~kt at 875--900~hPa channeled through the Feather River Canyon with near-perfect downslope alignment; (2) relative humidity of 5--13\% through the entire troposphere below 600~hPa, with no diurnal recovery over 24~hours; (3) persistent subsidence exceeding 6~hPa~hr$^{-1}$ over the Sierra crest, adiabatically warming and desiccating the descending air; (4) vapor pressure deficit of 13--20~hPa, representing 2--3$\times$ the extreme fire danger threshold; (5) zero cloud condensate at every level and location along the fire path; and (6) a subsidence inversion that concentrated wind energy at the surface and forced lateral rather than vertical fire spread. These conditions exceeded standard red flag warning criteria by factors of 1.3--3.3$\times$ across all parameters simultaneously. The atmosphere on 8 November 2018 functioned as a combustion optimization engine, maximizing every variable that promotes wildfire ignition, spread, and intensity while minimizing every variable that could inhibit them.
+\end{abstract}
+
+\vspace{12pt}
+\noindent\rule{\textwidth}{0.4pt}
+\vspace{6pt}
+
+
+% --- Body ---
+\input{sections/01_introduction}
+\input{sections/02_synoptic_overview}
+\input{sections/03_wind_dynamics}
+\input{sections/04_moisture}
+\input{sections/05_thermodynamics}
+\input{sections/06_vertical_motion}
+\input{sections/07_fire_weather}
+\input{sections/08_conclusions}
+
+% --- Acknowledgments ---
+\section*{Acknowledgments}
+
+This research was conducted entirely by an autonomous AI research agent using the wxsection.com atmospheric cross-section platform. Cross-section data and visualizations were generated from archived HRRR model output via the wxsection.com API. HRRR model data are produced by NOAA/NCEP and archived through the NOAA Big Data Program on Amazon Web Services. The authors thank the developers of the HRRR model system at NOAA's Global Systems Laboratory.
+
+% --- Data Availability ---
+\section*{Data Availability Statement}
+
+All cross-section data and figures used in this analysis are available via the wxsection.com API using HRRR cycle 2018-11-08 00z, forecast hours 15--36. The API documentation is available at \url{https://wxsection.com}. Original HRRR GRIB2 files are archived at \url{https://registry.opendata.aws/noaa-hrrr-pds/}.
+
+% --- Bibliography ---
+\bibliography{references}
+
+\end{document}

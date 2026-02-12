@@ -1,0 +1,197 @@
+{
+  "analysis_date": "2026-02-11",
+  "methodology": "For each event: identified peak action time in UTC from timing/description/key_features, then determined which init cycle places the peak at the lowest reasonable FHR (F02-F08 ideal) while preserving buildup context. Non-synoptic cycles (F18 max) preferred when they cover the full event. Synoptic cycles (F48) used for long-duration or multi-phase events.",
+  "events": [
+    {
+      "original_key": "20200907_18z",
+      "recommended_key": "20200907_18z",
+      "changed": false,
+      "rationale": "18z Sep 7 is the optimal onset cycle. Peak winds 03:00-10:00 UTC Sep 8 = F9-F16, with evening onset at F7. This synoptic cycle captures the full pre-event buildup (afternoon pressure gradient tightening at F0-F5), the critical wind onset transition (F6-F8), and the sustained overnight wind maxima through F16. A non-synoptic cycle like 20z would place peak at F7-F14 (all within F18) but loses 2 hours of pre-event context showing the pressure gradient intensification. The 18z init is the natural choice for an evening-onset windstorm event -- it is the last synoptic cycle before onset with data assimilation incorporating the afternoon obs that reveal the strengthening gradient.",
+      "essential_fhrs": [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+      "trimmable_fhrs": [0, 1, 2, 3, 19, 20, 21, 22, 23, 24],
+      "timing": {
+        "peak_utc": "03:00-10:00 UTC Sep 8",
+        "best_fhrs": [6, 7, 8, 9, 10, 11, 12, 14],
+        "buildup_fhrs": [0, 1, 2, 3, 4, 5]
+      },
+      "secondary_cycles": [
+        {
+          "key": "20200908_00z",
+          "reason": "Already exists as a separate event entry covering Day 2 catastrophic spread"
+        }
+      ]
+    },
+    {
+      "original_key": "20200908_00z",
+      "recommended_key": "20200908_00z",
+      "changed": false,
+      "rationale": "00z Sep 8 is optimal for the Day 2 catastrophic spread phase. The critical period is the overnight windstorm continuation (00-06 UTC, F0-F6) through the morning fire runs (Santiam complex merger, Detroit/Gates destruction already underway) and into the daytime catastrophic spread including the Alameda Fire destroying Talent/Phoenix around 17-18 UTC (F17-18). The 00z init captures the full 24-hour window from midnight through the entire daytime spread. A 06z init would place peak daytime action at F12-F18 (better FHR range) but would miss the critical 00-06z overnight period when the Santiam Fire complex was merging and winds were at their most extreme. The overnight RH recovery failure (5-15% RH) is a key feature best captured at F0-F6 from this cycle.",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+      "trimmable_fhrs": [19, 20, 21, 22, 23, 24, 26, 28, 30],
+      "timing": {
+        "peak_utc": "18:00 UTC Sep 8 through 06:00 UTC Sep 9 (Alameda Fire + continued spread)",
+        "overnight_action_utc": "00:00-06:00 UTC Sep 8 (Santiam merger, Detroit/Gates destruction)",
+        "best_fhrs": [4, 5, 6, 7, 8, 10, 12, 14],
+        "buildup_fhrs": [0, 1, 2, 3]
+      },
+      "secondary_cycles": [
+        {
+          "key": "20200908_06z",
+          "reason": "Fresher data for the daytime phase. Alameda Fire at F11-12, afternoon peak at F12-18. Good if primary focus is the daytime catastrophic spread rather than overnight wind continuation."
+        }
+      ]
+    },
+    {
+      "original_key": "20220909_18z",
+      "recommended_key": "20220909_18z",
+      "changed": false,
+      "rationale": "18z Sep 9 is optimal for the Cedar Creek east-wind evening surge. Peak fire behavior 00:00-06:00 UTC Sep 10 = F6-F12, the ideal FHR range. The event started at 15:00 UTC (3 hours before init), but the key meteorological story is the evening wind surge that quadrupled the fire. Init at 18z captures the afternoon-to-evening transition (F0-F5 buildup) and the explosive evening spread (F6-F12 peak). F18 from a non-synoptic init would also cover, but 18z synoptic is already excellent with peak right in F6-F12.",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+      "trimmable_fhrs": [17, 18, 19, 20, 21, 22, 23, 24],
+      "timing": {
+        "peak_utc": "00:00-06:00 UTC Sep 10 (evening surge)",
+        "best_fhrs": [6, 7, 8, 9, 10, 11, 12],
+        "buildup_fhrs": [0, 1, 2, 3, 4, 5]
+      },
+      "secondary_cycles": []
+    },
+    {
+      "original_key": "20201021_12z",
+      "recommended_key": "20201021_12z",
+      "changed": false,
+      "rationale": "12z Oct 21 is the natural choice for the East Troublesome blowup. The fire's explosive 6,000 acre/hour growth began around 18:00 UTC (F6) and peaked through 06:00 UTC Oct 22 (F18). The 12z init captures the pre-blowup morning environment (F0-F5) showing the mountain wave setup before fire behavior amplified, the explosive afternoon spread (F6-F10), the pyroCb development phase (F10-F14), and the unprecedented overnight Divide crossing (F14-F18). Moving to a later non-synoptic cycle (e.g., 15z) would reduce FHR to peak but sacrifice the critical morning pre-event context showing the mountain wave pattern development.",
+      "essential_fhrs": [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+      "trimmable_fhrs": [0, 1, 2, 3, 21, 22, 23, 24],
+      "timing": {
+        "peak_utc": "22:00 UTC Oct 21 through 06:00 UTC Oct 22",
+        "best_fhrs": [8, 10, 11, 12, 13, 14, 16, 18],
+        "buildup_fhrs": [0, 2, 4, 5, 6, 7]
+      },
+      "secondary_cycles": []
+    },
+    {
+      "original_key": "20211230_06z",
+      "recommended_key": "20211230_12z",
+      "changed": true,
+      "rationale": "12z Dec 30 is significantly better than 06z. The Marshall Fire's first 911 call was at 18:09 UTC (F6.15 from 12z vs F12.15 from 06z). Peak gusts of 100-115 mph occurred 19:00-22:00 UTC (F7-F10 from 12z vs F13-F16 from 06z). The wind buildup starts around 16:00 UTC (F4 from 12z vs F10 from 06z). With 12z init, the entire critical period falls in the F4-F10 range -- ideal for HRRR mesoscale accuracy. The mountain wave dynamics that drove the windstorm are best resolved at shorter lead times where the model can more accurately capture the wave amplitude and surface wind coupling. The 12z cycle also benefits from a full morning radiosonde/surface obs data assimilation cycle. Winds continued to ~02:00 UTC Dec 31 (F14 from 12z), well within even F18 non-synoptic range, though 12z is synoptic with F48.",
+      "essential_fhrs": [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+      "trimmable_fhrs": [0, 1, 17, 18, 19, 20, 21, 22, 23, 24],
+      "timing": {
+        "peak_utc": "19:00-22:00 UTC Dec 30 (peak 100-115 mph gusts)",
+        "wind_onset_utc": "16:00 UTC Dec 30",
+        "first_911_utc": "18:09 UTC Dec 30",
+        "wind_end_utc": "~02:00 UTC Dec 31",
+        "best_fhrs": [7, 8, 9, 10, 11, 12, 13],
+        "buildup_fhrs": [2, 3, 4, 5, 6]
+      },
+      "secondary_cycles": [
+        {
+          "key": "20211230_06z",
+          "reason": "Original cycle. Still covers the event but at F13-16 for peak -- suboptimal FHR range for mountain wave resolution. Could be useful for showing the full morning mountain wave development from F6 onward."
+        }
+      ]
+    },
+    {
+      "original_key": "20220422_12z",
+      "recommended_key": "20220422_12z",
+      "changed": false,
+      "rationale": "12z Apr 22 is already optimal. The Red Flag Warning began at 15:00 UTC (F3), with peak fire behavior 20:00-03:00 UTC (F8-F15). The 12z init captures the pre-event morning environment (F0-F2), the wind onset at F3 (Red Flag Warning start), the afternoon peak when the two fires merged (F8-F10), and the evening wind maximum (F12-F15). The FHR range of F8-F15 for peak action is ideal -- close enough for good mesoscale accuracy while providing enough lead time for forecast context. The 12z radiosonde network data assimilation is critical for accurately initializing the upper-level trough driving the wind event.",
+      "essential_fhrs": [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+      "trimmable_fhrs": [0, 1, 2, 19, 20, 21, 22, 23, 24],
+      "timing": {
+        "peak_utc": "20:00-03:00 UTC Apr 22-23",
+        "best_fhrs": [6, 8, 9, 10, 11, 12, 14, 15],
+        "buildup_fhrs": [0, 1, 2, 3, 4, 5]
+      },
+      "secondary_cycles": []
+    },
+    {
+      "original_key": "20240226_12z",
+      "recommended_key": "20240226_12z",
+      "changed": false,
+      "rationale": "12z Feb 26 is optimal for the Smokehouse Creek ignition day. Ignition at 20:20 UTC (F8.3), peak spread 20:00-04:00 UTC (F8-F16), and the critical cold front passage at 20:15 UTC (F8.25). The 12z init captures morning wind buildup (F0-F7), the ignition and cold front at F8 (ideal FHR for mesoscale accuracy), and the post-frontal wind shift that expanded the fire's footprint (F9-F16). The cold front passage is the single most important meteorological feature -- it caused an abrupt directional shift from eastward to southeastward spread. Having this at F8 means the HRRR's cold front position should be quite accurate.",
+      "essential_fhrs": [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+      "trimmable_fhrs": [0, 1, 2, 3, 19, 20, 21, 22, 23, 24],
+      "timing": {
+        "peak_utc": "20:00-04:00 UTC Feb 26-27",
+        "ignition_utc": "20:20 UTC Feb 26",
+        "cold_front_utc": "~20:15 UTC Feb 26",
+        "best_fhrs": [7, 8, 9, 10, 11, 12, 14, 16],
+        "buildup_fhrs": [0, 2, 4, 5, 6]
+      },
+      "secondary_cycles": [
+        {
+          "key": "20240227_12z",
+          "reason": "Already exists as a separate event entry covering Day 2 expansion"
+        }
+      ]
+    },
+    {
+      "original_key": "20240227_12z",
+      "recommended_key": "20240227_12z",
+      "changed": false,
+      "rationale": "12z Feb 27 is optimal for Day 2. Peak afternoon winds 18:00-00:00 UTC (F6-F12). Morning wind increase starting 14:00 UTC (F2). The 12z init captures the post-frontal morning environment (F0-F2), wind increase through the day (F2-F6), peak afternoon gusts driving eastward expansion into Oklahoma (F6-F12), and the evening wind-down (F12-F14). Peak at F6-F12 is excellent FHR placement. The event is compact enough that a non-synoptic cycle could work, but 12z synoptic provides maximum flexibility and has the radiosonde DA advantage.",
+      "essential_fhrs": [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+      "trimmable_fhrs": [0, 1, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24],
+      "timing": {
+        "peak_utc": "18:00-00:00 UTC Feb 27-28",
+        "best_fhrs": [4, 6, 7, 8, 9, 10, 12],
+        "buildup_fhrs": [0, 1, 2, 3]
+      },
+      "secondary_cycles": []
+    },
+    {
+      "original_key": "20210629_12z",
+      "recommended_key": "20210629_12z",
+      "changed": false,
+      "rationale": "12z Jun 29 is optimal for the absolute peak of the PNW heat dome (Lytton 49.6C Canadian record). Peak afternoon heating 20:00-00:00 UTC (F8-F12). The 12z init captures the morning heating ramp (F0-F4), mid-day intensification (F4-F8), and the absolute peak (F8-F12) when Lytton set the all-time Canadian temperature record. For a heat event, the diurnal evolution from morning through peak afternoon is the core narrative, and 12z captures this perfectly. The subsidence inversion structure is well-established by 12z data assimilation, giving the HRRR the best initial conditions for the temperature profile.",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "trimmable_fhrs": [13, 14, 15, 16, 17, 18],
+      "timing": {
+        "peak_utc": "20:00-00:00 UTC Jun 29-30 (Lytton 49.6C record)",
+        "best_fhrs": [4, 6, 7, 8, 9, 10, 11, 12],
+        "buildup_fhrs": [0, 1, 2, 3]
+      },
+      "secondary_cycles": [
+        {
+          "key": "20210628_12z",
+          "reason": "Already exists as a separate event entry covering Day 1 (Portland 116F)"
+        }
+      ]
+    },
+    {
+      "original_key": "20210628_12z",
+      "recommended_key": "20210628_12z",
+      "changed": false,
+      "rationale": "12z Jun 28 is optimal for Day 1 of the heat dome (Portland 116F, Salem 117F). Peak afternoon heating 20:00-00:00 UTC (F8-F12). Identical reasoning to 20210629_12z -- the diurnal heating cycle from 12z through peak afternoon is the core story. The 12z radiosonde data assimilation captures the Omega Block ridge structure and subsidence inversion that drove the extreme heat. Portland's record was shattered by 9 degrees (107F to 116F), making the temperature profile the primary diagnostic. F8-F12 for peak is ideal HRRR range for temperature verification.",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+      "trimmable_fhrs": [15, 16, 17, 18, 19, 20, 21, 22, 23, 24],
+      "timing": {
+        "peak_utc": "20:00-00:00 UTC Jun 28-29 (Portland 116F record)",
+        "best_fhrs": [6, 7, 8, 9, 10, 11, 12],
+        "buildup_fhrs": [0, 2, 4, 5, 6]
+      },
+      "secondary_cycles": [
+        {
+          "key": "20210629_12z",
+          "reason": "Already exists as a separate event entry covering peak day (Lytton 49.6C)"
+        }
+      ]
+    },
+    {
+      "original_key": "20250704_00z",
+      "recommended_key": "20250704_00z",
+      "changed": false,
+      "rationale": "00z Jul 4 is optimal for the TX MCV flash flooding event. The MCV develops from overnight thunderstorm complexes beginning at 00:00 UTC (F0), peak rainfall 06:00-12:00 UTC (F6-F12), and flash flooding onset at ~09-10 UTC (F9-F10). The 00z init captures the full MCV lifecycle: convective initiation and vortex spin-up (F0-F5), peak rainfall training over the Guadalupe River headwaters (F6-F10), and the catastrophic 26-foot river rise at Hunt (F9-F10). The MCV genesis from pre-existing storms at F0 is critical context -- moving to a later init (e.g., 03z) would miss the initial circulation development. The 00z synoptic cycle also benefits from evening radiosonde observations that capture the tropical moisture plume from ex-Barry (PWAT 2.0-2.5 inches).",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+      "trimmable_fhrs": [17, 18, 19, 20, 21, 22, 23, 24],
+      "timing": {
+        "peak_utc": "06:00-12:00 UTC Jul 4",
+        "flash_flood_onset_utc": "~09:00-10:00 UTC Jul 4",
+        "best_fhrs": [5, 6, 7, 8, 9, 10, 11, 12],
+        "buildup_fhrs": [0, 1, 2, 3, 4]
+      },
+      "secondary_cycles": []
+    }
+  ]
+}

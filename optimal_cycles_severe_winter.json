@@ -1,0 +1,695 @@
+{
+  "metadata": {
+    "generated": "2026-02-11",
+    "description": "Optimal HRRR model init cycles for 28 severe weather and winter events",
+    "methodology": "Each event analyzed for: (1) peak timing in UTC, (2) ideal FHR range for category, (3) synoptic vs non-synoptic tradeoffs, (4) mesoscale accuracy vs forecast range needs"
+  },
+  "events": [
+    {
+      "original_key": "20200810_12z",
+      "recommended_key": "20200810_12z",
+      "changed": false,
+      "category": "derecho",
+      "name": "Iowa Derecho",
+      "rationale": "12z is already optimal. MCS initiation at ~12z UTC (F00) with peak 140mph winds at Cedar Rapids 17:30-18:00 UTC (F05-F06). 12z synoptic cycle captures the entire buildup from initiation through peak and decay. Initiation at F00 means the model ingests the actual convective trigger in its initial conditions, and peak at F05-F06 is in the sweet spot for mesoscale fidelity. The 48h range is unnecessary here but having it doesn't hurt.",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "trimmable_fhrs": [13, 14, 15, 16, 17, 18, 20, 24],
+      "timing": {
+        "initiation_utc": "12:00",
+        "peak_utc": "17:30-18:00",
+        "best_fhrs": [5, 6, 7, 8],
+        "buildup_fhrs": [0, 1, 2, 3, 4]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20200810_06z",
+          "rationale": "06z synoptic gives F06 at 12z (initiation), F12 at peak -- slightly higher FHR at peak but full 48h range and captures pre-convective environment evolution"
+        }
+      ]
+    },
+    {
+      "original_key": "20211215_18z",
+      "recommended_key": "20211215_18z",
+      "changed": false,
+      "category": "derecho",
+      "name": "December Midwest Derecho",
+      "rationale": "18z is optimal. Initiation at 19z (F01), peak winds 21:00-01:00 UTC (F03-F07). This synoptic cycle places the entire derecho in the F01-F07 range -- excellent mesoscale fidelity. The 18z data at F00 captures the pre-storm warm sector with record 75F temps. This is the freshest synoptic cycle that covers the full event.",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      "trimmable_fhrs": [11, 12, 14, 16, 18, 20, 24],
+      "timing": {
+        "initiation_utc": "19:00",
+        "peak_utc": "21:00-01:00",
+        "best_fhrs": [3, 4, 5, 6, 7],
+        "buildup_fhrs": [0, 1, 2]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20211215_12z",
+          "rationale": "12z synoptic gives peak at F09-F13 -- still reasonable and provides longer pre-event buildup with full 48h range"
+        }
+      ]
+    },
+    {
+      "original_key": "20220512_16z",
+      "recommended_key": "20220512_18z",
+      "changed": true,
+      "category": "derecho",
+      "name": "May SD Derecho",
+      "rationale": "Current 16z is non-synoptic (F18 max). Initiation at 20z = F04 from 16z, peak at 23:00-02:00 UTC = F07-F10. But 16z only goes to F18, so it barely covers the event. The 18z synoptic cycle is better: initiation at F02, peak at F05-F08, with full 48h range. The existing archive_cycle field already notes 20220512_12z -- 12z synoptic puts peak at F11-F14, which works but is higher FHR. 18z is the sweet spot: low FHR at peak with synoptic-length range.",
+      "essential_fhrs": [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "trimmable_fhrs": [1, 13, 14, 15, 16, 17, 18, 20, 24],
+      "timing": {
+        "initiation_utc": "20:00",
+        "peak_utc": "23:00-02:00",
+        "best_fhrs": [5, 6, 7, 8],
+        "buildup_fhrs": [0, 1, 2, 3, 4]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20220512_12z",
+          "rationale": "12z synoptic gives peak at F11-F14 -- still good for synoptic context of the drought/haboob setup, already used as archive_cycle"
+        },
+        {
+          "cycle": "20220512_16z",
+          "rationale": "Original non-synoptic cycle; initiation at F04, peak at F07-F10 within F18 limit but leaves no post-event margin"
+        }
+      ]
+    },
+    {
+      "original_key": "20220613_18z",
+      "recommended_key": "20220613_18z",
+      "changed": false,
+      "category": "derecho",
+      "name": "Ohio Valley Derecho",
+      "rationale": "18z is optimal. Initiation at 22z (F04), peak 98mph at Fort Wayne at 02:30-03:00 UTC Jun 14 (F08-F09). The 18z synoptic cycle puts the peak in the F08-F09 range with excellent pre-storm environment capture at F00-F04. Full 48h range available. Very well-chosen cycle.",
+      "essential_fhrs": [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "trimmable_fhrs": [1, 2, 13, 14, 16, 18, 20, 24],
+      "timing": {
+        "initiation_utc": "22:00",
+        "peak_utc": "02:30-03:00 Jun 14",
+        "best_fhrs": [6, 7, 8, 9],
+        "buildup_fhrs": [0, 1, 2, 3, 4, 5]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20220613_12z",
+          "rationale": "12z synoptic gives peak at F14-F15 -- more buildup context but less mesoscale accuracy at peak"
+        }
+      ]
+    },
+    {
+      "original_key": "20230629_12z",
+      "recommended_key": "20230629_12z",
+      "changed": false,
+      "category": "derecho",
+      "name": "June Midwest Derecho",
+      "rationale": "12z is optimal. MCS re-intensification over IA/MO at ~10z (already in progress at init), peak winds 18:00-21:00 UTC (F06-F09). The 12z synoptic cycle captures the peak in the sweet spot F06-F09 with full 48h range. This MCS was already organized at 12z, so the model initializes with the ongoing system. Excellent cycle choice.",
+      "essential_fhrs": [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+      "trimmable_fhrs": [1, 2, 14, 16, 18, 20, 24],
+      "timing": {
+        "initiation_utc": "10:00 (re-intensification)",
+        "peak_utc": "18:00-21:00",
+        "best_fhrs": [6, 7, 8, 9, 10],
+        "buildup_fhrs": [0, 1, 2, 3, 4, 5]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20230629_06z",
+          "rationale": "06z synoptic captures MCS from NE Colorado phase, peak at F12-F15 -- better for tracking full lifecycle but higher FHR at peak"
+        }
+      ]
+    },
+    {
+      "original_key": "20240516_18z",
+      "recommended_key": "20240516_18z",
+      "changed": false,
+      "category": "derecho",
+      "name": "Houston Derecho",
+      "rationale": "18z is optimal. Initiation at 22z (F04), peak 100mph downtown Houston at 23:00-23:30 (F05-F05.5). Extremely tight timing -- the peak is just 5 hours after init which is ideal for a fast-hitting MCS in the mesoscale window. The pre-storm Gulf moisture environment is well captured at F00-F03. Synoptic range gives post-event continuation into Louisiana/Florida.",
+      "essential_fhrs": [0, 2, 3, 4, 5, 6, 7, 8],
+      "trimmable_fhrs": [1, 9, 10, 12, 14, 16, 18, 20, 24],
+      "timing": {
+        "initiation_utc": "22:00",
+        "peak_utc": "23:00-23:30",
+        "best_fhrs": [4, 5, 6, 7],
+        "buildup_fhrs": [0, 1, 2, 3]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20240516_20z",
+          "rationale": "20z non-synoptic would put peak at F03 -- even fresher data but only F18 range and misses most of the buildup environment"
+        }
+      ]
+    },
+    {
+      "original_key": "20240715_18z",
+      "recommended_key": "20240715_18z",
+      "changed": false,
+      "category": "derecho",
+      "name": "July Chicago Derecho",
+      "rationale": "18z is optimal. Initiation over Iowa at 22z (F04), peak 105mph at Camp Grove and EF2 tornado at 01:00-02:30 UTC Jul 16 (F07-F08.5). The 18z synoptic cycle places initiation at F04 and the most intense period at F07-F08, right in the mesoscale sweet spot. Pre-storm 4000+ J/kg CAPE environment is captured at F00. This is textbook ideal for a late-afternoon-to-evening derecho.",
+      "essential_fhrs": [0, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      "trimmable_fhrs": [1, 2, 12, 14, 16, 18, 20, 24],
+      "timing": {
+        "initiation_utc": "22:00",
+        "peak_utc": "01:00-02:30 Jul 16",
+        "best_fhrs": [5, 6, 7, 8, 9],
+        "buildup_fhrs": [0, 1, 2, 3, 4]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20240715_12z",
+          "rationale": "12z synoptic gives peak at F13-F14 -- higher FHR but full day of environmental evolution and 48h range"
+        }
+      ]
+    },
+    {
+      "original_key": "20250429_17z",
+      "recommended_key": "20250429_18z",
+      "changed": true,
+      "category": "derecho",
+      "name": "Pennsylvania Derecho",
+      "rationale": "Current 17z is non-synoptic (F18 max). Initiation south of St Louis at 12z (5h before init -- already in progress), peak Pittsburgh damage at 22:00-23:00 UTC (F05-F06 from 17z). While this works, the 18z synoptic cycle is better: peak at F04-F05, with full 48h range for post-event coverage. The event already has archive_cycle set to 12z which puts peak at F10-F11 -- decent but higher FHR. The 18z synoptic is the sweet spot: freshest synoptic data at peak with full range.",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      "trimmable_fhrs": [11, 12, 13, 14, 15, 16, 17, 18, 20, 24],
+      "timing": {
+        "initiation_utc": "12:00 (south of St. Louis)",
+        "peak_utc": "22:00-23:00",
+        "best_fhrs": [4, 5, 6, 7, 8],
+        "buildup_fhrs": [0, 1, 2, 3]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20250429_12z",
+          "rationale": "12z synoptic captures the MCS from initiation at F00, peak at F10-F11 -- best for full lifecycle tracking, already used as archive_cycle"
+        },
+        {
+          "cycle": "20250429_17z",
+          "rationale": "Original non-synoptic; peak at F05-F06 with F18 limit -- covers the event but barely; no synoptic range advantage"
+        }
+      ]
+    },
+    {
+      "original_key": "20250620_18z",
+      "recommended_key": "20250620_18z",
+      "changed": false,
+      "category": "derecho",
+      "name": "N Plains Derecho + Enderlin EF5",
+      "rationale": "18z is optimal. Supercell initiation ~01:00 UTC Jun 21 (F07), EF5 tornado at 04:02-04:21 UTC (F10-F10.3). While F10 is on the higher end for severe convection, the 18z synoptic cycle is the best available: it captures the entire evolution of the environment through the afternoon heating cycle. An 00z Jun 21 cycle would put the EF5 at F04 but would miss the crucial pre-storm environmental priming. The 18z cycle provides the best balance of mesoscale accuracy and lifecycle coverage for this overnight event.",
+      "essential_fhrs": [0, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+      "trimmable_fhrs": [1, 2, 3, 15, 16, 18, 20, 24],
+      "timing": {
+        "initiation_utc": "01:00 Jun 21",
+        "peak_utc": "04:02-04:21 Jun 21",
+        "best_fhrs": [8, 9, 10, 11, 12],
+        "buildup_fhrs": [0, 1, 2, 3, 4, 5, 6, 7]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20250621_00z",
+          "rationale": "00z Jun 21 synoptic puts EF5 at F04 -- much fresher data at peak, but misses the afternoon environmental buildup; would need to evaluate if low-level jet and helicity are well-initialized at 00z"
+        },
+        {
+          "cycle": "20250620_23z",
+          "rationale": "23z non-synoptic puts EF5 at F05 -- fresh data but only F18 range; if mesoscale accuracy at tornado time is paramount, this is worth considering"
+        }
+      ]
+    },
+    {
+      "original_key": "20250728_18z",
+      "recommended_key": "20250728_18z",
+      "changed": false,
+      "category": "derecho",
+      "name": "July N Plains Derecho",
+      "rationale": "18z is optimal. Initiation at 00:00 UTC Jul 29 (F06), peak 99mph Sioux Center at 02:00-05:00 UTC (F08-F11). The 18z synoptic cycle captures the pre-storm environment at F00-F05, initiation at F06, and peak through F08-F11. This is the ideal synoptic cycle for a late-evening Northern Plains derecho. Full 48h range available for the overnight and next-day continuation.",
+      "essential_fhrs": [0, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+      "trimmable_fhrs": [1, 2, 3, 14, 16, 18, 20, 24],
+      "timing": {
+        "initiation_utc": "00:00 Jul 29",
+        "peak_utc": "02:00-05:00 Jul 29",
+        "best_fhrs": [6, 7, 8, 9, 10, 11],
+        "buildup_fhrs": [0, 1, 2, 3, 4, 5]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20250729_00z",
+          "rationale": "00z Jul 29 synoptic puts peak at F02-F05 -- much fresher data at peak but misses the afternoon environmental setup; good secondary option"
+        }
+      ]
+    },
+    {
+      "original_key": "20210428_18z",
+      "recommended_key": "20210428_18z",
+      "changed": false,
+      "category": "hail",
+      "name": "Hondo TX Record Hail 6.42in",
+      "rationale": "18z is optimal. Storm initiation at 21z (F03), peak record 6.42in hail at 00:35 UTC Apr 29 (F06.5). This is textbook ideal for a supercell hail event: the 18z synoptic cycle puts the pre-storm dryline environment at F00-F02, storm initiation at F03, and peak hail at F06-F07. Low FHR at peak maximizes the model's representation of the mesoscale instability and shear profiles critical for giant hail production.",
+      "essential_fhrs": [0, 3, 4, 5, 6, 7, 8, 9],
+      "trimmable_fhrs": [1, 2, 10, 12, 14, 16, 18, 20, 24],
+      "timing": {
+        "storm_initiation_utc": "21:00",
+        "peak_hail_utc": "00:35 Apr 29",
+        "best_fhrs": [5, 6, 7, 8],
+        "buildup_fhrs": [0, 1, 2, 3, 4]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20210428_21z",
+          "rationale": "21z non-synoptic puts peak hail at F03-F04 -- fresher data but only F18 range and misses the dryline retreat buildup"
+        }
+      ]
+    },
+    {
+      "original_key": "20230621_18z",
+      "recommended_key": "20230621_18z",
+      "changed": false,
+      "category": "hail",
+      "name": "Red Rocks CO Hail + 36 Tornadoes",
+      "rationale": "18z is optimal. Storm initiation at 20z (F02), plains tornadoes 22:00-02:00 UTC (F04-F08), Red Rocks hail at 03:20 UTC Jun 22 (F09). The 18z synoptic cycle captures the dryline environment at F00, storm initiation at F02, and the dual modes (plains tornadoes F04-F08, Red Rocks hail F09) all within the ideal F02-F09 range. This is an excellent cycle for this complex multi-mode event.",
+      "essential_fhrs": [0, 3, 4, 5, 6, 7, 8, 9, 10],
+      "trimmable_fhrs": [1, 2, 11, 12, 14, 16, 18, 20, 24],
+      "timing": {
+        "storm_initiation_utc": "20:00",
+        "peak_hail_utc": "03:20 Jun 22 (Red Rocks)",
+        "best_fhrs": [4, 5, 6, 7, 8, 9],
+        "buildup_fhrs": [0, 1, 2, 3]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20230621_12z",
+          "rationale": "12z synoptic puts Red Rocks at F15 -- loses mesoscale accuracy but captures full-day mountain-plains convective cycle"
+        }
+      ]
+    },
+    {
+      "original_key": "20240314_18z",
+      "recommended_key": "20240314_18z",
+      "changed": false,
+      "category": "hail",
+      "name": "DFW Hailstorm",
+      "rationale": "18z is optimal. Storm initiation at 21z (F03), peak 3-inch hail at DFW 23:00-02:00 UTC (F05-F08). Classic afternoon supercell timing with 18z cycle placing the mesoscale environment (warm front convergence zone, Gulf moisture) at F00 and the peak hail period in the sweet spot F05-F08. The training supercells repeatedly striking the same DFW areas are well-resolved at these low FHRs.",
+      "essential_fhrs": [0, 2, 3, 4, 5, 6, 7, 8, 9],
+      "trimmable_fhrs": [1, 10, 12, 14, 16, 18, 20, 24],
+      "timing": {
+        "storm_initiation_utc": "21:00",
+        "peak_hail_utc": "23:00-02:00",
+        "best_fhrs": [4, 5, 6, 7, 8],
+        "buildup_fhrs": [0, 1, 2, 3]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20240314_12z",
+          "rationale": "12z synoptic gives peak at F11-F14 -- higher FHR but captures the warm front development through the day"
+        }
+      ]
+    },
+    {
+      "original_key": "20240528_18z",
+      "recommended_key": "20240528_18z",
+      "changed": false,
+      "category": "hail",
+      "name": "South Plains DVD-Size Hail",
+      "rationale": "18z is optimal despite the later peak. Storm initiation near Tucumcari NM at 00z May 29 (F06), peak 5-inch hail at Whiteface/Levelland 05:00-07:00 UTC (F11-F13). While these are higher FHRs, the 18z synoptic cycle is the best synoptic option: the next available 00z May 29 would put peak at F05-F07 (fresher) but would miss the dryline retreat and environmental evolution during the afternoon. The long-lived 8-hour supercell needs the full lifecycle captured from initiation, and 18z provides that with F06 at initiation and F11-F13 at peak.",
+      "essential_fhrs": [0, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      "trimmable_fhrs": [1, 2, 3, 4, 5, 16, 18, 20, 24],
+      "timing": {
+        "storm_initiation_utc": "00:00 May 29",
+        "peak_hail_utc": "05:00-07:00 May 29",
+        "best_fhrs": [10, 11, 12, 13, 14],
+        "buildup_fhrs": [0, 4, 5, 6, 7, 8, 9]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20240529_00z",
+          "rationale": "00z May 29 synoptic puts peak at F05-F07 -- much fresher data at peak hail time, best for mesoscale hail analysis if lifecycle context is less important"
+        },
+        {
+          "cycle": "20240528_21z",
+          "rationale": "21z non-synoptic puts initiation at F03, peak at F08-F10 -- nice balance but only F18 range"
+        }
+      ]
+    },
+    {
+      "original_key": "20240531_00z",
+      "recommended_key": "20240531_00z",
+      "changed": false,
+      "category": "hail",
+      "name": "Denver Midnight Hail",
+      "rationale": "00z is optimal. Storm initiation at 03z (F03), peak 2.75-inch hail at 05:30-06:30 UTC (F05.5-F06.5). The 00z synoptic cycle is ideal for this nocturnal supercell: initiation at F03 and peak at F05-F07, all within the prime mesoscale window. The Palmer Divide convergence zone and upslope flow dynamics are well-captured at F00. Full 48h range is available.",
+      "essential_fhrs": [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "trimmable_fhrs": [1, 2, 13, 14, 16, 18, 20, 24],
+      "timing": {
+        "storm_initiation_utc": "03:00",
+        "peak_hail_utc": "05:30-06:30",
+        "best_fhrs": [5, 6, 7, 8, 9, 10],
+        "buildup_fhrs": [0, 1, 2, 3, 4]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20240531_02z",
+          "rationale": "02z non-synoptic puts peak at F03-F05 -- fresher data but only F18 range; good for focused hail analysis"
+        }
+      ]
+    },
+    {
+      "original_key": "20240602_18z",
+      "recommended_key": "20240602_18z",
+      "changed": false,
+      "category": "hail",
+      "name": "Vigo Park TX 7in Hail",
+      "rationale": "18z is optimal. Storm initiation at 22z (F04), peak 7-inch record hail at 00:37 UTC Jun 3 (F06.5). Classic Panhandle dryline supercell with 18z capturing the dryline bulge and extreme CAPE at F00-F03, storm initiation at F04, and record hail at F06-F07. This is the ideal cycle for an afternoon-evening TX supercell -- low FHR at peak with full environmental context.",
+      "essential_fhrs": [0, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+      "trimmable_fhrs": [1, 2, 3, 14, 16, 18, 20, 24],
+      "timing": {
+        "storm_initiation_utc": "22:00",
+        "peak_hail_utc": "00:37 Jun 3",
+        "best_fhrs": [6, 7, 8, 9, 10, 11],
+        "buildup_fhrs": [0, 2, 3, 4, 5]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20240602_21z",
+          "rationale": "21z non-synoptic puts peak at F03-F04 -- fresher but only F18 range and misses dryline evolution"
+        }
+      ]
+    },
+    {
+      "original_key": "20250526_18z",
+      "recommended_key": "20250526_18z",
+      "changed": false,
+      "category": "hail",
+      "name": "Menard TX 5.87in Hail",
+      "rationale": "18z is optimal. Storm initiation at 20z (F02), peak 5.87-inch hail at 21:23 UTC (F03.4). Remarkably early peak -- this is an afternoon supercell with extremely low FHR at peak. The 18z synoptic cycle captures the dryline and Edwards Plateau setup at F00, initiation at F02, and record hail at just F03. It doesn't get better than this for mesoscale fidelity.",
+      "essential_fhrs": [0, 1, 2, 3, 4, 5, 6, 7],
+      "trimmable_fhrs": [8, 9, 10, 12, 14, 16, 18, 20, 24],
+      "timing": {
+        "storm_initiation_utc": "20:00",
+        "peak_hail_utc": "21:23",
+        "best_fhrs": [2, 3, 4, 5],
+        "buildup_fhrs": [0, 1]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20250526_19z",
+          "rationale": "19z non-synoptic puts peak at F02 -- marginally fresher but unnecessary; 18z is already near-perfect"
+        }
+      ]
+    },
+    {
+      "original_key": "20211114_00z",
+      "recommended_key": "20211114_00z",
+      "changed": false,
+      "category": "ar",
+      "name": "PNW Atmospheric River",
+      "rationale": "00z Nov 14 is optimal. Second AR starts at 00z Nov 14 (F00) with peak rainfall 06:00-18:00 UTC Nov 15 (F30-F42). This is a long-duration event requiring the full 48h synoptic range. The 00z init captures the AR onset and provides coverage through peak at F30-F42. ARs are synoptic-scale features where longer-range forecasts still have good skill -- the IVT corridor and orographic forcing are well-resolved even at F30-F42.",
+      "essential_fhrs": [0, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 28, 30, 32, 34, 36, 38, 40, 42],
+      "trimmable_fhrs": [1, 2, 3, 5, 7, 9, 44, 46, 48],
+      "timing": {
+        "event_start_utc": "00:00 Nov 14",
+        "peak_utc": "06:00-18:00 Nov 15",
+        "best_fhrs": [30, 32, 34, 36, 38, 40, 42],
+        "buildup_fhrs": [0, 4, 8, 12, 16, 20, 24, 28]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20211114_12z",
+          "rationale": "12z Nov 14 synoptic puts peak at F18-F30 -- lower FHR at peak but loses the early AR onset; good complement"
+        },
+        {
+          "cycle": "20211115_00z",
+          "rationale": "00z Nov 15 puts peak rainfall at F06-F18 -- much fresher data at peak but misses 15+ hours of AR buildup"
+        }
+      ]
+    },
+    {
+      "original_key": "20230104_12z",
+      "recommended_key": "20230104_12z",
+      "changed": false,
+      "category": "ar",
+      "name": "CA AR Strongest Storm",
+      "rationale": "12z is optimal. Event starts at 12z Jan 4 (F00), peak wind/rain overnight 00:00-12:00 UTC Jan 5 (F12-F24). The 12z synoptic cycle captures the bomb cyclone approach from F00, the 119mph wind peak at Kirkwood at F12-F18, and continuing precipitation through F24+. The Pineapple Express moisture corridor is well-resolved at these FHRs. Full 48h range covers the multi-day event.",
+      "essential_fhrs": [0, 4, 6, 8, 10, 12, 13, 14, 15, 16, 17, 18, 20, 22, 24, 28, 32, 36],
+      "trimmable_fhrs": [1, 2, 3, 5, 7, 38, 40, 42, 44, 48],
+      "timing": {
+        "event_start_utc": "12:00 Jan 4",
+        "peak_utc": "00:00-12:00 Jan 5",
+        "best_fhrs": [12, 14, 16, 18, 20, 22, 24],
+        "buildup_fhrs": [0, 2, 4, 6, 8, 10]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20230104_18z",
+          "rationale": "18z synoptic puts peak at F06-F18 -- lower FHR at peak for better mesoscale detail of the bomb cyclone; good complement"
+        }
+      ]
+    },
+    {
+      "original_key": "20230109_00z",
+      "recommended_key": "20230109_00z",
+      "changed": false,
+      "category": "ar",
+      "name": "CA AR Peak Flooding",
+      "rationale": "00z is optimal. Event starts at 00z Jan 9 (F00), peak flooding 06:00-18:00 UTC Jan 9 (F06-F18). The 00z synoptic cycle puts the Montecito peak rainfall (9.89 inches) at F06-F18 -- excellent for resolving the orographic forcing over Santa Ynez Mountains. The IVT corridor and precipitation banding are well-captured. Full 48h range covers the extended precipitation period.",
+      "essential_fhrs": [0, 2, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 24],
+      "trimmable_fhrs": [1, 3, 5, 22, 28, 32, 36, 40, 48],
+      "timing": {
+        "event_start_utc": "00:00 Jan 9",
+        "peak_utc": "06:00-18:00 Jan 9",
+        "best_fhrs": [6, 8, 10, 12, 14, 16, 18],
+        "buildup_fhrs": [0, 2, 4]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20230108_12z",
+          "rationale": "12z Jan 8 synoptic captures AR approach with peak at F18-F30 -- more buildup context for the antecedent moisture but higher FHR at peak"
+        }
+      ]
+    },
+    {
+      "original_key": "20240204_06z",
+      "recommended_key": "20240204_06z",
+      "changed": false,
+      "category": "ar",
+      "name": "Pineapple Express LA",
+      "rationale": "06z is optimal. Event starts at 06z Feb 4 (F00), peak afternoon-evening rainfall 12:00-24:00 UTC Feb 4 (F06-F18). The 06z synoptic cycle captures the Pineapple Express stalling over the LA Basin with peak at F06-F18. The Bel-Air 12.42-inch rainfall is well within the mesoscale-to-synoptic transition range. Full 48h range covers the multi-day stalled system through Feb 5-6.",
+      "essential_fhrs": [0, 2, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 24, 28, 32, 36],
+      "trimmable_fhrs": [1, 3, 5, 22, 38, 40, 42, 44, 48],
+      "timing": {
+        "event_start_utc": "06:00 Feb 4",
+        "peak_utc": "12:00-24:00 Feb 4",
+        "best_fhrs": [6, 8, 10, 12, 14, 16, 18],
+        "buildup_fhrs": [0, 2, 4]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20240204_12z",
+          "rationale": "12z synoptic puts peak afternoon rain at F00-F12 -- captures the peak at very low FHR but misses the morning onset and pre-event moisture transport; best for peak rain detail"
+        }
+      ]
+    },
+    {
+      "original_key": "20251210_12z",
+      "recommended_key": "20251210_12z",
+      "changed": false,
+      "category": "ar",
+      "name": "PNW Mega-AR Cat 5",
+      "rationale": "12z is optimal. Event starts at 12z Dec 10 (F00), peak precipitation/river crests 00:00-18:00 UTC Dec 11 (F12-F30). The 12z synoptic cycle captures the Cat 5 AR onset at F00 and carries through the peak at F12-F30. The 7,000-mile moisture fetch and extreme IVT are synoptic-scale features well-resolved at these FHRs. Full 48h range covers through the river crests on Dec 11-12.",
+      "essential_fhrs": [0, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 36],
+      "trimmable_fhrs": [1, 2, 3, 5, 7, 34, 38, 40, 42, 44, 48],
+      "timing": {
+        "event_start_utc": "12:00 Dec 10",
+        "peak_utc": "00:00-18:00 Dec 11",
+        "best_fhrs": [12, 14, 16, 18, 20, 24, 28, 30],
+        "buildup_fhrs": [0, 2, 4, 6, 8, 10]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20251210_18z",
+          "rationale": "18z synoptic puts peak at F06-F24 -- lower FHR at peak but misses the first 6h of AR landfall; good complement"
+        },
+        {
+          "cycle": "20251211_00z",
+          "rationale": "00z Dec 11 puts peak at F00-F18 -- freshest data at peak river crests but misses Dec 10 precipitation onset"
+        }
+      ]
+    },
+    {
+      "original_key": "20210215_12z",
+      "recommended_key": "20210215_12z",
+      "changed": false,
+      "category": "winter",
+      "name": "Winter Storm Uri",
+      "rationale": "12z is optimal. Event starts at 12z Feb 15 (F00), coldest period (DFW -2F) at 00:00-12:00 UTC Feb 16 (F12-F24). The 12z synoptic cycle captures the arctic air mass structure at initialization and carries through the coldest overnight period at F12-F24. The extreme 850mb temperature gradient (-15 to -20C) is a synoptic-scale feature well-resolved at these FHRs. Full 48h range covers through Feb 17 recovery.",
+      "essential_fhrs": [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 28, 32, 36],
+      "trimmable_fhrs": [1, 3, 5, 7, 9, 40, 44, 48],
+      "timing": {
+        "event_start_utc": "12:00 Feb 15",
+        "peak_utc": "00:00-12:00 Feb 16",
+        "best_fhrs": [6, 8, 10, 12, 14, 16, 18, 20, 24],
+        "buildup_fhrs": [0, 2, 4]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20210215_18z",
+          "rationale": "18z synoptic puts coldest period at F06-F18 -- lower FHR at peak cold but misses 6h of arctic air deepening"
+        },
+        {
+          "cycle": "20210216_00z",
+          "rationale": "00z Feb 16 puts the coldest hour at F00-F12 -- freshest data for the extreme cold itself"
+        }
+      ]
+    },
+    {
+      "original_key": "20221118_00z",
+      "recommended_key": "20221118_00z",
+      "changed": false,
+      "category": "winter",
+      "name": "Buffalo Lake Effect 81in",
+      "rationale": "00z Nov 18 is optimal. Lake-effect band develops late Nov 17 and locks in at 00z Nov 18 (F00), peak 66-inch 24-hour snowfall through 00z-24z Nov 18 (F00-F24). The 00z synoptic cycle captures the band setup at initialization and tracks it through the full 24-hour locked-in period. Lake-effect bands are mesoscale features -- having the band position correct at F00 is critical. Full 48h range extends through the secondary surge on Nov 19.",
+      "essential_fhrs": [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 28, 32],
+      "trimmable_fhrs": [1, 3, 5, 7, 9, 36, 40, 44, 48],
+      "timing": {
+        "event_start_utc": "00:00 Nov 18",
+        "peak_utc": "00:00-24:00 Nov 18",
+        "best_fhrs": [6, 8, 10, 12, 14, 16, 18, 20, 24],
+        "buildup_fhrs": [0, 2, 4]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20221118_06z",
+          "rationale": "06z synoptic captures the mature band at F00 with peak at F06-F18 -- lower FHR for the heaviest snowfall period"
+        },
+        {
+          "cycle": "20221118_12z",
+          "rationale": "12z synoptic puts peak daytime band at F00-F12 -- freshest data for the most intense accumulation period"
+        }
+      ]
+    },
+    {
+      "original_key": "20221223_06z",
+      "recommended_key": "20221223_06z",
+      "changed": false,
+      "category": "winter",
+      "name": "Winter Storm Elliott",
+      "rationale": "06z is optimal. Event starts at 06z Dec 23 (F00), bomb cyclone deepening and blizzard onset at Buffalo 06:00-18:00 UTC Dec 23 (F00-F12), sustained blizzard through Dec 25. The 06z synoptic cycle captures the bomb cyclone at initialization (right as it begins deepening most rapidly) and tracks the 35mb/24hr pressure drop through F00-F24. The sustained Buffalo blizzard continues at F12-F48. This is ideal for a bomb cyclone -- catching the rapid deepening phase at low FHR.",
+      "essential_fhrs": [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40],
+      "trimmable_fhrs": [1, 3, 5, 7, 9, 42, 44, 48],
+      "timing": {
+        "event_start_utc": "06:00 Dec 23",
+        "peak_utc": "06:00-18:00 Dec 23",
+        "best_fhrs": [4, 6, 8, 10, 12, 14, 16, 18],
+        "buildup_fhrs": [0, 2]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20221223_00z",
+          "rationale": "00z synoptic captures 6h pre-deepening, peak at F06-F18 -- slightly higher FHR but more pre-storm context"
+        },
+        {
+          "cycle": "20221223_12z",
+          "rationale": "12z synoptic captures mature bomb cyclone at F00 with Buffalo blizzard at F00-F36 -- freshest data for the blizzard itself"
+        }
+      ]
+    },
+    {
+      "original_key": "20250121_06z",
+      "recommended_key": "20250121_06z",
+      "changed": false,
+      "category": "winter",
+      "name": "Gulf Coast Blizzard Enzo",
+      "rationale": "06z is optimal. Event starts at 06z Jan 21 (F00), peak snow rates on Gulf Coast 12:00-24:00 UTC Jan 21 (F06-F18). The 06z synoptic cycle captures the jet stream plunge and arctic air mass at F00, with peak snowfall at New Orleans/Pensacola/Mobile at F06-F18 -- ideal FHR range. The Gulf moisture interaction with arctic air is a synoptic-scale process well-resolved at these FHRs. Full 48h range covers the entire storm.",
+      "essential_fhrs": [0, 2, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 24],
+      "trimmable_fhrs": [1, 3, 5, 22, 28, 32, 36, 40, 48],
+      "timing": {
+        "event_start_utc": "06:00 Jan 21",
+        "peak_utc": "12:00-24:00 Jan 21",
+        "best_fhrs": [6, 8, 10, 12, 14, 16, 18],
+        "buildup_fhrs": [0, 2, 4]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20250121_12z",
+          "rationale": "12z synoptic puts peak at F00-F12 -- freshest data during heaviest snowfall but misses the 6h morning onset"
+        },
+        {
+          "cycle": "20250121_00z",
+          "rationale": "00z synoptic gives more pre-event buildup context, peak at F12-F24 -- good for arctic air mass evolution"
+        }
+      ]
+    },
+    {
+      "original_key": "20241107_00z",
+      "recommended_key": "20241107_00z",
+      "changed": false,
+      "category": "winter",
+      "name": "Colorado Blizzard",
+      "rationale": "00z Nov 7 is optimal. Wave 1 already started evening Nov 5, wave 2 (heaviest) peaks 00:00-18:00 UTC Nov 7 (F00-F18). The 00z synoptic cycle captures the beginning of the heaviest wave at F00 and tracks it through F18. The 90-hour continuous event demands the full 48h range to cover through wave 3. The closed low track and upslope flow dynamics are well-resolved synoptic features. F00-F18 at peak is ideal.",
+      "essential_fhrs": [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 44, 48],
+      "trimmable_fhrs": [1, 3, 5, 7, 9],
+      "timing": {
+        "event_start_utc": "00:00 Nov 7 (wave 2 onset)",
+        "peak_utc": "00:00-18:00 Nov 7",
+        "best_fhrs": [4, 8, 12, 16, 20, 24, 32],
+        "buildup_fhrs": [0, 2]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20241106_12z",
+          "rationale": "12z Nov 6 synoptic captures wave 1 ending and wave 2 onset at F12, peak at F12-F30 -- more lifecycle context but higher FHR at peak"
+        },
+        {
+          "cycle": "20241107_12z",
+          "rationale": "12z Nov 7 captures wave 2 winding down at F00 and wave 3 at F06-F18 -- freshest data for the third wave"
+        }
+      ]
+    },
+    {
+      "original_key": "20241119_12z",
+      "recommended_key": "20241119_12z",
+      "changed": false,
+      "category": "bomb_cyclone",
+      "name": "PNW Bomb Cyclone",
+      "rationale": "12z is optimal. Storm deepening through Nov 19 with peak winds 18:00-00:00 UTC (F06-F12). The 12z synoptic cycle captures the bomb cyclone as it reaches peak intensity offshore at F06-F12, exactly when the 85mph winds hit western Washington. The 942mb central pressure and extreme pressure gradient are synoptic features well-resolved at these FHRs. Full 48h range covers the post-storm period. The rapid deepening phase at F00-F06 is captured with freshest model data.",
+      "essential_fhrs": [0, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 18],
+      "trimmable_fhrs": [1, 3, 20, 24, 28, 32, 36, 40, 48],
+      "timing": {
+        "event_start_utc": "06:00 (deepening through Nov 19)",
+        "peak_utc": "18:00-00:00 Nov 19-20",
+        "best_fhrs": [6, 7, 8, 9, 10, 11, 12],
+        "buildup_fhrs": [0, 2, 4, 5]
+      },
+      "secondary_cycles": [
+        {
+          "cycle": "20241119_06z",
+          "rationale": "06z synoptic puts peak at F12-F18 -- still good and captures more of the pre-deepening phase at F00"
+        },
+        {
+          "cycle": "20241119_18z",
+          "rationale": "18z synoptic puts peak winds at F00-F06 -- freshest data at peak, ideal if focusing on the wind damage period only"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_events": 28,
+    "changed": 2,
+    "unchanged": 26,
+    "changes": [
+      {
+        "event": "20220512_16z -> 20220512_18z",
+        "reason": "16z non-synoptic (F18 max) replaced by 18z synoptic for full 48h range and lower FHR at peak"
+      },
+      {
+        "event": "20250429_17z -> 20250429_18z",
+        "reason": "17z non-synoptic (F18 max) replaced by 18z synoptic for full 48h range and comparable FHR at peak"
+      }
+    ],
+    "category_notes": {
+      "derecho": "8 of 10 derechos use 18z cycles -- this is the natural sweet spot for late-afternoon MCS initiation in the Central US. 12z works well for morning-initialized systems (Iowa Derecho, June Midwest Derecho). Two events changed from non-synoptic (16z, 17z) to 18z synoptic.",
+      "hail": "All 7 hail events already optimal at their current cycles. 18z dominates (5 of 7) for classic afternoon supercell timing. 00z works for the Denver nocturnal event.",
+      "ar": "All 5 AR events already optimal. Synoptic cycles are essential for these long-duration events needing 48h range. FHR at peak is higher (F06-F42) but AR-scale features are well-resolved at these ranges.",
+      "winter": "All 5 winter events already optimal. Mix of 00z, 06z, and 12z cycles depending on peak timing. All require full 48h synoptic range for these multi-day events.",
+      "bomb_cyclone": "12z is ideal -- captures the rapid deepening phase at low FHR with peak winds at F06-F12."
+    }
+  }
+}
