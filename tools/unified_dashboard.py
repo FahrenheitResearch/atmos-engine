@@ -3649,6 +3649,30 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             color: var(--muted);
         }
 
+        /* ===== Preset Library ===== */
+        #preset-lib.collapsed { display: none; }
+        #preset-lib:not(.collapsed) + .ctrl-section-title #preset-arrow,
+        .ctrl-section-title:has(+ #preset-lib:not(.collapsed)) #preset-arrow {
+            transform: rotate(90deg);
+        }
+        .preset-cat { margin-bottom: 6px; }
+        .preset-cat-title {
+            font-size: 10px; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.5px; color: var(--muted); padding: 4px 0 2px;
+        }
+        .preset-item {
+            display: flex; align-items: center; gap: 6px;
+            padding: 4px 8px; border-radius: 4px; cursor: pointer;
+            transition: background 0.1s; font-size: 11px; color: var(--text);
+        }
+        .preset-item:hover { background: var(--card); }
+        .preset-item .preset-dot {
+            width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+        }
+        .preset-item .preset-desc {
+            font-size: 10px; color: var(--muted); margin-left: auto; white-space: nowrap;
+        }
+
         /* Memory bar in settings */
         .mem-bar { width: 60px; height: 6px; background: var(--card); border-radius: 3px; overflow: hidden; }
         .mem-fill { height: 100%; background: var(--accent); transition: width 0.3s ease; }
@@ -3923,13 +3947,19 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     </div>
                 </div>
                 <div class="ctrl-section">
-                    <div class="ctrl-section-title">Favorites & Presets</div>
+                    <div class="ctrl-section-title">Favorites</div>
                     <div class="ctrl-row">
                         <select id="favorites-select" style="flex:1;">
-                            <option value="">Presets & Favorites</option>
+                            <option value="">Saved Favorites</option>
                         </select>
                         <button id="save-favorite-btn" style="padding:3px 8px;font-size:12px;">Save</button>
                     </div>
+                </div>
+                <div class="ctrl-section">
+                    <div class="ctrl-section-title" style="cursor:pointer;display:flex;align-items:center;gap:4px;" onclick="const lib=document.getElementById('preset-lib');const a=document.getElementById('preset-arrow');lib.classList.toggle('collapsed');a.style.transform=lib.classList.contains('collapsed')?'':'rotate(90deg)';">
+                        <span id="preset-arrow" style="font-size:10px;transition:transform 0.15s;">&#9654;</span> Transect Presets
+                    </div>
+                    <div id="preset-lib" class="collapsed"></div>
                 </div>
                 <div class="ctrl-section">
                     <div class="ctrl-section-title">Map Overlay</div>
@@ -6839,6 +6869,44 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         document.getElementById('prev-btn').addEventListener('click', () => stepFrame(-1));
         document.getElementById('next-btn').addEventListener('click', () => stepFrame(1));
 
+        let _prefetchInFlight = false;
+
+        async function prefetchPlaybackFrames() {
+            if (_prefetchInFlight || !startMarker || !endMarker || !currentCycle) return;
+            const sorted = [...selectedFhrs].sort((a, b) => a - b);
+            const uncached = sorted.filter(f => !prerenderedFrames[f]);
+            if (uncached.length === 0) return;
+            _prefetchInFlight = true;
+            const s = startMarker.getLatLng();
+            const e_m = endMarker.getLatLng();
+            const style = document.getElementById('style-select')?.value || 'temperature';
+            const yAxis = currentYAxis || 'pressure';
+            const vscale = document.getElementById('vscale-select')?.value || '1.0';
+            const ytop = document.getElementById('ytop-select')?.value || '100';
+            const units = document.getElementById('units-select')?.value || 'km';
+            const tempCmap = document.getElementById('temp-cmap-select')?.value || 'standard';
+            const anomaly = anomalyMode ? 1 : 0;
+            const poiParams = buildMarkersParam();
+            // Fetch in parallel batches of 4
+            for (let i = 0; i < uncached.length; i += 4) {
+                const batch = uncached.slice(i, i + 4);
+                await Promise.all(batch.map(async fhr => {
+                    try {
+                        const url = `/api/xsect?start_lat=${s.lat}&start_lon=${s.lng}` +
+                            `&end_lat=${e_m.lat}&end_lon=${e_m.lng}&cycle=${currentCycle}&fhr=${fhr}&style=${style}` +
+                            `&y_axis=${yAxis}&vscale=${vscale}&y_top=${ytop}&units=${units}&temp_cmap=${tempCmap}` +
+                            `&anomaly=${anomaly}${modelParam()}${poiParams}`;
+                        const res = await fetch(url);
+                        if (res.ok) {
+                            const blob = await res.blob();
+                            prerenderedFrames[fhr] = URL.createObjectURL(blob);
+                        }
+                    } catch (e) { /* skip */ }
+                }));
+            }
+            _prefetchInFlight = false;
+        }
+
         function startPlayback() {
             isPlaying = true;
             const playBtn = document.getElementById('play-btn');
@@ -6849,6 +6917,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const speed = parseInt(document.getElementById('play-speed').value);
             const slider = document.getElementById('fhr-slider');
             const total = parseInt(slider.max) + 1;
+
+            // Background prefetch frames for smoother playback
+            prefetchPlaybackFrames();
 
             playInterval = setInterval(() => {
                 let val = parseInt(slider.value) + 1;
@@ -7726,6 +7797,58 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             if (sel && style) { sel.value = style; sel.dispatchEvent(new Event('change')); }
             generateCrossSection();
         }
+
+        // =========================================================================
+        // Transect Preset Library
+        // =========================================================================
+        const TRANSECT_PRESETS = [
+            { cat: 'Fire Corridors', color: '#f97316', items: [
+                { name: 'Diablo Wind Corridor', lat1: 37.8, lon1: -122.3, lat2: 37.8, lon2: -121.2, style: 'wind_speed', desc: 'East Bay Hills → Central Valley' },
+                { name: 'Santa Ana (Cajon Pass)', lat1: 34.25, lon1: -117.8, lat2: 34.25, lon2: -117.0, style: 'fire_wx', desc: 'SoCal fire wind corridor' },
+                { name: 'Gorge East Wind', lat1: 45.65, lon1: -122.2, lat2: 45.65, lon2: -121.1, style: 'wind_speed', desc: 'Columbia Gorge gap wind' },
+                { name: 'Sundowner (SB)', lat1: 34.45, lon1: -120.0, lat2: 34.45, lon2: -119.2, style: 'fire_wx', desc: 'Santa Ynez Mtns sundowner' },
+                { name: 'Haines Index (CO)', lat1: 39.0, lon1: -106.5, lat2: 39.0, lon2: -105.0, style: 'lapse_rate', desc: 'Front Range foehn/chinook' },
+                { name: 'McKenzie Pass', lat1: 44.26, lon1: -122.2, lat2: 44.26, lon2: -121.3, style: 'wind_speed', desc: 'Central OR Cascades fire corridor' },
+            ]},
+            { cat: 'Mountain Passes', color: '#8b5cf6', items: [
+                { name: 'Front Range (Denver)', lat1: 39.7, lon1: -105.5, lat2: 39.7, lon2: -104.0, style: 'temperature', desc: 'Continental Divide → Denver' },
+                { name: 'Cascades (Mt Hood)', lat1: 45.37, lon1: -122.3, lat2: 45.37, lon2: -121.3, style: 'wind_speed', desc: 'Mt Hood cross-section' },
+                { name: 'Sierra Nevada (Yosemite)', lat1: 37.75, lon1: -120.5, lat2: 37.75, lon2: -118.5, style: 'temperature', desc: 'Sierra crest near Yosemite' },
+                { name: 'Wasatch Front', lat1: 40.6, lon1: -112.1, lat2: 40.6, lon2: -111.3, style: 'temperature', desc: 'Great Salt Lake → Wasatch Mtns' },
+                { name: 'Bitterroot Range', lat1: 46.5, lon1: -114.8, lat2: 46.5, lon2: -113.2, style: 'wind_speed', desc: 'MT-ID border mountains' },
+            ]},
+            { cat: 'Severe Weather', color: '#06b6d4', items: [
+                { name: 'Dryline (TX-OK)', lat1: 35.0, lon1: -101.0, lat2: 35.0, lon2: -97.0, style: 'theta_e', desc: 'Classic dryline boundary' },
+                { name: 'Tornado Alley N-S', lat1: 38.0, lon1: -98.0, lat2: 33.0, lon2: -98.0, style: 'shear', desc: 'Kansas → Oklahoma wind shear' },
+                { name: 'Gulf Moisture Plume', lat1: 30.0, lon1: -92.0, lat2: 35.0, lon2: -92.0, style: 'moisture_transport', desc: 'Gulf of Mexico moisture feed' },
+                { name: 'Great Plains LLJ', lat1: 35.0, lon1: -100.0, lat2: 35.0, lon2: -95.0, style: 'wind_speed', desc: 'Low-level jet nocturnal max' },
+            ]},
+            { cat: 'Atmospheric Rivers', color: '#22c55e', items: [
+                { name: 'CA Landfall (SF)', lat1: 37.5, lon1: -125.0, lat2: 37.5, lon2: -121.5, style: 'moisture_transport', desc: 'Pacific AR hitting Bay Area' },
+                { name: 'PNW Landfall (WA)', lat1: 47.5, lon1: -126.0, lat2: 47.5, lon2: -122.0, style: 'moisture_transport', desc: 'Pineapple Express → Cascades' },
+                { name: 'OR Coast Range', lat1: 44.5, lon1: -125.0, lat2: 44.5, lon2: -122.0, style: 'rh', desc: 'Coastal moisture → Willamette' },
+            ]},
+        ];
+
+        (function renderPresetLib() {
+            const lib = document.getElementById('preset-lib');
+            if (!lib) return;
+            TRANSECT_PRESETS.forEach(cat => {
+                const catDiv = document.createElement('div');
+                catDiv.className = 'preset-cat';
+                catDiv.innerHTML = '<div class="preset-cat-title">' + cat.cat + '</div>';
+                cat.items.forEach(p => {
+                    const row = document.createElement('div');
+                    row.className = 'preset-item';
+                    row.innerHTML = '<span class="preset-dot" style="background:' + cat.color + '"></span>' +
+                        '<span>' + p.name + '</span>' +
+                        '<span class="preset-desc">' + p.desc + '</span>';
+                    row.onclick = () => quickStart(p.lat1, p.lon1, p.lat2, p.lon2, p.style);
+                    catDiv.appendChild(row);
+                });
+                lib.appendChild(catDiv);
+            });
+        })();
 
         // =========================================================================
         // Recent Transects (localStorage)
@@ -9821,6 +9944,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             if (params.has('style')) state.style = params.get('style');
             if (params.has('fhr')) state.fhr = parseInt(params.get('fhr'));
             if (params.has('cycle')) state.cycle = params.get('cycle');
+            if (params.has('y_axis')) state.y_axis = params.get('y_axis');
+            if (params.has('anomaly')) state.anomaly = params.get('anomaly');
             return state;
         }
 
@@ -9838,6 +9963,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             if (activeFhr != null) params.set('fhr', activeFhr);
             const cycle = document.getElementById('cycle-select')?.value;
             if (cycle) params.set('cycle', cycle);
+            if (currentYAxis && currentYAxis !== 'pressure') params.set('y_axis', currentYAxis);
+            if (anomalyMode) params.set('anomaly', '1');
             const newURL = window.location.pathname + '?' + params.toString();
             window.history.replaceState(null, '', newURL);
         }
@@ -9858,13 +9985,20 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const tls = document.getElementById('tile-layer-select');
                 if (tls) { tls.value = prefs.basemap; tls.dispatchEvent(new Event('change')); }
             }
-            if (prefs.y_axis && ['pressure','height','isentropic'].includes(prefs.y_axis)) setYAxis(prefs.y_axis);
+            const yAxis = state.y_axis || prefs.y_axis;
+            if (yAxis && ['pressure','height','isentropic'].includes(yAxis)) setYAxis(yAxis);
             if (prefs.y_top) { const el = document.getElementById('ytop-select'); if (el) el.value = prefs.y_top; }
             if (prefs.units) { const el = document.getElementById('units-select'); if (el) el.value = prefs.units; }
+            if (state.anomaly === '1') {
+                anomalyMode = true;
+                const anomSel = document.getElementById('anomaly-select');
+                if (anomSel) anomSel.value = 'climo';
+            }
             if (state.lat1 != null && state.lon1 != null && state.lat2 != null && state.lon2 != null) {
                 startMarker = setupStartMarker(state.lat1, state.lon1);
                 endMarker = setupEndMarker(state.lat2, state.lon2);
                 updateLine();
+                updateDrawState();
                 if (state.fhr != null) activeFhr = state.fhr;
                 generateCrossSection();
             }
