@@ -19,11 +19,11 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 | `core/map_overlay.py` | ~1,133 | Map overlay rendering. Reprojection (KDTree for curvilinear, bilinear for GFS), composite assembly (fill + contours + barbs), PNG/binary output |
 | `model_config.py` | ~320 | Model registry. 6 models (HRRR/GFS/RRFS/NAM/RAP/NAM-Nest) metadata, grid specs, download URLs, forecast hour lists |
 
-### Server + UI (1 file, ~15,414 lines)
+### Server + UI (1 file, ~15,435 lines)
 
 | File | Lines | What It Does |
 |------|-------|-------------|
-| `tools/unified_dashboard.py` | ~15,414 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 58 API endpoints (34 v1 + 24 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects, og:image preview, FHR hover thumbnails, hero cross-section, smart product suggestions, skeleton loading, draw-mode feedback, distance/bearing line label, mobile panel backdrop, event timeline (hover tooltips), comparison diff view (with badge labels + draggable divider), 3D terrain, measurement tool, wind barb legend, geocoder search, image zoom/pan, product search filter, slider tick marks, download export, model-colored HUD badges |
+| `tools/unified_dashboard.py` | ~15,435 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 58 API endpoints (34 v1 + 24 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects, og:image preview, FHR hover thumbnails, hero cross-section, smart product suggestions, skeleton loading, draw-mode feedback, distance/bearing line label, mobile panel backdrop, event timeline (hover tooltips), comparison diff view (with badge labels + draggable divider), 3D terrain, measurement tool, wind barb legend, geocoder search, image zoom/pan, product search filter, slider tick marks, download export, model-colored HUD badges |
 
 **Key sections in unified_dashboard.py:**
 - Lines 1-1031: Imports, constants, overlay cache, helper functions, model config dicts
@@ -37,7 +37,7 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
   - Frontend JS (~4,000 lines): model pills (partial/loaded indicators), FHR slider with tick marks + progress fill, FHR hover thumbnails, hero cross-section loader, smart product suggestions, visual product picker with category filter chips + text search, keyboard shortcuts (22 bindings), URL state (y_axis + overlay deep-link), user prefs, local timezone, GIF, events with emoji category pills + timeline canvas (hover tooltips), cities, transect preset library (18 in 4 categories + 36 in presets dropdown), quick-start loading (glow animation), guide modal (icons + fade transitions), recent transects (localStorage), all-models compare (draggable divider), draw-mode feedback, distance/bearing label, XS hover readout + zoom/pan, playback prefetch (chip glow), comparison diff view with badge labels, context menu (fade-in animation), measurement tool, map coords readout, CONUS mini-map, geocoder search, image download export, overlay HUD badge, model-colored HUD, product strip hover states (with colormap chips), settings API section, copy-link button (clipboard API), custom tooltip system (data-tip), recently used products (localStorage)
 - Lines 11933: Flask routes start — `/` serves HTML, `/og-preview.png` serves branded preview
 - Lines 11933-15172: All API route handlers (58 endpoints + og-preview)
-- Lines 15278-15414: Startup — argument parsing, preload, rescan thread, server launch
+- Lines 15299-15435: Startup — argument parsing, preload, rescan thread, server launch
 
 ### Download System (2 files, ~1,240 lines)
 
