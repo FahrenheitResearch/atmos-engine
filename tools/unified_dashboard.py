@@ -5466,7 +5466,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             icing: 'linear-gradient(to right,#f7fbff,#9ecae1,#4292c6,#084594)',
             fire_wx: 'linear-gradient(to right,#67001f,#d6604d,#f4a582,#fddbc7,#d1e5f0,#2166ac)',
             smoke: 'linear-gradient(to right,#f7fbff,#bcbddc,#807dba,#4a1486)',
-            isentropic_ascent: 'linear-gradient(to right,#b2182b,#fddbc7,#f7f7f7,#d1e5f0,#2166ac)',
+            isentropic_ascent: 'linear-gradient(to right,#08306b,#4292c6,#9ecae1,#f7f7f7,#fcbba1,#fb6a4a,#67000d)',
         };
         // Value range labels for each product colorbar
         const cmapRanges = {
@@ -7418,7 +7418,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 btn.style.fontSize = '10px';
                 btn.style.padding = '3px 8px';
                 const styleName = styleSelect.querySelector(`option[value="${r.style}"]`)?.textContent || r.style;
-                btn.textContent = `${r.label} (${styleName})`;
+                const grad = cmapGradients[r.style];
+                btn.innerHTML = (grad ? `<span class="qs-chip" style="background:${grad}"></span>` : '') + `${r.label}`;
                 btn.title = `${styleName}: ${r.label}`;
                 btn.onclick = () => quickStart(r.lat1, r.lon1, r.lat2, r.lon2, r.style);
                 list.appendChild(btn);
