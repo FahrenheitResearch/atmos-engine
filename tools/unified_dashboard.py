@@ -2909,7 +2909,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             position: absolute; top: 10px; left: 10px; z-index: var(--z-map-hud);
             display: flex; gap: 6px; align-items: center; pointer-events: none;
         }
-        .hud-badge { padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+        .hud-badge { padding: 2px 8px; border-radius: 10px; font-size: 11px; backdrop-filter: blur(6px); }
         .hud-model { background: var(--hud-model); color: var(--bg); font-weight: 700; letter-spacing: 0.5px; }
         .hud-cycle { background: var(--hud-dark); color: var(--muted); font-weight: 500; }
         .hud-fhr { background: var(--hud-dark); color: var(--warning); font-weight: 600; }
@@ -3359,6 +3359,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .legend-title--bold { margin-bottom: 4px; font-weight: 600; }
         .ctrl-row--mb { margin-bottom: 8px; }
         .label--vs { font-size: 12px; }
+        .ctrl-row--wrap { flex-wrap: wrap; }
         .guide-tabs { display: flex; border-bottom: 1px solid var(--border); margin: -8px 0 8px; }
         .modal-content--sm { max-width: 340px; padding: 20px; }
         .modal-header--compact { margin-bottom: 12px; }
@@ -3590,8 +3591,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
         .quick-start-btn:hover {
             background: rgba(59,130,246,0.3); border-color: rgba(59,130,246,0.5);
-            color: #bfdbfe; transform: translateY(-1px);
+            color: #bfdbfe; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(59,130,246,0.2);
         }
+        .quick-start-btn:active { transform: scale(0.96); }
         .quick-start-btn.loading {
             background: rgba(14,165,233,0.3); border-color: var(--accent);
             color: var(--accent); pointer-events: none;
@@ -4946,7 +4948,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 </div>
                 <div class="ctrl-section">
                     <div class="ctrl-section-title">&#9881; Actions</div>
-                    <div class="ctrl-row" style="flex-wrap:wrap;">
+                    <div class="ctrl-row ctrl-row--wrap">
                         <button id="swap-btn" class="btn-sm" data-tip="Swap A/B endpoints (S)" aria-label="Swap endpoints">Swap <span class="kbd-hint">S</span></button>
                         <button id="clear-btn" class="btn-sm" data-tip="Clear cross-section line (Esc)" aria-label="Clear line">Clear <span class="kbd-hint">Esc</span></button>
                         <button id="poi-btn" class="btn-sm" data-tip="Place POI marker (or right-click map)" aria-label="Add point of interest">+ POI</button>
