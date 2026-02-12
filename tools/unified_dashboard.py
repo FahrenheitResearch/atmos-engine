@@ -2631,7 +2631,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .product-strip-pill {
             padding: 1px 6px; border-radius: 8px; font-size: 9px; cursor: pointer;
             transition: all var(--transition-fast); border: 1px solid transparent;
+            display: inline-flex; align-items: center; gap: 3px;
         }
+        .ps-chip { width: 8px; height: 6px; border-radius: 2px; flex-shrink: 0; }
         .product-strip-pill.active { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
         .product-strip-pill:not(.active) { background: var(--card); color: var(--muted); }
         .product-strip-pill:not(.active):hover { background: var(--surface); color: var(--text); }
@@ -9634,7 +9636,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     visibleItems.forEach(([key, name]) => {
                         const pill = document.createElement('span');
                         pill.className = 'product-strip-pill' + (key === style ? ' active' : '');
-                        pill.textContent = name;
+                        const grad = cmapGradients[key] || '';
+                        if (grad) {
+                            pill.innerHTML = `<span class="ps-chip" style="background:${grad};"></span>${name}`;
+                        } else {
+                            pill.textContent = name;
+                        }
                         pill.title = groupName + ': ' + (styleDescriptions[key] || name);
                         pill.onclick = () => { styleSelect.value = key; styleSelect.dispatchEvent(new Event('change')); };
                         strip.appendChild(pill);
