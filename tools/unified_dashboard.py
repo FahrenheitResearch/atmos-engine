@@ -4057,8 +4057,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
     <div id="explainer-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Style Guide</h2>
+                <h2 id="modal-title">Guide</h2>
                 <button class="modal-close" id="modal-close">&times;</button>
+            </div>
+            <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin:-8px 0 8px;">
+                <button class="guide-tab active" data-tab="getting-started" style="flex:1;padding:8px 0;font-size:12px;background:none;border:none;border-bottom:2px solid var(--accent);color:var(--accent);cursor:pointer;font-family:inherit;">Getting Started</button>
+                <button class="guide-tab" data-tab="products" style="flex:1;padding:8px 0;font-size:12px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);cursor:pointer;font-family:inherit;">Products (20)</button>
+                <button class="guide-tab" data-tab="shortcuts" style="flex:1;padding:8px 0;font-size:12px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);cursor:pointer;font-family:inherit;">Shortcuts</button>
             </div>
             <div class="modal-body" id="modal-body"></div>
         </div>
@@ -7360,24 +7365,111 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             ]},
         ];
 
-        function renderExplainerModal() {
+        let _guideTab = 'getting-started';
+        function renderGuideTab(tab) {
+            _guideTab = tab;
             const body = document.getElementById('modal-body');
-            body.innerHTML = styleGuide.map(group => `
-                <div style="margin-bottom:16px;">
-                    <h3 style="color:var(--accent);font-size:14px;margin:12px 0 8px;text-transform:uppercase;letter-spacing:1px;">${group.category}</h3>
-                    ${group.styles.map(s => `
-                        <div class="param-card" style="cursor:pointer" onclick="document.getElementById('style-select').value='${s.key}';document.getElementById('explainer-modal').classList.remove('visible');generateCrossSection();">
-                            <div class="param-header"><span class="param-name">${s.name}</span></div>
-                            <div class="param-desc">${s.desc}</div>
-                            ${s.overlays ? '<div class="param-tech">Overlays: ' + s.overlays + '</div>' : ''}
+            document.querySelectorAll('.guide-tab').forEach(t => {
+                const active = t.dataset.tab === tab;
+                t.classList.toggle('active', active);
+                t.style.borderBottomColor = active ? 'var(--accent)' : 'transparent';
+                t.style.color = active ? 'var(--accent)' : 'var(--muted)';
+            });
+            if (tab === 'getting-started') {
+                const kbd = 'background:var(--card);padding:2px 6px;border-radius:4px;font-family:monospace;border:1px solid var(--border);font-size:11px;';
+                body.innerHTML = `
+                    <div style="text-align:center;margin-bottom:16px;">
+                        <div style="font-size:16px;font-weight:700;color:var(--accent);margin-bottom:4px;">wxsection.com</div>
+                        <div style="font-size:12px;color:var(--muted);">Instant atmospheric cross-sections from 6 NWP models</div>
+                    </div>
+                    <div style="display:flex;gap:12px;justify-content:center;margin-bottom:20px;">
+                        <div style="text-align:center;flex:1;max-width:120px;">
+                            <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);color:#000;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;margin-bottom:6px;">1</div>
+                            <div style="font-size:12px;font-weight:600;color:var(--text);">Click point A</div>
+                            <div style="font-size:11px;color:var(--muted);margin-top:2px;">Start of transect</div>
                         </div>
-                    `).join('')}
-                </div>
-            `).join('');
+                        <div style="text-align:center;flex:1;max-width:120px;">
+                            <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);color:#000;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;margin-bottom:6px;">2</div>
+                            <div style="font-size:12px;font-weight:600;color:var(--text);">Click point B</div>
+                            <div style="font-size:11px;color:var(--muted);margin-top:2px;">End of transect</div>
+                        </div>
+                        <div style="text-align:center;flex:1;max-width:120px;">
+                            <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);color:#000;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;margin-bottom:6px;">3</div>
+                            <div style="font-size:12px;font-weight:600;color:var(--text);">Explore</div>
+                            <div style="font-size:11px;color:var(--muted);margin-top:2px;">Change products, FHRs, models</div>
+                        </div>
+                    </div>
+                    <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:12px;">
+                        <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:8px;">Key Features</div>
+                        <div style="font-size:12px;color:var(--text);line-height:1.8;">
+                            <div><b>6 models</b> \u2014 HRRR (3km), GFS (0.25\u00b0), RRFS (3km), NAM (12km), RAP (13km), NAM-Nest (3km)</div>
+                            <div><b>20 products</b> \u2014 Temperature, wind, fire weather, theta-e, vorticity, smoke, and more</div>
+                            <div><b>Sub-second renders</b> \u2014 Mmap-on-NVMe cache architecture for instant response</div>
+                            <div><b>Draggable endpoints</b> \u2014 Drag A/B markers to adjust transect in real-time</div>
+                            <div><b>Right-click context menu</b> \u2014 Set start/end points, add POI markers, copy coordinates</div>
+                            <div><b>Map overlay</b> \u2014 Surface analysis, fire weather, 500mb, and more as map layers</div>
+                            <div><b>Compare mode</b> \u2014 Side-by-side comparison of different cycles or models</div>
+                            <div><b>GIF generation</b> \u2014 Animated cross-section loops with custom FHR ranges</div>
+                        </div>
+                    </div>
+                    <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 16px;">
+                        <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:8px;">Quick Shortcuts</div>
+                        <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12px;">
+                            <kbd style="${kbd}">\u2190 / \u2192</kbd><span style="color:var(--muted);">Step through forecast hours</span>
+                            <kbd style="${kbd}">Space</kbd><span style="color:var(--muted);">Play/pause animation</span>
+                            <kbd style="${kbd}">1-6</kbd><span style="color:var(--muted);">Switch between models</span>
+                            <kbd style="${kbd}">O</kbd><span style="color:var(--muted);">Toggle map overlay</span>
+                            <kbd style="${kbd}">C</kbd><span style="color:var(--muted);">Compare mode</span>
+                        </div>
+                    </div>`;
+            } else if (tab === 'products') {
+                body.innerHTML = styleGuide.map(group => `
+                    <div style="margin-bottom:16px;">
+                        <h3 style="color:var(--accent);font-size:14px;margin:12px 0 8px;text-transform:uppercase;letter-spacing:1px;">${group.category}</h3>
+                        ${group.styles.map(s => `
+                            <div class="param-card" style="cursor:pointer" onclick="document.getElementById('style-select').value='${s.key}';document.getElementById('explainer-modal').classList.remove('visible');generateCrossSection();">
+                                <div class="param-header"><span class="param-name">${s.name}</span></div>
+                                <div class="param-desc">${s.desc}</div>
+                                ${s.overlays ? '<div class="param-tech">Overlays: ' + s.overlays + '</div>' : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                `).join('');
+            } else if (tab === 'shortcuts') {
+                const kbd = 'background:var(--card);padding:2px 8px;border-radius:4px;font-family:monospace;border:1px solid var(--border);font-size:11px;';
+                body.innerHTML = `
+                    <div style="display:grid;grid-template-columns:auto 1fr;gap:7px 18px;font-size:12px;">
+                        <div style="grid-column:1/-1;font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-top:4px;">Navigation</div>
+                        <kbd style="${kbd}">\u2190 / J</kbd><span style="color:var(--muted);">Previous forecast hour</span>
+                        <kbd style="${kbd}">\u2192 / K</kbd><span style="color:var(--muted);">Next forecast hour</span>
+                        <kbd style="${kbd}">Home</kbd><span style="color:var(--muted);">First FHR (F00)</span>
+                        <kbd style="${kbd}">End</kbd><span style="color:var(--muted);">Last FHR</span>
+                        <kbd style="${kbd}">Space</kbd><span style="color:var(--muted);">Play / pause animation</span>
+
+                        <div style="grid-column:1/-1;font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-top:10px;">Models</div>
+                        <kbd style="${kbd}">1</kbd><span style="color:var(--muted);">HRRR (3km)</span>
+                        <kbd style="${kbd}">2</kbd><span style="color:var(--muted);">GFS (0.25\u00b0)</span>
+                        <kbd style="${kbd}">3</kbd><span style="color:var(--muted);">RRFS (3km)</span>
+                        <kbd style="${kbd}">4</kbd><span style="color:var(--muted);">NAM (12km)</span>
+                        <kbd style="${kbd}">5</kbd><span style="color:var(--muted);">RAP (13km)</span>
+                        <kbd style="${kbd}">6</kbd><span style="color:var(--muted);">NAM-Nest (3km)</span>
+
+                        <div style="grid-column:1/-1;font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-top:10px;">Actions</div>
+                        <kbd style="${kbd}">O</kbd><span style="color:var(--muted);">Toggle map overlay on/off</span>
+                        <kbd style="${kbd}">C</kbd><span style="color:var(--muted);">Compare mode</span>
+                        <kbd style="${kbd}">S</kbd><span style="color:var(--muted);">Swap A/B endpoints</span>
+                        <kbd style="${kbd}">Esc</kbd><span style="color:var(--muted);">Clear cross-section line</span>
+                        <kbd style="${kbd}">?</kbd><span style="color:var(--muted);">Quick shortcuts popup</span>
+                    </div>`;
+            }
         }
 
+        document.querySelectorAll('.guide-tab').forEach(t => {
+            t.onclick = () => renderGuideTab(t.dataset.tab);
+        });
+
         document.getElementById('help-btn').onclick = () => {
-            renderExplainerModal();
+            renderGuideTab(_guideTab);
             document.getElementById('explainer-modal').classList.add('visible');
         };
 
