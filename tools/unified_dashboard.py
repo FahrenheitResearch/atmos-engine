@@ -2692,7 +2692,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             flex-shrink: 0;
         }
         .model-pill .model-dot.loaded { background: var(--success); }
+        .model-pill .model-dot.partial { background: var(--warning); }
         .model-pill.active .model-dot.loaded { background: #065f46; }
+        .model-pill.active .model-dot.partial { background: #92400e; }
 
         /* ===== Quick Workflow Buttons ===== */
         .workflow-grid {
@@ -4798,7 +4800,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     pill.className = 'model-pill' + (m.id === currentModel ? ' active' : '');
                     pill.dataset.model = m.id;
                     const dot = document.createElement('span');
-                    dot.className = 'model-dot' + (m.loaded_count > 0 ? ' loaded' : '');
+                    const dotState = m.loaded_count > 0 ? (m.loaded_count >= (m.fhr_count || 1) ? ' loaded' : ' partial') : '';
+                    dot.className = 'model-dot' + dotState;
                     dot.id = 'model-dot-' + m.id;
                     const label = document.createElement('span');
                     label.textContent = m.id.toUpperCase().replace('_', ' ');
@@ -4855,7 +4858,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             fetch('/api/models').then(r => r.json()).then(data => {
                 (data.models || []).forEach(m => {
                     const dot = document.getElementById('model-dot-' + m.id);
-                    if (dot) dot.className = 'model-dot' + (m.loaded_count > 0 ? ' loaded' : '');
+                    if (dot) {
+                        const state = m.loaded_count > 0 ? (m.loaded_count >= 10 ? ' loaded' : ' partial') : '';
+                        dot.className = 'model-dot' + state;
+                    }
                 });
             }).catch(() => {});
         }
@@ -7144,15 +7150,17 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 if (chip.classList.contains('unavailable') || chip.classList.contains('loading')) return;
 
                 chip.classList.remove('loaded', 'active');
+                const vt = formatValidTime(fhr);
+                const vtHint = vt ? ` \u2014 ${vt}` : '';
                 if (fhr === activeFhr) {
                     chip.classList.add('active');
                     chip.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
-                    chip.title = 'Currently viewing (Shift+click to unload)';
+                    chip.title = `${fhrLabel(fhr)}${vtHint} (viewing \u00b7 Shift+click to unload)`;
                 } else if (selectedFhrs.includes(fhr)) {
                     chip.classList.add('loaded');
-                    chip.title = 'Loaded in RAM — click for instant view (Shift+click to unload)';
+                    chip.title = `${fhrLabel(fhr)}${vtHint} (loaded \u00b7 Shift+click to unload)`;
                 } else {
-                    chip.title = 'Click to load (~15s)';
+                    chip.title = `${fhrLabel(fhr)}${vtHint} \u2014 click to load`;
                 }
             });
             updateSliderVisibility();
@@ -10878,6 +10886,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             if (params.has('cycle')) state.cycle = params.get('cycle');
             if (params.has('y_axis')) state.y_axis = params.get('y_axis');
             if (params.has('anomaly')) state.anomaly = params.get('anomaly');
+            if (params.has('overlay')) state.overlay = params.get('overlay');
+            if (params.has('overlay_product')) state.overlay_product = params.get('overlay_product');
+            if (params.has('overlay_opacity')) state.overlay_opacity = parseInt(params.get('overlay_opacity'));
             return state;
         }
 
@@ -10897,6 +10908,14 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             if (cycle) params.set('cycle', cycle);
             if (currentYAxis && currentYAxis !== 'pressure') params.set('y_axis', currentYAxis);
             if (anomalyMode) params.set('anomaly', '1');
+            const overlayOn = document.getElementById('overlay-on')?.classList.contains('active');
+            if (overlayOn) {
+                params.set('overlay', '1');
+                const ovProd = document.getElementById('overlay-product-select')?.value;
+                if (ovProd) params.set('overlay_product', ovProd);
+                const ovOp = document.getElementById('overlay-opacity')?.value;
+                if (ovOp && ovOp !== '70') params.set('overlay_opacity', ovOp);
+            }
             const newURL = window.location.pathname + '?' + params.toString();
             window.history.replaceState(null, '', newURL);
         }
@@ -10925,6 +10944,18 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 anomalyMode = true;
                 const anomSel = document.getElementById('anomaly-select');
                 if (anomSel) anomSel.value = 'climo';
+            }
+            // Restore overlay state from URL
+            if (state.overlay === '1') {
+                if (state.overlay_product) {
+                    const opSel = document.getElementById('overlay-product-select');
+                    if (opSel) opSel.value = state.overlay_product;
+                }
+                if (state.overlay_opacity) {
+                    const opSlider = document.getElementById('overlay-opacity');
+                    if (opSlider) { opSlider.value = state.overlay_opacity; opSlider.dispatchEvent(new Event('input')); }
+                }
+                document.getElementById('overlay-on')?.click();
             }
             if (state.lat1 != null && state.lon1 != null && state.lat2 != null && state.lon2 != null) {
                 startMarker = setupStartMarker(state.lat1, state.lon1);
