@@ -9287,6 +9287,26 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
 
         // =====================================================================
+        // User preference persistence (localStorage)
+        // =====================================================================
+        const PREFS_KEY = 'wxs-prefs';
+        function loadPrefs() { try { return JSON.parse(localStorage.getItem(PREFS_KEY) || '{}'); } catch { return {}; } }
+        function savePrefs(updates) {
+            const prefs = loadPrefs();
+            Object.assign(prefs, updates);
+            localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+        }
+        // Save on change: style, model, basemap, y_top, units
+        styleSelect.addEventListener('change', () => savePrefs({ style: styleSelect.value }));
+        document.getElementById('tile-layer-select')?.addEventListener('change', function() { savePrefs({ basemap: this.value }); });
+        document.getElementById('ytop-select')?.addEventListener('change', function() { savePrefs({ y_top: this.value }); });
+        document.getElementById('units-select')?.addEventListener('change', function() { savePrefs({ units: this.value }); });
+        // y_axis and model saved via their respective functions (patched below)
+        const _origSetYAxis = setYAxis;
+        setYAxis = function(v) { _origSetYAxis(v); savePrefs({ y_axis: v }); };
+        const _origSwitchModel = switchModel;
+        switchModel = async function(id) { await _origSwitchModel(id); savePrefs({ model: id }); };
+
         // URL state sharing (read on load, update on changes)
         // =====================================================================
         function readURLState() {
@@ -9321,14 +9341,25 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             window.history.replaceState(null, '', newURL);
         }
 
-        // Apply URL state on load (after models/cycles are loaded)
+        // Apply URL state + saved preferences on load (URL overrides prefs)
         setTimeout(() => {
             const state = readURLState();
-            if (state.model) switchModel(state.model);
-            if (state.style) {
+            const prefs = loadPrefs();
+            // Restore preferences (URL state takes priority)
+            const model = state.model || prefs.model;
+            const style = state.style || prefs.style;
+            if (model) switchModel(model);
+            if (style) {
                 const sel = document.getElementById('style-select');
-                if (sel) { sel.value = state.style; sel.dispatchEvent(new Event('change')); }
+                if (sel) { sel.value = style; sel.dispatchEvent(new Event('change')); }
             }
+            if (prefs.basemap && !state.lat1) {
+                const tls = document.getElementById('tile-layer-select');
+                if (tls) { tls.value = prefs.basemap; tls.dispatchEvent(new Event('change')); }
+            }
+            if (prefs.y_axis && ['pressure','height','isentropic'].includes(prefs.y_axis)) setYAxis(prefs.y_axis);
+            if (prefs.y_top) { const el = document.getElementById('ytop-select'); if (el) el.value = prefs.y_top; }
+            if (prefs.units) { const el = document.getElementById('units-select'); if (el) el.value = prefs.units; }
             if (state.lat1 != null && state.lon1 != null && state.lat2 != null && state.lon2 != null) {
                 startMarker = setupStartMarker(state.lat1, state.lon1);
                 endMarker = setupEndMarker(state.lat2, state.lon2);
