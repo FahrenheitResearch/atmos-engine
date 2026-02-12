@@ -3503,6 +3503,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             display: inline-block; width: 14px; height: 8px; border-radius: 3px;
             margin-right: 5px; vertical-align: middle;
         }
+        .error-panel { color: var(--danger-light); text-align: center; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .error-icon { font-size: 24px; opacity: 0.7; }
+        .error-msg { font-size: 12px; max-width: 300px; line-height: 1.5; }
         .loading-spinner {
             display: flex;
             flex-direction: column;
@@ -6759,8 +6762,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         };
 
         function showErrorPanel(container, message, retryAction) {
-            const retryBtn = retryAction ? `<button onclick="${retryAction}" style="padding:4px 12px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:var(--bg);cursor:pointer;font-size:12px;">Retry</button>` : '';
-            container.innerHTML = `<div style="color:var(--danger-light);text-align:center;padding:16px;"><div style="margin-bottom:8px;">${message}</div>${retryBtn}</div>`;
+            const retryBtn = retryAction ? `<button class="btn-primary btn-sm" onclick="${retryAction}">Retry</button>` : '';
+            container.innerHTML = `<div class="error-panel"><div class="error-icon">&#9888;</div><div class="error-msg">${message}</div>${retryBtn}</div>`;
         }
 
         let _memCurrent = 0, _memAnimFrame = null;
