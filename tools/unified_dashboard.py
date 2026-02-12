@@ -4086,6 +4086,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             <!-- TAB: Events -->
             <div class="tab-content" id="tab-events">
                 <div id="event-list-view">
+                    <canvas id="event-timeline" width="360" height="48" style="width:100%;height:48px;border-radius:6px;background:var(--bg);margin-bottom:8px;cursor:pointer;"></canvas>
                     <input type="text" id="event-search" placeholder="Search events..." aria-label="Search events" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 12px;font-size:13px;margin-bottom:8px;">
                     <div id="event-cat-pills" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;"></div>
                     <div class="ctrl-row" style="margin-bottom:8px;">
@@ -4232,6 +4233,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                             <button class="toggle-btn" data-value="valid_time">Valid Time</button>
                         </div>
                         <span id="compare-fhr-label" style="font-size:11px;color:var(--muted);"></span>
+                        <button id="compare-diff-btn" class="toggle-btn" title="Show pixel difference between panels" style="margin-left:auto;font-size:11px;padding:2px 8px;">Diff</button>
                     </div>
                     <!-- Multi-panel controls -->
                     <div id="multi-panel-controls">
@@ -4318,6 +4320,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                             <div class="xsect-panel-label" id="panel-compare-label"></div>
                             <div class="xsect-panel-body" id="xsect-container-compare">
                                 <div style="color:var(--muted);">Select a comparison cycle</div>
+                            </div>
+                        </div>
+                        <div class="xsect-panel" id="panel-diff" style="display:none;">
+                            <div class="xsect-panel-label" style="color:#f59e0b;">Difference</div>
+                            <div class="xsect-panel-body" id="xsect-container-diff">
+                                <canvas id="diff-canvas" style="width:100%;border-radius:4px;"></canvas>
                             </div>
                         </div>
                     </div>
@@ -7107,6 +7115,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 compareCycle = null;
                 document.getElementById('xsect-container-compare').innerHTML =
                     '<div style="color:var(--muted);">Select a comparison cycle</div>';
+                // Reset diff mode
+                diffActive = false;
+                const diffBtn = document.getElementById('compare-diff-btn');
+                if (diffBtn) { diffBtn.classList.remove('active'); diffBtn.style.background = ''; diffBtn.style.color = ''; }
+                document.getElementById('panel-diff').style.display = 'none';
             }
         }
 
@@ -7267,6 +7280,92 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 container.innerHTML = `<div style="color:#f87171">${err.message}</div>`;
             }
         }
+
+        // =========================================================================
+        // Comparison Diff Mode
+        // =========================================================================
+        let diffActive = false;
+
+        document.getElementById('compare-diff-btn').addEventListener('click', function() {
+            diffActive = !diffActive;
+            this.classList.toggle('active', diffActive);
+            this.style.background = diffActive ? '#f59e0b' : '';
+            this.style.color = diffActive ? '#000' : '';
+            document.getElementById('panel-diff').style.display = diffActive ? '' : 'none';
+            if (diffActive) computeDiff();
+        });
+
+        function computeDiff() {
+            const primaryImg = document.querySelector('#xsect-container img');
+            const compareImg = document.querySelector('#xsect-container-compare img');
+            const canvas = document.getElementById('diff-canvas');
+            if (!primaryImg || !compareImg || !canvas) return;
+
+            // Wait for both images to load
+            if (!primaryImg.complete || !compareImg.complete) {
+                const onLoad = () => {
+                    if (primaryImg.complete && compareImg.complete) computeDiff();
+                };
+                primaryImg.addEventListener('load', onLoad, { once: true });
+                compareImg.addEventListener('load', onLoad, { once: true });
+                return;
+            }
+
+            const w = primaryImg.naturalWidth;
+            const h = primaryImg.naturalHeight;
+            canvas.width = w;
+            canvas.height = h;
+            canvas.style.maxWidth = '100%';
+
+            const ctx = canvas.getContext('2d');
+
+            // Draw primary to offscreen canvas
+            const offA = document.createElement('canvas');
+            offA.width = w; offA.height = h;
+            const ctxA = offA.getContext('2d');
+            ctxA.drawImage(primaryImg, 0, 0, w, h);
+            const dataA = ctxA.getImageData(0, 0, w, h);
+
+            // Draw compare to offscreen canvas
+            const offB = document.createElement('canvas');
+            offB.width = w; offB.height = h;
+            const ctxB = offB.getContext('2d');
+            ctxB.drawImage(compareImg, 0, 0, w, h);
+            const dataB = ctxB.getImageData(0, 0, w, h);
+
+            // Compute absolute difference with amplification
+            const out = ctx.createImageData(w, h);
+            const pA = dataA.data, pB = dataB.data, pO = out.data;
+            const amp = 3; // amplification factor for visibility
+            for (let i = 0; i < pA.length; i += 4) {
+                const dr = Math.abs(pA[i] - pB[i]);
+                const dg = Math.abs(pA[i+1] - pB[i+1]);
+                const db = Math.abs(pA[i+2] - pB[i+2]);
+                const mag = Math.min(255, Math.max(dr, dg, db) * amp);
+                // Hot colormap: dark → orange → yellow → white
+                if (mag < 85) {
+                    pO[i] = mag * 3;        // R
+                    pO[i+1] = 0;            // G
+                    pO[i+2] = 0;            // B
+                } else if (mag < 170) {
+                    pO[i] = 255;
+                    pO[i+1] = (mag - 85) * 3;
+                    pO[i+2] = 0;
+                } else {
+                    pO[i] = 255;
+                    pO[i+1] = 255;
+                    pO[i+2] = (mag - 170) * 3;
+                }
+                pO[i+3] = 255;
+            }
+            ctx.putImageData(out, 0, 0);
+        }
+
+        // Auto-update diff when comparison image changes
+        const _diffObserver = new MutationObserver(() => {
+            if (diffActive) setTimeout(computeDiff, 100);
+        });
+        _diffObserver.observe(document.getElementById('xsect-container-compare'), { childList: true });
 
         // =========================================================================
         // Multi-Panel Comparison Mode
@@ -9247,6 +9346,129 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             });
         }
 
+        // Event timeline visualization
+        function renderEventTimeline() {
+            const canvas = document.getElementById('event-timeline');
+            if (!canvas || allEvents.length === 0) return;
+            const ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            const w = canvas.clientWidth;
+            const h = canvas.clientHeight;
+            canvas.width = w * dpr;
+            canvas.height = h * dpr;
+            ctx.scale(dpr, dpr);
+            ctx.clearRect(0, 0, w, h);
+
+            const catColors = {
+                'fire-ca': '#f97316', 'fire-pnw': '#22c55e', 'fire-co': '#3b82f6',
+                'fire-sw': '#ef4444', 'hurricane': '#06b6d4', 'tornado': '#a855f7',
+                'derecho': '#eab308', 'hail': '#d946ef', 'ar': '#0ea5e9',
+                'winter': '#94a3b8', 'other': '#64748b',
+            };
+
+            // Parse dates from cycle_key (YYYYMMDD_HHz)
+            const parsed = allEvents.map(evt => {
+                const m = (evt.cycle_key || '').match(/^(\d{4})(\d{2})(\d{2})/);
+                if (!m) return null;
+                return { evt, date: new Date(+m[1], +m[2] - 1, +m[3]), year: +m[1] };
+            }).filter(Boolean).sort((a, b) => a.date - b.date);
+
+            if (parsed.length === 0) return;
+
+            const minYear = parsed[0].year;
+            const maxYear = parsed[parsed.length - 1].year;
+            const pad = 20;
+            const yearSpan = Math.max(maxYear - minYear, 1);
+            const minDate = new Date(minYear, 0, 1);
+            const maxDate = new Date(maxYear + 1, 0, 1);
+            const totalMs = maxDate - minDate;
+
+            // Draw year gridlines
+            ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+            ctx.lineWidth = 1;
+            ctx.font = '9px system-ui, sans-serif';
+            ctx.fillStyle = 'rgba(255,255,255,0.25)';
+            ctx.textAlign = 'center';
+            for (let y = minYear; y <= maxYear + 1; y++) {
+                const x = pad + ((new Date(y, 0, 1) - minDate) / totalMs) * (w - pad * 2);
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, h - 14);
+                ctx.stroke();
+                if (y <= maxYear) {
+                    const midX = pad + ((new Date(y, 6, 1) - minDate) / totalMs) * (w - pad * 2);
+                    ctx.fillText(y.toString(), midX, h - 3);
+                }
+            }
+
+            // Draw event dots — stack vertically by category to avoid overlap
+            const catList = Object.keys(catColors);
+            const rows = {};
+            parsed.forEach(p => {
+                const cat = p.evt.category || 'other';
+                if (!rows[cat]) rows[cat] = [];
+                rows[cat].push(p);
+            });
+
+            const activeCats = Object.keys(rows);
+            const dotR = Math.max(2.5, Math.min(4, (h - 20) / (activeCats.length * 2.5)));
+            const yStart = 4;
+            const yEnd = h - 16;
+            const yStep = activeCats.length > 1 ? (yEnd - yStart) / (activeCats.length - 1) : 0;
+
+            // Store dot positions for click detection
+            canvas._dots = [];
+
+            activeCats.forEach((cat, ci) => {
+                const color = catColors[cat] || '#64748b';
+                const cy = activeCats.length === 1 ? (yStart + yEnd) / 2 : yStart + ci * yStep;
+                rows[cat].forEach(p => {
+                    const x = pad + ((p.date - minDate) / totalMs) * (w - pad * 2);
+                    ctx.beginPath();
+                    ctx.arc(x, cy, dotR, 0, Math.PI * 2);
+                    ctx.fillStyle = color;
+                    ctx.globalAlpha = p.evt.has_data ? 1.0 : 0.5;
+                    ctx.fill();
+                    ctx.globalAlpha = 1.0;
+                    canvas._dots.push({ x, y: cy, r: dotR + 2, evt: p.evt });
+                });
+            });
+        }
+
+        // Timeline click → show event detail
+        const _timelineCanvas = document.getElementById('event-timeline');
+        if (_timelineCanvas) {
+            _timelineCanvas.addEventListener('click', e => {
+                const rect = _timelineCanvas.getBoundingClientRect();
+                const mx = e.clientX - rect.left;
+                const my = e.clientY - rect.top;
+                const dots = _timelineCanvas._dots || [];
+                let closest = null, closestDist = Infinity;
+                dots.forEach(d => {
+                    const dist = Math.hypot(d.x - mx, d.y - my);
+                    if (dist < d.r + 4 && dist < closestDist) {
+                        closest = d;
+                        closestDist = dist;
+                    }
+                });
+                if (closest) showEventDetail(closest.evt.cycle_key);
+            });
+
+            // Tooltip on hover
+            _timelineCanvas.addEventListener('mousemove', e => {
+                const rect = _timelineCanvas.getBoundingClientRect();
+                const mx = e.clientX - rect.left;
+                const my = e.clientY - rect.top;
+                const dots = _timelineCanvas._dots || [];
+                let hit = false;
+                dots.forEach(d => {
+                    if (Math.hypot(d.x - mx, d.y - my) < d.r + 4) hit = true;
+                });
+                _timelineCanvas.style.cursor = hit ? 'pointer' : 'default';
+                _timelineCanvas.title = hit ? '' : '';
+            });
+        }
+
         // Event search/filter handlers
         const eventSearch = document.getElementById('event-search');
         const eventCategoryFilter = document.getElementById('event-category-filter');
@@ -9932,7 +10154,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             }
         });
         loadCityMarkers();
-        loadEventMarkers().then(() => populateEventCategories());
+        loadEventMarkers().then(() => { populateEventCategories(); renderEventTimeline(); });
 
         // Fetch version info
         fetch('/api/v1/status').then(r => r.json()).then(d => {
