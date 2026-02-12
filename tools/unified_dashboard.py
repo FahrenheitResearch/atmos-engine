@@ -5179,7 +5179,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <div class="xsect-panel" id="panel-compare" style="display:none;">
                             <div class="xsect-panel-label" id="panel-compare-label"></div>
                             <div class="xsect-panel-body" id="xsect-container-compare">
-                                <div style="color:var(--muted);text-align:center;padding:20px;"><span style="font-size:20px;opacity:0.4;">&#x2194;&#xFE0F;</span><br>Select a comparison cycle above</div>
+                                <div class="error-panel"><div class="error-icon" style="opacity:0.4;">&#x2194;&#xFE0F;</div><div class="error-msg">Select a comparison cycle above</div></div>
                             </div>
                         </div>
                         <div class="xsect-panel" id="panel-diff" style="display:none;">
@@ -8617,7 +8617,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 panelCompare.style.display = 'none';
                 compareCycle = null;
                 document.getElementById('xsect-container-compare').innerHTML =
-                    '<div style="color:var(--muted);text-align:center;padding:20px;"><span style="font-size:20px;opacity:0.4;">&#x2194;&#xFE0F;</span><br>Select a comparison cycle above</div>';
+                    '<div class="error-panel"><div class="error-icon" style="opacity:0.4;">&#x2194;&#xFE0F;</div><div class="error-msg">Select a comparison cycle above</div></div>';
                 // Reset diff mode and divider
                 diffActive = false;
                 const diffBtn = document.getElementById('compare-diff-btn');
