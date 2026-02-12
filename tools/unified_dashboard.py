@@ -4083,6 +4083,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <button id="all-models-btn" style="padding:3px 8px;font-size:12px;" title="Compare this transect across all 6 models" aria-label="Compare all models">All Models</button>
                         <button id="share-btn" style="padding:3px 8px;font-size:12px;" title="Copy shareable link to clipboard" aria-label="Share link">Share</button>
                         <button id="save-btn" style="padding:3px 8px;font-size:12px;" title="Download cross-section as PNG" aria-label="Save image">Save</button>
+                        <button id="measure-btn" style="padding:3px 8px;font-size:12px;" title="Measure distance on map (M)" aria-label="Measure distance">Measure <span class="kbd-hint">M</span></button>
                         <button id="help-btn" style="padding:3px 8px;font-size:12px;" title="Keyboard shortcuts and guide (?)" aria-label="Open guide">Guide <span class="kbd-hint">?</span></button>
                     </div>
                     <div class="ctrl-row">
@@ -4239,6 +4240,14 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     <span id="colorbar-min"></span>
                     <span id="colorbar-units" style="opacity:0.7;"></span>
                     <span id="colorbar-max"></span>
+                </div>
+            </div>
+            <div id="barb-legend" style="display:none;position:absolute;bottom:30px;left:10px;z-index:1000;background:rgba(0,0,0,0.75);border-radius:6px;padding:6px 10px;pointer-events:none;">
+                <div style="font-size:10px;color:#ccc;margin-bottom:4px;font-weight:600;">Wind Barbs</div>
+                <div style="display:flex;gap:10px;align-items:center;font-size:9px;color:#aaa;">
+                    <div style="text-align:center;"><svg width="20" height="24" viewBox="0 0 20 24"><line x1="10" y1="22" x2="10" y2="4" stroke="#ccc" stroke-width="1.5"/><line x1="10" y1="4" x2="16" y2="8" stroke="#ccc" stroke-width="1.5"/></svg><div>5 kt</div></div>
+                    <div style="text-align:center;"><svg width="20" height="24" viewBox="0 0 20 24"><line x1="10" y1="22" x2="10" y2="4" stroke="#ccc" stroke-width="1.5"/><line x1="10" y1="4" x2="18" y2="8" stroke="#ccc" stroke-width="1.5"/><line x1="10" y1="7" x2="18" y2="11" stroke="#ccc" stroke-width="1.5"/></svg><div>10 kt</div></div>
+                    <div style="text-align:center;"><svg width="20" height="24" viewBox="0 0 20 24"><line x1="10" y1="22" x2="10" y2="4" stroke="#ccc" stroke-width="1.5"/><polygon points="10,4 18,8 10,8" fill="#ccc"/></svg><div>50 kt</div></div>
                 </div>
             </div>
 
@@ -5101,6 +5110,95 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         });
 
         // =========================================================================
+        // Map Measurement Tool
+        // =========================================================================
+        let measureMode = false;
+        let measurePoints = [];
+        let measureMarkers = [];
+
+        function haversineKm(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        function toggleMeasure() {
+            measureMode = !measureMode;
+            const btn = document.getElementById('measure-btn');
+            btn.style.background = measureMode ? '#f59e0b' : '';
+            btn.style.color = measureMode ? '#000' : '';
+            if (!measureMode) {
+                clearMeasure();
+            } else {
+                showToast('Click map points to measure distance. Click Measure again to stop.', false);
+            }
+        }
+
+        function clearMeasure() {
+            measurePoints = [];
+            measureMarkers.forEach(m => m.remove());
+            measureMarkers = [];
+            if (map.getLayer('measure-line')) map.removeLayer('measure-line');
+            if (map.getSource('measure-line')) map.removeSource('measure-line');
+            if (map.getLayer('measure-labels')) map.removeLayer('measure-labels');
+            if (map.getSource('measure-labels')) map.removeSource('measure-labels');
+        }
+
+        function updateMeasureLine() {
+            const coords = measurePoints.map(p => [p.lng, p.lat]);
+            const geojson = { type: 'Feature', geometry: { type: 'LineString', coordinates: coords }, properties: {} };
+
+            if (map.getSource('measure-line')) {
+                map.getSource('measure-line').setData(geojson);
+            } else {
+                map.addSource('measure-line', { type: 'geojson', data: geojson });
+                map.addLayer({ id: 'measure-line', type: 'line', source: 'measure-line',
+                    paint: { 'line-color': '#f59e0b', 'line-width': 2, 'line-dasharray': [4, 3] } });
+            }
+
+            // Segment labels
+            const labelFeatures = [];
+            let totalKm = 0;
+            for (let i = 1; i < measurePoints.length; i++) {
+                const p0 = measurePoints[i-1], p1 = measurePoints[i];
+                const segKm = haversineKm(p0.lat, p0.lng, p1.lat, p1.lng);
+                totalKm += segKm;
+                const midLng = (p0.lng + p1.lng) / 2;
+                const midLat = (p0.lat + p1.lat) / 2;
+                labelFeatures.push({
+                    type: 'Feature',
+                    geometry: { type: 'Point', coordinates: [midLng, midLat] },
+                    properties: { label: segKm < 10 ? segKm.toFixed(1) + ' km' : Math.round(segKm) + ' km' }
+                });
+            }
+            // Total label at last point
+            if (measurePoints.length >= 2) {
+                const last = measurePoints[measurePoints.length - 1];
+                labelFeatures.push({
+                    type: 'Feature',
+                    geometry: { type: 'Point', coordinates: [last.lng, last.lat] },
+                    properties: { label: 'Total: ' + (totalKm < 10 ? totalKm.toFixed(1) : Math.round(totalKm)) + ' km (' + Math.round(totalKm * 0.621371) + ' mi)' }
+                });
+            }
+            const labelGJ = { type: 'FeatureCollection', features: labelFeatures };
+            if (map.getSource('measure-labels')) {
+                map.getSource('measure-labels').setData(labelGJ);
+            } else {
+                map.addSource('measure-labels', { type: 'geojson', data: labelGJ });
+                map.addLayer({ id: 'measure-labels', type: 'symbol', source: 'measure-labels',
+                    layout: { 'text-field': ['get', 'label'], 'text-size': 11, 'text-offset': [0, -1.2], 'text-allow-overlap': true },
+                    paint: { 'text-color': '#fbbf24', 'text-halo-color': 'rgba(0,0,0,0.8)', 'text-halo-width': 1.5 } });
+            }
+        }
+
+        document.getElementById('measure-btn').addEventListener('click', toggleMeasure);
+
+        // Hook into map click for measurement (checked in the main map click handler)
+        // We'll add this in the map click handler below
+
+        // =========================================================================
         // Weather overlay — Mapbox image source (server-rendered PNGs)
         // =========================================================================
         // 1x1 transparent PNG for placeholder
@@ -5636,14 +5734,22 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             this.classList.add('active');
             document.getElementById('overlay-on').classList.remove('active');
             modelMapOverlay.setEnabled(false);
+            document.getElementById('barb-legend').style.display = 'none';
         };
         document.getElementById('overlay-on').onclick = function() {
             this.classList.add('active');
             document.getElementById('overlay-off').classList.remove('active');
             modelMapOverlay.setEnabled(true);
+            // Show barb legend for composite products (which include wind barbs)
+            const product = document.getElementById('overlay-product-select')?.value || '';
+            const isComposite = ['surface_analysis', 'fire_weather', 'severe_weather', 'upper_500', 'upper_250', 'moisture'].includes(product);
+            document.getElementById('barb-legend').style.display = isComposite ? '' : 'none';
         };
         document.getElementById('overlay-product-select').onchange = function() {
             modelMapOverlay.setProduct(this.value);
+            const isComposite = ['surface_analysis', 'fire_weather', 'severe_weather', 'upper_500', 'upper_250', 'moisture'].includes(this.value);
+            const overlayOn = document.getElementById('overlay-on')?.classList.contains('active');
+            document.getElementById('barb-legend').style.display = (isComposite && overlayOn) ? '' : 'none';
         };
         document.getElementById('overlay-field-select').onchange = function() {
             modelMapOverlay.setField(this.value);
@@ -7752,6 +7858,17 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         // Map Interaction
         // =========================================================================
         map.on('click', e => {
+            // Measurement mode: add point instead of XS marker
+            if (measureMode) {
+                const pt = { lat: e.lngLat.lat, lng: e.lngLat.lng };
+                measurePoints.push(pt);
+                const el = document.createElement('div');
+                el.style.cssText = 'width:10px;height:10px;border-radius:50%;background:#f59e0b;border:2px solid #fff;';
+                const marker = new mapboxgl.Marker({ element: el }).setLngLat([pt.lng, pt.lat]).addTo(map);
+                measureMarkers.push(marker);
+                if (measurePoints.length >= 2) updateMeasureLine();
+                return;
+            }
             // Don't create XS markers when clicking on city/event/cluster features
             const features = map.queryRenderedFeatures(e.point, {
                 layers: ['city-points', 'city-clusters', 'event-points'].filter(id => map.getLayer(id))
@@ -10358,7 +10475,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                       } }
                     break;
                 case 'Escape':
-                    document.getElementById('clear-btn')?.click();
+                    if (measureMode) { measureMode = false; clearMeasure(); document.getElementById('measure-btn').style.background = ''; document.getElementById('measure-btn').style.color = ''; }
+                    else document.getElementById('clear-btn')?.click();
                     break;
                 case '?':
                     showShortcutHelp();
@@ -10414,6 +10532,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                       const cb = document.getElementById('toggle-terrain-3d');
                       if (cb) { cb.checked = !cb.checked; cb.dispatchEvent(new Event('change')); }
                     }
+                    break;
+                case 'm':
+                    toggleMeasure();
                     break;
             }
         });
