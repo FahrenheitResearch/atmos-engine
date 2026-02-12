@@ -186,6 +186,9 @@ PRERENDER_WORKERS = 8       # Parallel prerender processes
 PRELOAD_WORKERS = 20        # Cached mmap load threads
 GRIB_POOL_WORKERS = 6       # GRIB conversion processes
 HRRR_HOURLY_CYCLES = 3      # Non-synoptic hourly cycles to keep loaded
+HRRR_SYNOPTIC_CYCLES = 2    # Synoptic (48h) cycles always retained
+RRFS_SYNOPTIC_CYCLES = 1    # Always keep 1 full synoptic (84h) RRFS cycle
+RRFS_HOURLY_CYCLES = 1      # Non-synoptic RRFS cycles to keep
 
 # auto_update.py
 HRRR_SLOTS = 4-6            # Concurrent HRRR downloads (boosted to ~12 during priority)

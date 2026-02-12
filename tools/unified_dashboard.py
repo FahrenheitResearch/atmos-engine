@@ -1099,36 +1099,38 @@ class CrossSectionManager:
         return None  # GFS has no native levels
 
     # ── Smart cycle selection ──
-    # HRRR: newest synoptic (48h) + 5 most recent hourly (18h each)
+    # HRRR: newest synoptic (48h) + N most recent hourly (18h each)
     #        Keep previous synoptic during handoff until new one is ready.
-    # GFS/RRFS: newest cycle only; keep previous during handoff.
+    # RRFS: newest cycle + always keep 1 synoptic (84h) cycle loaded.
+    # GFS: newest cycle only; keep previous during handoff.
     HRRR_HOURLY_CYCLES = 3   # Number of recent hourly cycles to keep
     HRRR_SYNOPTIC_CYCLES = 2 # Number of synoptic (48h) cycles to keep
+    RRFS_SYNOPTIC_CYCLES = 1 # Always keep 1 full synoptic (84h) RRFS cycle
+    RRFS_HOURLY_CYCLES = 1   # Non-synoptic RRFS cycles to keep
     GFS_CYCLES = 2            # GFS cycles to keep (evict oldest on 3rd)
-    RRFS_CYCLES = 2           # RRFS cycles to keep (evict oldest on 3rd)
 
     def _get_target_cycles(self) -> list:
         """Return the list of cycles we WANT loaded, in priority order (newest first).
 
         HRRR: newest synoptic (48h) + N most recent hourly cycles.
-              Only one synoptic kept (no previous synoptic handoff).
-        GFS/RRFS: newest cycle only, no handoff.
+        RRFS: newest cycle + always 1 synoptic (84h) cycle retained.
+        GFS: newest cycle only, no handoff.
         """
         if not self.available_cycles:
             return []
 
-        if self.model_name == 'hrrr':
-            return self._get_hrrr_target_cycles()
+        if self.model_name in ('hrrr', 'rrfs'):
+            return self._get_synoptic_target_cycles()
         else:
             return self._get_simple_target_cycles()
 
-    def _get_hrrr_target_cycles(self) -> list:
-        """HRRR: latest init first, then synoptics, then recent hourlies.
+    def _get_synoptic_target_cycles(self) -> list:
+        """HRRR/RRFS: latest init first, then synoptics, then recent non-synoptic.
 
         Priority order:
           1. Latest init cycle (whatever it is) — always #1
-          2. Up to HRRR_SYNOPTIC_CYCLES synoptic (48h) cycles
-          3. N most recent hourly cycles
+          2. Up to N synoptic cycles (48h HRRR, 84h RRFS) — always retained
+          3. Up to N most recent non-synoptic cycles
         """
         targets = []
         seen = set()
@@ -1136,38 +1138,46 @@ class CrossSectionManager:
         newest = self.available_cycles[0]  # Overall newest init
         synoptics = [c for c in self.available_cycles if c.get('is_synoptic')]
 
+        # Model-specific limits
+        if self.model_name == 'hrrr':
+            max_synoptic = self.HRRR_SYNOPTIC_CYCLES
+            max_hourly = self.HRRR_HOURLY_CYCLES
+        else:  # rrfs
+            max_synoptic = self.RRFS_SYNOPTIC_CYCLES
+            max_hourly = self.RRFS_HOURLY_CYCLES
+
         # 1. Latest init — always first, period
         targets.append(newest)
         seen.add(newest['cycle_key'])
 
-        # 2. Up to HRRR_SYNOPTIC_CYCLES synoptic cycles
+        # 2. Up to max_synoptic synoptic cycles
         syn_count = 0
         for c in synoptics:
             if c['cycle_key'] not in seen:
                 targets.append(c)
                 seen.add(c['cycle_key'])
                 syn_count += 1
-                if syn_count >= self.HRRR_SYNOPTIC_CYCLES:
+                if syn_count >= max_synoptic:
                     break
             else:
                 # The newest synoptic was already added as latest init
                 syn_count += 1
 
-        # 3. Recent hourly cycles (up to N)
+        # 3. Recent non-synoptic cycles (up to N)
         count = 0
         for c in self.available_cycles:
             if c['cycle_key'] not in seen:
                 targets.append(c)
                 seen.add(c['cycle_key'])
                 count += 1
-                if count >= self.HRRR_HOURLY_CYCLES:
+                if count >= max_hourly:
                     break
 
         return targets
 
     def _get_simple_target_cycles(self) -> list:
-        """GFS/RRFS: keep up to GFS_CYCLES/RRFS_CYCLES newest cycles."""
-        max_cycles = self.GFS_CYCLES if self.model_name == 'gfs' else self.RRFS_CYCLES
+        """GFS/NAM/RAP/NAM-Nest: keep up to N newest cycles."""
+        max_cycles = self.GFS_CYCLES
         return self.available_cycles[:max_cycles]
 
     def get_protected_cycles(self) -> set:
@@ -1517,7 +1527,7 @@ class CrossSectionManager:
         cycle_queues = []
         for cycle in cycles_to_load:
             cycle_key = cycle['cycle_key']
-            is_synoptic = cycle.get('is_synoptic', False) and self.model_name == 'hrrr'
+            is_synoptic = cycle.get('is_synoptic', False) and self.model_name in ('hrrr', 'rrfs')
             allowed = cycle['available_fhrs'] if is_synoptic else [f for f in cycle['available_fhrs'] if f in self.PRELOAD_FHRS]
             with self._lock:
                 fhrs = [fhr for fhr in allowed if (cycle_key, fhr) not in self.loaded_items]
@@ -1772,7 +1782,7 @@ class CrossSectionManager:
             cycle_key = cycle['cycle_key']
             is_synoptic = cycle.get('is_synoptic', False)
 
-            if is_synoptic and self.model_name == 'hrrr':
+            if is_synoptic and self.model_name in ('hrrr', 'rrfs'):
                 allowed_fhrs = cycle['available_fhrs']
             else:
                 allowed_fhrs = [f for f in cycle['available_fhrs'] if f in self.PRELOAD_FHRS]

@@ -29,7 +29,7 @@ restart_dashboard.py               — Production startup (handles env vars, por
 - **Multiprocess + threaded**: Native Windows. CPU-bound work (rendering, GRIB conversion) uses ProcessPoolExecutor. I/O-bound work (downloads, mmap loads) uses ThreadPoolExecutor.
 - **Slot-based concurrent auto-update**: 4 HRRR + 2 GFS + 8 RRFS download slots via per-model ThreadPoolExecutor. Each model has its own lane. HRRR fail-fast prunes unavailable FHRs. Priority boost steals slots from RRFS/GFS for early HRRR FHRs.
 - **Status file IPC**: auto_update.py writes status JSON to `tempfile.gettempdir()` atomically; dashboard reads it. No shared memory or sockets.
-- **No handoff cycles**: Only one synoptic (48h) HRRR cycle, only one GFS/RRFS cycle. Previous cycles are evicted.
+- **Synoptic cycle retention**: HRRR always keeps up to 2 synoptic (48h) cycles + 3 hourly. RRFS always keeps 1 synoptic (84h) cycle + 1 non-synoptic. GFS keeps newest cycle only.
 - **Two-tier NVMe eviction**: Rotated preload cycles always evicted. Archive request caches persist up to 1TB.
 - **Project-relative paths**: All output/cache paths resolve via `Path(__file__).resolve().parent.parent`, never CWD-relative. Env var `XSECT_OUTPUTS_DIR` overrides.
 
@@ -89,6 +89,9 @@ PRELOAD_WORKERS = 20        # Cached mmap load threads
 GRIB_POOL_WORKERS = 6       # GRIB conversion processes
 CACHE_LIMIT_GB = 2000       # NVMe cache size limit
 HRRR_HOURLY_CYCLES = 3      # Non-synoptic cycles in preload window
+HRRR_SYNOPTIC_CYCLES = 2    # Synoptic (48h) cycles always retained
+RRFS_SYNOPTIC_CYCLES = 1    # Always keep 1 full synoptic (84h) RRFS cycle
+RRFS_HOURLY_CYCLES = 1      # Non-synoptic RRFS cycles to keep
 
 # auto_update.py (slot-based concurrent)
 HRRR_SLOTS = 4              # --hrrr-slots (boosted to ~12 during priority)
