@@ -427,29 +427,43 @@ CONUS_BOUNDS = {
     'west': -134.10, 'east': -60.92,
 }
 
-XSECT_STYLES = [
-    ('wind_speed', 'Wind Speed'),
-    ('temp', 'Temperature'),
-    ('theta_e', 'Theta-E'),
-    ('rh', 'Relative Humidity'),
-    ('q', 'Specific Humidity'),
-    ('omega', 'Vertical Velocity'),
-    ('vorticity', 'Vorticity'),
-    ('shear', 'Wind Shear'),
-    ('lapse_rate', 'Lapse Rate'),
-    ('cloud', 'Cloud Water'),
-    ('cloud_total', 'Total Condensate'),
-    ('wetbulb', 'Wet-Bulb Temp'),
-    ('icing', 'Icing Potential'),
-    ('frontogenesis', '❄ Frontogenesis'),  # Winter Bander mode
-    ('smoke', 'PM2.5 Smoke'),
-    ('vpd', 'Vapor Pressure Deficit'),
-    ('dewpoint_dep', 'Dewpoint Depression'),
-    ('moisture_transport', 'Moisture Transport'),
-    ('pv', 'Potential Vorticity'),
-    ('fire_wx', '🔥 Fire Weather'),
-    ('isentropic_ascent', 'Isentropic Ascent'),
+XSECT_STYLE_GROUPS = [
+    ('Core', [
+        ('temp', 'Temperature', 'Temperature with theta contours and freezing level'),
+        ('wind_speed', 'Wind Speed', 'Wind speed magnitude with wind barbs'),
+        ('rh', 'Relative Humidity', 'Dry/moist air boundaries'),
+    ]),
+    ('Thermodynamics', [
+        ('theta_e', 'Theta-E', 'Equivalent potential temperature — instability analysis'),
+        ('lapse_rate', 'Lapse Rate', 'Temperature change with height — stability indicator'),
+        ('wetbulb', 'Wet-Bulb Temp', 'Wet-bulb temperature with critical 0C snow level'),
+        ('vpd', 'Vapor Pressure Deficit', 'Atmospheric drying potential'),
+    ]),
+    ('Moisture', [
+        ('q', 'Specific Humidity', 'Moisture content in g/kg'),
+        ('dewpoint_dep', 'Dewpoint Depression', 'T minus Td — dry air identification'),
+        ('moisture_transport', 'Moisture Transport', 'Moisture flux: q × wind speed'),
+    ]),
+    ('Dynamics', [
+        ('omega', 'Vertical Velocity', 'Rising/sinking motion in hPa/hr'),
+        ('vorticity', 'Vorticity', 'Absolute vorticity — rotation'),
+        ('shear', 'Wind Shear', 'Change in wind with height'),
+        ('pv', 'Potential Vorticity', 'Stratospheric intrusion / tropopause folds'),
+        ('frontogenesis', 'Frontogenesis', 'Frontal zone strengthening — winter bander mode'),
+        ('isentropic_ascent', 'Isentropic Ascent', 'Flow along constant-theta surfaces'),
+    ]),
+    ('Cloud & Precip', [
+        ('cloud', 'Cloud Water', 'Cloud liquid water content'),
+        ('cloud_total', 'Total Condensate', 'Cloud + rain + snow + graupel'),
+        ('icing', 'Icing Potential', 'Supercooled liquid water — aviation hazard'),
+    ]),
+    ('Fire & Smoke', [
+        ('fire_wx', 'Fire Weather', 'Composite: VPD + wind + RH — fire risk overview'),
+        ('smoke', 'PM2.5 Smoke', 'HRRR-Smoke PM2.5 concentration'),
+    ]),
 ]
+# Flat list for backward compatibility
+XSECT_STYLES = [(key, label) for _, group in XSECT_STYLE_GROUPS for key, label, *_ in group]
 
 # =============================================================================
 # RATE LIMITING
@@ -2902,9 +2916,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         #xsect-panels.compare-active { flex-direction: row; }
         .xsect-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
         .xsect-panel-label {
-            padding: 4px 12px; font-size: 11px; color: var(--muted);
+            padding: 5px 12px; font-size: 11px; color: var(--text);
             border-bottom: 1px solid var(--border); display: none;
-            background: rgba(14, 165, 233, 0.05); font-weight: 500;
+            background: linear-gradient(90deg, rgba(14, 165, 233, 0.08) 0%, transparent 80%);
+            font-weight: 600; letter-spacing: 0.2px;
         }
         #xsect-panels.compare-active .xsect-panel-label { display: block; }
         #xsect-panels.compare-active .xsect-panel + .xsect-panel { border-left: 1px solid var(--border); }
@@ -4056,6 +4071,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
     <script src="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.js"></script>
     <script>
         const styles = ''' + json.dumps(XSECT_STYLES) + ''';
+        const styleGroups = ''' + json.dumps([(g, [(k, l, d) for k, l, d in items]) for g, items in XSECT_STYLE_GROUPS]) + ''';
         const MAX_SELECTED = 4;
 
         // =====================================================================
@@ -5167,12 +5183,27 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         // Style Selector
         // =========================================================================
         const styleSelect = document.getElementById('style-select');
-        styles.forEach(([val, label]) => {
-            const opt = document.createElement('option');
-            opt.value = val;
-            opt.textContent = label;
-            styleSelect.appendChild(opt);
-        });
+        if (styleGroups && styleGroups.length) {
+            styleGroups.forEach(([groupName, items]) => {
+                const grp = document.createElement('optgroup');
+                grp.label = groupName;
+                items.forEach(([val, label, desc]) => {
+                    const opt = document.createElement('option');
+                    opt.value = val;
+                    opt.textContent = label;
+                    if (desc) opt.title = desc;
+                    grp.appendChild(opt);
+                });
+                styleSelect.appendChild(grp);
+            });
+        } else {
+            styles.forEach(([val, label]) => {
+                const opt = document.createElement('option');
+                opt.value = val;
+                opt.textContent = label;
+                styleSelect.appendChild(opt);
+            });
+        }
         const tempCmapSelect = document.getElementById('temp-cmap-select');
         const tempCmapRow = document.getElementById('temp-cmap-row');
         function updateTempCmapVisibility() {
@@ -6328,15 +6359,21 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
             if (!compareActive) return;
 
+            // Build rich labels: MODEL · Product · Cycle FHR
+            const styleName = document.getElementById('style-select').selectedOptions[0]?.textContent || '';
+            const modelName = (currentModel || 'hrrr').toUpperCase();
+
             const primaryInfo = cycles.find(c => c.key === currentCycle);
-            primaryLabel.textContent = (primaryInfo ? primaryInfo.label || currentCycle : currentCycle || '') +
-                (activeFhr !== null ? ` F${String(activeFhr).padStart(2, '0')}` : '');
+            const cycleLabel = primaryInfo ? primaryInfo.label || currentCycle : currentCycle || '';
+            const fhrStr = activeFhr !== null ? ` F${String(activeFhr).padStart(2, '0')}` : '';
+            primaryLabel.textContent = `${modelName} · ${styleName} · ${cycleLabel}${fhrStr}`;
 
             if (compareCycle) {
                 const cFhr = getCompareFhr();
                 const compareInfo = cycles.find(c => c.key === compareCycle);
                 const cLabel = compareInfo ? compareInfo.label || compareCycle : compareCycle;
-                compareLabel.textContent = cLabel + (cFhr !== null ? ` F${String(cFhr).padStart(2, '0')}` : '');
+                const cFhrStr = cFhr !== null ? ` F${String(cFhr).padStart(2, '0')}` : '';
+                compareLabel.textContent = `${modelName} · ${styleName} · ${cLabel}${cFhrStr}`;
 
                 if (compareMode === 'valid_time' && cFhr !== null && activeFhr !== null) {
                     const primaryInit = parseCycleKey(currentCycle);
