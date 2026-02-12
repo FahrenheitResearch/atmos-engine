@@ -6273,6 +6273,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             }
         };
 
+        function showErrorPanel(container, message, retryAction) {
+            const retryBtn = retryAction ? `<button onclick="${retryAction}" style="padding:4px 12px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#000;cursor:pointer;font-size:12px;">Retry</button>` : '';
+            container.innerHTML = `<div style="color:var(--danger-light);text-align:center;padding:16px;"><div style="margin-bottom:8px;">${message}</div>${retryBtn}</div>`;
+        }
+
         function updateMemoryDisplay(memMb) {
             document.getElementById('mem-text').textContent = `${Math.round(memMb)} MB`;
             document.getElementById('mem-fill').style.width = `${Math.min(100, memMb / 500)}%`;
@@ -8109,7 +8114,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 container.innerHTML = '';
                 container.appendChild(img);
             } catch (err) {
-                container.innerHTML = `<div style="color:var(--danger-light)">${err.message}</div>`;
+                showErrorPanel(container, err.message);
             }
         }
 
@@ -8435,7 +8440,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 mpStatus.textContent = 'Done';
                 setTimeout(() => { if (mpStatus.textContent === 'Done') mpStatus.style.display = 'none'; }, 2000);
             } catch (err) {
-                container.innerHTML = `<div style="color:var(--danger-light);text-align:center;padding:16px;"><div style="margin-bottom:8px;">${err.message}</div><button onclick="generateMultiPanel()" style="padding:4px 12px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#000;cursor:pointer;font-size:12px;">Retry</button></div>`;
+                showErrorPanel(container, err.message, 'generateMultiPanel()');
                 mpStatus.textContent = 'Error';
             }
         }
@@ -9176,7 +9181,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 if (bottomState === 'collapsed') setBottomState('half');
             } catch (err) {
                 if (err.name === 'AbortError') return;
-                container.innerHTML = `<div style="color:var(--danger-light)">${err.message}</div>`;
+                showErrorPanel(container, err.message);
                 document.querySelectorAll('.quick-start-btn.loading').forEach(b => b.classList.remove('loading'));
             }
 
@@ -9785,7 +9790,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 html += '</div>';
             }
 
-            container.innerHTML = html || '<div style="color:var(--muted);text-align:center;padding:24px;"><div style="font-size:24px;margin-bottom:6px;opacity:0.5;">&#x1F50D;</div>No cities match your search</div>';
+            container.innerHTML = html || '<div style="color:var(--muted);text-align:center;padding:24px;"><div style="font-size:24px;margin-bottom:6px;opacity:0.5;">&#x1F50D;</div>No cities match your search<div style="font-size:11px;margin-top:6px;opacity:0.7;">Try a different term or clear the region filter</div></div>';
         }
 
         // City search
@@ -9880,7 +9885,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
                 content.innerHTML = html;
             } catch (e) {
-                content.innerHTML = `<div style="color:var(--danger-light);text-align:center;padding:16px;"><div style="margin-bottom:8px;">Failed to load profile</div><button onclick="loadCityProfile('${key}')" style="padding:4px 12px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#000;cursor:pointer;font-size:12px;">Retry</button></div>`;
+                showErrorPanel(content, 'Failed to load profile', `loadCityProfile('${key}')`);
             }
         };
 
@@ -10167,7 +10172,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 </div>`;
             });
 
-            container.innerHTML = html || '<div style="color:var(--muted);text-align:center;padding:24px;"><div style="font-size:24px;margin-bottom:6px;opacity:0.5;">&#x1F4C5;</div>No events match your filters</div>';
+            container.innerHTML = html || '<div style="color:var(--muted);text-align:center;padding:24px;"><div style="font-size:24px;margin-bottom:6px;opacity:0.5;">&#x1F4C5;</div>No events match your filters<div style="font-size:11px;margin-top:6px;opacity:0.7;">Try removing category or date filters</div></div>';
         }
 
         // Populate category filter pills + dropdown
@@ -10789,7 +10794,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
                 if (evt.evaluation_notes) showShowcaseNotes(evt.evaluation_notes);
             } catch (err) {
-                container.innerHTML = `<div style="color:var(--danger-light);text-align:center;padding:16px;"><div style="margin-bottom:8px;">${err.message}</div><button onclick="showcaseQuadPlot('${cycleKey}')" style="padding:4px 12px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#000;cursor:pointer;font-size:12px;">Retry</button></div>`;
+                showErrorPanel(container, err.message, `showcaseQuadPlot('${cycleKey}')`);
             }
         };
 
@@ -10862,7 +10867,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
                 if (evt.evaluation_notes) showShowcaseNotes(evt.evaluation_notes);
             } catch (err) {
-                container.innerHTML = `<div style="color:var(--danger-light);text-align:center;padding:16px;"><div style="margin-bottom:8px;">${err.message}</div><button onclick="showcaseTemporalEvolution('${cycleKey}')" style="padding:4px 12px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#000;cursor:pointer;font-size:12px;">Retry</button></div>`;
+                showErrorPanel(container, err.message, `showcaseTemporalEvolution('${cycleKey}')`);
             }
         };
 
@@ -10978,7 +10983,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 if (evt.evaluation_notes) showShowcaseNotes(evt.evaluation_notes);
                 startPlayback();
             } catch (err) {
-                container.innerHTML = `<div style="color:var(--danger-light);text-align:center;padding:16px;"><div style="margin-bottom:8px;">Playback failed: ${err.message}</div><button onclick="showcasePlayback('${cycleKey}')" style="padding:4px 12px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#000;cursor:pointer;font-size:12px;">Retry</button></div>`;
+                showErrorPanel(container, 'Playback failed: ' + err.message, `showcasePlayback('${cycleKey}')`);
             }
         };
 
