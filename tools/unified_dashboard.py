@@ -3360,9 +3360,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             justify-content: space-between;
             align-items: center;
             font-size: 13px;
-            transition: background 0.1s;
+            transition: background 0.12s, border-color 0.12s;
+            border-left: 2px solid transparent;
         }
-        .city-item:hover { background: var(--card); }
+        .city-item:hover { background: var(--card); border-left-color: var(--accent); }
         .city-item .city-name { font-weight: 500; }
         .city-item .city-meta { font-size: 11px; color: var(--muted); }
         .city-detail-panel {
@@ -9577,9 +9578,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 html += `<div style="margin-bottom:8px;"><div style="font-size:10px;font-weight:600;color:${REGION_COLORS[r]};text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">${REGION_LABELS[r]} (${cities.length})</div>`;
                 cities.sort((a, b) => a.name.localeCompare(b.name));
                 cities.forEach(c => {
+                    const wuiBadge = c.wui_exposure ? `<span style="font-size:9px;padding:0 4px;border-radius:4px;background:${c.wui_exposure === 'extreme' ? '#ef444422' : c.wui_exposure === 'high' ? '#f5960b22' : '#64748b22'};color:${c.wui_exposure === 'extreme' ? '#fca5a5' : c.wui_exposure === 'high' ? '#fbbf24' : '#94a3b8'};margin-left:4px;">${c.wui_exposure}</span>` : '';
                     html += `<div class="city-item" onclick="loadCityProfile('${c.key}')">
                         <span class="city-name">${c.name}</span>
-                        <span class="city-meta">${c.elevation_ft ? c.elevation_ft + ' ft' : ''}</span>
+                        <span class="city-meta">${c.elevation_ft ? c.elevation_ft + ' ft' : ''}${wuiBadge}</span>
                     </div>`;
                 });
                 html += '</div>';
