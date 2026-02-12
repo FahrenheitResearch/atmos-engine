@@ -2602,6 +2602,20 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .shortcut-section { grid-column: 1/-1; font-size: 10px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
         .shortcut-section + .shortcut-section { margin-top: 6px; }
         .shortcut-grid span { color: var(--muted); }
+        /* Map markers */
+        .xs-marker {
+            border-radius: 50%; border: 2px solid var(--text); cursor: grab;
+            box-shadow: var(--shadow-md); display: flex; align-items: center;
+            justify-content: center; font-weight: 700; color: var(--bg); user-select: none;
+        }
+        .poi-marker {
+            border-radius: 50%; border: 2px solid var(--text); cursor: grab;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.3); background: var(--success);
+        }
+        .measure-marker {
+            width: 10px; height: 10px; border-radius: 50%;
+            background: var(--warning); border: 2px solid var(--text);
+        }
         /* Focus-visible for keyboard accessibility */
         :focus-visible {
             outline: 2px solid var(--accent);
@@ -4893,7 +4907,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         // ---- Mapbox marker/line helpers ----
         function createXSMarker(lat, lng, color, label) {
             const el = document.createElement('div');
-            el.style.cssText = 'width:' + markerSize + 'px;height:' + markerSize + 'px;background:' + color + ';border-radius:50%;border:2px solid white;cursor:grab;box-shadow:0 2px 6px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;font-size:' + Math.round(markerSize * 0.55) + 'px;font-weight:700;color:#000;user-select:none;';
+            el.className = 'xs-marker';
+            el.style.cssText = 'width:' + markerSize + 'px;height:' + markerSize + 'px;background:' + color + ';font-size:' + Math.round(markerSize * 0.55) + 'px;';
             if (label) el.textContent = label;
             const m = new mapboxgl.Marker({ element: el, draggable: true })
                 .setLngLat([lng, lat])
@@ -8615,7 +8630,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const pt = { lat: e.lngLat.lat, lng: e.lngLat.lng };
                 measurePoints.push(pt);
                 const el = document.createElement('div');
-                el.style.cssText = 'width:10px;height:10px;border-radius:50%;background:var(--warning);border:2px solid var(--text);';
+                el.className = 'measure-marker';
                 const marker = new mapboxgl.Marker({ element: el }).setLngLat([pt.lng, pt.lat]).addTo(map);
                 measureMarkers.push(marker);
                 if (measurePoints.length >= 2) updateMeasureLine();
@@ -8793,7 +8808,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
         function addPoi(lat, lng, label) {
             const el = document.createElement('div');
-            el.style.cssText = 'width:' + poiMarkerSize + 'px;height:' + poiMarkerSize + 'px;background:var(--success);border-radius:50%;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);cursor:grab;';
+            el.className = 'poi-marker';
+            el.style.cssText = 'width:' + poiMarkerSize + 'px;height:' + poiMarkerSize + 'px;';
             const m = new mapboxgl.Marker({ element: el, draggable: true })
                 .setLngLat([lng, lat])
                 .addTo(map);
