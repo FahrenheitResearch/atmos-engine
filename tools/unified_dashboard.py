@@ -10206,7 +10206,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         function renderRequests() {
             const list = document.getElementById('request-list');
             if (requests.length === 0) {
-                list.innerHTML = '<div style="color:var(--muted);text-align:center;padding:20px;">No requests yet. Be the first!</div>';
+                list.innerHTML = '<div class="error-panel"><div class="error-msg">No requests yet. Be the first!</div></div>';
                 return;
             }
             list.innerHTML = '<h3 style="margin:0 0 12px 0;font-size:14px;color:var(--muted);">Recent Requests</h3>' +
@@ -10257,7 +10257,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const totalMb = allResults.reduce((s, r) => s + r.memory_mb, 0);
 
                 if (totalLoaded === 0) {
-                    ramModalBody.innerHTML = '<p style="color:var(--muted);text-align:center;padding:24px;"><span style="font-size:24px;display:block;margin-bottom:6px;opacity:0.5;">&#x1F4BE;</span>No forecast hours loaded yet</p>';
+                    ramModalBody.innerHTML = '<div class="error-panel"><div class="error-icon">&#x1F4BE;</div><div class="error-msg">No forecast hours loaded yet</div></div>';
                 } else {
                     let html = '';
                     for (const { model, loaded, memory_mb } of allResults) {
@@ -10486,7 +10486,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 html += '</div>';
             }
 
-            container.innerHTML = html || '<div style="color:var(--muted);text-align:center;padding:24px;"><div style="font-size:24px;margin-bottom:6px;opacity:0.5;">&#x1F50D;</div>No cities match your search<div style="font-size:11px;margin-top:6px;opacity:0.7;">Try a different term or clear the region filter</div></div>';
+            container.innerHTML = html || '<div class="error-panel"><div class="error-icon">&#x1F50D;</div><div class="error-msg">No cities match your search</div><div class="error-msg" style="opacity:0.7;">Try a different term or clear the region filter</div></div>';
         }
 
         // City search
@@ -10861,7 +10861,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 </div>`;
             });
 
-            container.innerHTML = html || '<div style="color:var(--muted);text-align:center;padding:24px;"><div style="font-size:24px;margin-bottom:6px;opacity:0.5;">&#x1F4C5;</div>No events match your filters<div style="font-size:11px;margin-top:6px;opacity:0.7;">Try removing category or date filters</div></div>';
+            container.innerHTML = html || '<div class="error-panel"><div class="error-icon">&#x1F4C5;</div><div class="error-msg">No events match your filters</div><div class="error-msg" style="opacity:0.7;">Try removing category or date filters</div></div>';
         }
 
         // Populate category filter pills + dropdown
