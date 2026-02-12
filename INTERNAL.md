@@ -193,9 +193,10 @@ MIN_GRIB_SIZE = 500_000     # Download validation minimum (500KB)
 ## Known Issues / Underbaked Areas
 
 ### Multi-Panel / Comparison
-- Plot labeling needs work — panels don't clearly identify which model/cycle/FHR/product they show
+- Plot labeling now uses `panel_label` metadata to clearly identify each panel's model/cycle/FHR/product
 - Inlay display (small overview map showing transect location) is basic
 - Multi-product panels (e.g., temp + wind + rh side-by-side) need better visual hierarchy
+- `render_multi_panel()` uses PIL compositing: render each panel individually, paste into grid
 
 ### Events System
 - 88 events in events.json, 22 with curated coordinates and suggested_sections
@@ -208,6 +209,10 @@ MIN_GRIB_SIZE = 500_000     # Download validation minimum (500KB)
 - Dashboard crashes if >1 zone runs concurrent cross-sections
 - "Verify METAR" warnings in FireRiskAnalyzer are redundant (swarm already has METAR in state)
 - First pilot went "so-so" — agent swarm design still evolving
+
+### GIF / Render Worker
+- **FIXED 2026-02-12**: `render_worker.py render_frame()` was passing `marker`, `marker_label`, `markers` kwargs to `get_cross_section()` which doesn't accept them. This caused ALL GIF frames to silently return None. Fix: removed unsupported kwargs.
+- Added diagnostic logging: render_frame errors now printed to stderr, GIF error responses include diagnostic counts (loaded/cached/rendered/no_render_info)
 
 ### Legacy Code
 - Switched from WSL2 to native Windows — some legacy code may still assume Linux paths or lack ProcessPoolExecutor parallelism
