@@ -3357,6 +3357,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .legend-title--bold { margin-bottom: 4px; font-weight: 600; }
         .ctrl-row--mb { margin-bottom: 8px; }
         .label--vs { font-size: 12px; }
+        .guide-tabs { display: flex; border-bottom: 1px solid var(--border); margin: -8px 0 8px; }
+        .modal-content--sm { max-width: 340px; padding: 20px; }
+        .modal-header--compact { margin-bottom: 12px; }
+        .modal-header--compact h2 { font-size: 16px; margin: 0; }
+        .diff-canvas { width: 100%; border-radius: 4px; }
+        .diff-panel-label { color: var(--warning); }
 
         /* Expanded panel (320px, collapsible) */
         #expanded-panel {
@@ -5293,9 +5299,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                             </div>
                         </div>
                         <div class="xsect-panel" id="panel-diff" style="display:none;">
-                            <div class="xsect-panel-label" style="color:var(--warning);">Difference</div>
+                            <div class="xsect-panel-label diff-panel-label">Difference</div>
                             <div class="xsect-panel-body" id="xsect-container-diff">
-                                <canvas id="diff-canvas" style="width:100%;border-radius:4px;"></canvas>
+                                <canvas id="diff-canvas" class="diff-canvas"></canvas>
                             </div>
                         </div>
                     </div>
@@ -5322,7 +5328,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <h2 id="modal-title">Guide</h2>
                 <button class="modal-close" id="modal-close">&times;</button>
             </div>
-            <div style="display:flex;border-bottom:1px solid var(--border);margin:-8px 0 8px;">
+            <div class="guide-tabs">
                 <button class="guide-tab active" data-tab="getting-started">&#9889; Getting Started</button>
                 <button class="guide-tab" data-tab="products">&#127912; Products (21)</button>
                 <button class="guide-tab" data-tab="shortcuts">&#9000; Shortcuts</button>
@@ -5349,9 +5355,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
     </div>
 
     <div id="run-request-modal">
-        <div class="modal-content" style="max-width:340px;padding:20px;">
-            <div class="modal-header" style="margin-bottom:12px;">
-                <h2 style="font-size:16px;margin:0;">Request Archive Run</h2>
+        <div class="modal-content modal-content--sm">
+            <div class="modal-header modal-header--compact">
+                <h2>Request Archive Run</h2>
                 <button class="modal-close" id="req-cancel">&times;</button>
             </div>
             <div class="modal-form">
