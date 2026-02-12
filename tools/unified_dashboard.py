@@ -3166,8 +3166,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             text-align: center;
             line-height: 1.2;
         }
-        .workflow-btn:hover { border-color: var(--accent); color: var(--text); background: rgba(14, 165, 233, 0.1); }
-        .workflow-btn .wf-icon { font-size: 14px; }
+        .workflow-btn:hover { border-color: var(--accent); color: var(--text); background: rgba(14, 165, 233, 0.1); transform: translateY(-1px); }
+        .workflow-btn:active { transform: scale(0.95); }
+        .workflow-btn .wf-icon { font-size: 16px; }
         .workflow-btn .wf-label { font-size: 9px; }
 
         /* ===== Toggle Groups ===== */
@@ -3361,6 +3362,16 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         #bottom-panel.collapsed { height: 48px; }
         #bottom-panel.half { height: 40vh; }
         #bottom-panel.full { height: 85vh; }
+        .bottom-progress {
+            position: absolute; top: 0; left: 0; right: 0; height: 2px; z-index: 1;
+            background: transparent; overflow: hidden;
+        }
+        .bottom-progress.active::after {
+            content: ''; position: absolute; top: 0; left: -40%; width: 40%; height: 100%;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            animation: progress-slide 1s ease-in-out infinite;
+        }
+        @keyframes progress-slide { to { left: 100%; } }
 
         #bottom-handle {
             height: 48px;
@@ -5010,6 +5021,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
             <!-- Bottom Slide-Up Panel -->
             <div id="bottom-panel" class="collapsed">
+                <div id="bottom-progress" class="bottom-progress"></div>
                 <div id="bottom-peek" class="bottom-peek">
                     <img id="peek-img" class="peek-img">
                 </div>
@@ -9742,6 +9754,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             // Cancel any in-flight request
             if (xsectAbortController) xsectAbortController.abort();
             xsectAbortController = new AbortController();
+            const bprog = document.getElementById('bottom-progress');
+            if (bprog) bprog.classList.add('active');
 
             const container = document.getElementById('xsect-container');
             const style = document.getElementById('style-select').value;
@@ -9775,6 +9789,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 img.alt = `${style} cross-section F${String(activeFhr).padStart(2,'0')}`;
                 img.onload = () => {
                     img.classList.add('loaded');
+                    if (bprog) bprog.classList.remove('active');
                     // Show zoom controls at low opacity
                     document.getElementById('zoom-controls').classList.add('visible');
                     document.getElementById('xsect-actions').classList.add('visible');
@@ -9865,6 +9880,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 // Auto-open bottom panel when cross-section generated
                 if (bottomState === 'collapsed') setBottomState('half');
             } catch (err) {
+                if (bprog) bprog.classList.remove('active');
                 if (err.name === 'AbortError') return;
                 showErrorPanel(container, err.message);
                 document.querySelectorAll('.quick-start-btn.loading').forEach(b => b.classList.remove('loading'));
