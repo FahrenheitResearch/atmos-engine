@@ -4177,6 +4177,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                             <option value="outdoors">Outdoors</option>
                         </select>
                     </div>
+                    <div class="ctrl-row">
+                        <label><input type="checkbox" id="toggle-terrain-3d" style="margin-right:4px;">3D Terrain</label>
+                        <label style="font-size:10px;color:var(--muted);">Exaggeration:</label>
+                        <input type="range" id="terrain-exag" min="1" max="3" step="0.5" value="1.5" style="width:60px;" aria-label="Terrain exaggeration">
+                        <span id="terrain-exag-label" style="font-size:10px;color:var(--muted);min-width:24px;">1.5x</span>
+                    </div>
                 </div>
                 <div class="ctrl-section">
                     <div class="ctrl-section-title">Map Markers</div>
@@ -5061,6 +5067,38 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 map.setStyle(style);
             }
         };
+
+        // 3D Terrain toggle
+        let terrain3DActive = false;
+        function setTerrain3D(enabled, exag) {
+            terrain3DActive = enabled;
+            if (enabled) {
+                if (!map.getSource('mapbox-dem')) {
+                    map.addSource('mapbox-dem', { type: 'raster-dem', url: 'mapbox://mapbox.mapbox-terrain-dem-v1', tileSize: 512, maxzoom: 14 });
+                }
+                map.setTerrain({ source: 'mapbox-dem', exaggeration: exag || 1.5 });
+                // Tilt map for 3D perspective
+                if (map.getPitch() < 30) map.easeTo({ pitch: 45, duration: 800 });
+            } else {
+                map.setTerrain(null);
+                map.easeTo({ pitch: 0, duration: 600 });
+            }
+        }
+        document.getElementById('toggle-terrain-3d').onchange = function() {
+            const exag = parseFloat(document.getElementById('terrain-exag').value) || 1.5;
+            setTerrain3D(this.checked, exag);
+        };
+        document.getElementById('terrain-exag').oninput = function() {
+            document.getElementById('terrain-exag-label').textContent = this.value + 'x';
+            if (terrain3DActive) setTerrain3D(true, parseFloat(this.value));
+        };
+        // Re-enable terrain after style change
+        map.on('style.load', () => {
+            if (terrain3DActive) {
+                const exag = parseFloat(document.getElementById('terrain-exag')?.value) || 1.5;
+                setTimeout(() => setTerrain3D(true, exag), 200);
+            }
+        });
 
         // =========================================================================
         // Weather overlay — Mapbox image source (server-rendered PNGs)
@@ -10370,6 +10408,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                               if (container) container.requestFullscreen?.();
                           }
                       } }
+                    break;
+                case 't':
+                    { // Toggle 3D terrain
+                      const cb = document.getElementById('toggle-terrain-3d');
+                      if (cb) { cb.checked = !cb.checked; cb.dispatchEvent(new Event('change')); }
+                    }
                     break;
             }
         });
