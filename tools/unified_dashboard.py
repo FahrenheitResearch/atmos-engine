@@ -2776,6 +2776,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             font-size: 10px; color: var(--muted);
         }
         .active-product-chip { width: 12px; height: 7px; border-radius: 2px; }
+        .comparison-badge {
+            display: inline-flex; align-items: center; gap: 3px;
+            background: rgba(77,166,255,0.15); padding: 1px 8px; border-radius: 10px;
+            font-size: 10px; color: var(--accent); font-weight: 500;
+        }
         .loaded-count { font-size: 9px; color: var(--muted); opacity: 0.7; }
         .mobile-only-setting { display: none; }
         .settings-footer-section { margin-top: auto; }
@@ -5086,6 +5091,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     <div class="drag-indicator"><span></span><span></span><span></span></div>
                     <div id="bottom-status">
                         <span id="bottom-model-label">Cross-Section</span>
+                        <span id="comparison-badge" class="comparison-badge" style="display:none;"></span>
                         <span id="active-product-badge" class="active-product-badge"><span id="active-product-chip" class="active-product-chip"></span><span id="active-product-name"></span></span>
                         <span class="fhr-label" id="active-fhr"></span>
                         <span id="loaded-count" class="loaded-count"></span>
@@ -8760,6 +8766,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     mpModeSelect.value = '';
                     mpControls.classList.remove('visible');
                     document.body.classList.remove('layout-multipanel');
+                    updateComparisonBadge();
                 }
                 btn.classList.add('active');
                 controls.classList.add('visible');
@@ -9068,6 +9075,18 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             cycle: document.getElementById('mp-cycle-controls'),
         };
 
+        const MODE_LABELS = { model: 'Multi-Model', temporal: 'Temporal', product: 'Multi-Product', cycle: 'Cycle Compare' };
+        function updateComparisonBadge() {
+            const badge = document.getElementById('comparison-badge');
+            if (!badge) return;
+            if (multiPanelMode) {
+                badge.textContent = MODE_LABELS[multiPanelMode] || multiPanelMode;
+                badge.style.display = '';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
         function initMultiPanelModelChips() {
             const container = document.getElementById('mp-model-checkboxes');
             container.innerHTML = '';
@@ -9128,6 +9147,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const mode = this.value;
             multiPanelMode = mode;
             invalidatePrerender();
+            updateComparisonBadge();
 
             // Hide all mode sections
             Object.values(mpModeSections).forEach(el => el.style.display = 'none');
