@@ -53,7 +53,7 @@ NOMADS/AWS → auto_update.py (slot-based download) → outputs/model/date/cycle
 
 ### Products
 
-20 cross-section styles: temperature, wind_speed, theta_e, rh, omega, specific_humidity, vorticity, shear, lapse_rate, cloud, cloud_total, wetbulb, icing, frontogenesis, smoke (HRRR only), vpd, dewpoint_dep, moisture_transport, potential_vorticity, fire_wx.
+21 cross-section styles: temperature, wind_speed, theta_e, rh, omega, specific_humidity, vorticity, shear, lapse_rate, cloud, cloud_total, wetbulb, icing, frontogenesis, smoke (HRRR only), vpd, dewpoint_dep, moisture_transport, potential_vorticity, fire_wx, isentropic_ascent.
 
 8 map overlay composites: surface_analysis, radar_composite, severe_weather, upper_500, upper_250, moisture, fire_weather, precip.
 

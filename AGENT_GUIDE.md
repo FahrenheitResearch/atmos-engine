@@ -1,7 +1,7 @@
 # AI Agent Research Platform — wxsection.com
 
 > Central documentation for the wxsection.com AI-agent-native atmospheric research platform.
-> 52 MCP tools, 12 Python modules (~14,000 lines), 88 curated weather events, 20 visualization products.
+> 52 MCP tools, 12 Python modules (~14,000 lines), 88 curated weather events, 21 visualization products.
 
 ## Table of Contents
 
@@ -90,7 +90,7 @@ Three access layers, same capabilities:
               ├─────────────────────┤
               │ HRRR · GFS · RRFS · NAM · RAP · NAM-Nest │
               │ 40 pressure levels  │
-              │ 20 products         │
+              │ 21 products         │
               │ 88 events           │
               │ Mmap cache (NVMe)   │
               └─────────────────────┘

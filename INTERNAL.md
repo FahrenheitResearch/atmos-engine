@@ -15,7 +15,7 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 
 | File | Lines | What It Does |
 |------|-------|-------------|
-| `core/cross_section_interactive.py` | ~3,515 | **The heart.** GRIB extraction, mmap cache, KDTree interp, all 20 product renderers, GFS CONUS subset, smoke lazy-load, comparison panels |
+| `core/cross_section_interactive.py` | ~3,515 | **The heart.** GRIB extraction, mmap cache, KDTree interp, all 21 product renderers, GFS CONUS subset, smoke lazy-load, comparison panels |
 | `core/map_overlay.py` | ~1,133 | Map overlay rendering. Reprojection (KDTree for curvilinear, bilinear for GFS), composite assembly (fill + contours + barbs), PNG/binary output |
 | `model_config.py` | ~320 | Model registry. 6 models (HRRR/GFS/RRFS/NAM/RAP/NAM-Nest) metadata, grid specs, download URLs, forecast hour lists |
 
@@ -57,7 +57,7 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 | `tools/agent_tools/report_builder.py` | 1,142 | ReportBuilder, LaTeX templates, PDF compilation |
 | `tools/agent_tools/forecast.py` | 1,832 | ForecastGenerator, agent swarm orchestrator, national_fire_scan |
 | `tools/agent_tools/investigation.py` | 900 | investigate_location, investigate_town, batch_investigate (44 OR towns) |
-| `tools/agent_tools/terrain.py` | ~1,318 | analyze_terrain_complexity, city_terrain_assessment (232 city profiles) |
+| `tools/agent_tools/terrain.py` | ~1,318 | analyze_terrain_complexity, city_terrain_assessment (261 city profiles) |
 | `tools/agent_tools/fuel_conditions.py` | ~1,800 | assess_fuel_conditions (73 city ignition profiles), seasonal context |
 | `tools/agent_tools/frontal_analysis.py` | 1,078 | detect_wind_shifts, classify_overnight_conditions |
 | `tools/agent_tools/report_quality.py` | 803 | fire_report_checklist, validate_report_claims |
@@ -101,7 +101,7 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 
 | Model | Resolution | Domain | Cycles | Max FHR | Notes |
 |-------|-----------|--------|--------|---------|-------|
-| **HRRR** | 3km | CONUS | Every hour | 18h (48h synoptic) | Primary model. Full field set (20 products). |
+| **HRRR** | 3km | CONUS | Every hour | 18h (48h synoptic) | Primary model. Full field set (21 products). |
 | **GFS** | 0.25deg | Global (CONUS subset) | 00/06/12/18z | 384h | Subset to CONUS+5deg at extraction. All products except smoke. |
 | **RRFS** | 3km | North America | Every hour | 18h (60h synoptic) | Experimental HRRR successor. Rotated lat/lon grid. All products except smoke. |
 | **NAM** | 12km | CONUS | 00/06/12/18z | 84h | awphys product. 39 levels. cfgrib extracts v-wind (eccodes misses it). Missing q/cloud/dew_point. |
@@ -254,10 +254,10 @@ Includes coordinate display at bottom. Auto-positions to stay on screen.
 Selecting a new product style shows a brief info toast with the product's description (e.g., "Equivalent potential temperature — instability analysis"). Auto-dismisses after 3 seconds.
 
 ### Visual Product Picker
-Custom dropdown panel replaces flat `<select>` for the 20 cross-section products. Shows products organized by category (Core, Thermodynamics, Moisture, Dynamics, Cloud & Precip, Fire & Smoke) with colormap gradient chips and descriptions. Supports keyboard navigation (arrow keys, Enter, Escape). Hidden `<select>` stays in sync for all existing code references.
+Custom dropdown panel replaces flat `<select>` for the 21 cross-section products. Shows products organized by category (Core, Thermodynamics, Moisture, Dynamics, Cloud & Precip, Fire & Smoke) with colormap gradient chips and descriptions. Supports keyboard navigation (arrow keys, Enter, Escape). Hidden `<select>` stays in sync for all existing code references.
 
 ### Colormap Preview Bar
-A 4px gradient bar below the product picker shows the color scheme of the currently selected product. Updates on style change. Defined in `cmapGradients` object (20 products). Value range labels below the bar show min/max values (e.g., "0 kt → 80 kt" for wind speed). Defined in `cmapRanges` object.
+A 4px gradient bar below the product picker shows the color scheme of the currently selected product. Updates on style change. Defined in `cmapGradients` object (21 products). Value range labels below the bar show min/max values (e.g., "0 kt → 80 kt" for wind speed). Defined in `cmapRanges` object.
 
 ### Transect Metadata Overlay
 Floating pill on the cross-section image showing: model name, transect distance (km/mi), bearing, valid time, and render time (e.g., "1.4s").
@@ -310,7 +310,7 @@ All interactive controls have `aria-label` attributes: playback buttons, FHR sli
 - **57 total endpoints** (34 v1 agent-friendly + 23 legacy/internal)
 - **52 MCP tools** (private stdio server)
 - **53 MCP tools** (public SSE server, +3 city browsing tools)
-- **20 cross-section products** (13 with anomaly support)
+- **21 cross-section products** (13 with anomaly support)
 - **8 map overlay composites** + 21 individual overlay fields
 
 ## Events & Archive

@@ -113,7 +113,7 @@ mcp = FastMCP(
         "wxsection.com public atmospheric research platform. "
         "Generate vertical cross-sections from HRRR/GFS/RRFS/NAM/RAP/NAM-Nest weather models. "
         "Browse 88 historical weather events. Get raw numerical data. "
-        "Access 232 city fire weather profiles with terrain, fuels, ignition sources, "
+        "Access 261 city fire weather profiles with terrain, fuels, ignition sources, "
         "and evacuation routes. "
         "Ingest external data: METARs, RAWS, SPC products, NWS alerts, elevation, drought. "
         "Investigate fire weather at specific locations. "

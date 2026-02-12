@@ -35,7 +35,7 @@ XSECT_GRIB_BACKEND=auto WXSECTION_KEY=your_key python tools/unified_dashboard.py
 ### Interactive Web Dashboard
 - **Leaflet map** (OpenTopoMap) with click-to-place markers and draggable endpoints
 - **Multi-model support**: HRRR (3km), GFS (0.25deg), RRFS (3km) with model selector dropdown
-- **20 visualization styles** via dropdown with community voting
+- **21 visualization styles** via dropdown with community voting
 - **Up to 48 forecast hours** with color-coded chip system (synoptic HRRR cycles: F00-F48, others: F00-F18):
   - **Grey** = on disk, not opened (click to open via mmap, ~14ms if cached)
   - **Green** = opened (mmap handles ready, click for instant view)

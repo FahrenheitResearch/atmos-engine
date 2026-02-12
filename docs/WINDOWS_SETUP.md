@@ -70,7 +70,7 @@ Invoke-RestMethod http://localhost:5561/api/v1/cycles
 - Dashboard (Flask server + all API endpoints)
 - GRIB loading via eccodes/cfgrib (no wgrib2 needed - it's auto-detected)
 - Mmap cache (numpy mmap works identically on Windows)
-- All 20 visualization styles
+- All 21 visualization styles
 - Auto-update daemon (downloads from NOMADS/AWS)
 - Prerender pipeline
 - Archive event browsing (from cached data)

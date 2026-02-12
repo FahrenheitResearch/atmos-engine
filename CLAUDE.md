@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Multi-model atmospheric cross-section generator. Users draw a line on a map, get an instant vertical cross-section from HRRR, GFS, RRFS, NAM, RAP, or NAM-Nest weather model data. Live at **wxsection.com**. 20 visualization styles, all derived from cached fields. Agent-native platform: everything the web UI can do is also available via a free REST API and MCP tool servers at feature parity.
+Multi-model atmospheric cross-section generator. Users draw a line on a map, get an instant vertical cross-section from HRRR, GFS, RRFS, NAM, RAP, or NAM-Nest weather model data. Live at **wxsection.com**. 21 visualization styles, all derived from cached fields. Agent-native platform: everything the web UI can do is also available via a free REST API and MCP tool servers at feature parity.
 
 ## Architecture Summary
 
@@ -103,7 +103,7 @@ MIN_GRIB_SIZE = 500_000     # Download validation minimum (500KB)
 - **57 total endpoints** (34 v1 agent-friendly + 23 legacy/internal)
 - **52 MCP tools** (private stdio server)
 - **53 MCP tools** (public SSE server, +3 city browsing tools)
-- **20 cross-section products** (13 with anomaly support)
+- **21 cross-section products** (13 with anomaly support)
 - **8 map overlay composites** + 21 individual overlay fields
 
 ## API Quick Reference

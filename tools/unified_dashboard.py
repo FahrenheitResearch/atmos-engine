@@ -2483,7 +2483,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
     <title>wxsection.com — Atmospheric Cross-Section Analysis</title>
     <meta name="description" content="Instant atmospheric cross-sections from 6 NWP models. Draw a line on the map, get a vertical slice through the atmosphere in 0.5 seconds. Fire weather, wind, temperature, moisture, and 16 more products.">
     <meta property="og:title" content="wxsection.com — Real-Time Atmospheric Cross-Sections">
-    <meta property="og:description" content="Draw a line on the map, get an instant vertical cross-section from HRRR, GFS, RRFS, NAM, RAP, or NAM-Nest. 20 products, 6 models, sub-second rendering.">
+    <meta property="og:description" content="Draw a line on the map, get an instant vertical cross-section from HRRR, GFS, RRFS, NAM, RAP, or NAM-Nest. 21 products, 6 models, sub-second rendering.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://wxsection.com">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230f172a'/><path d='M6 24 L16 6 L26 24' stroke='%2306d6a0' stroke-width='2.5' fill='none' stroke-linecap='round'/><line x1='8' y1='20' x2='24' y2='20' stroke='%234da6ff' stroke-width='1.5' stroke-dasharray='3,2'/></svg>">
@@ -3900,7 +3900,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             <!-- TAB: Cities -->
             <div class="tab-content" id="tab-cities">
                 <div id="city-list-view">
-                    <input type="text" id="city-search" placeholder="Search 232 cities..." aria-label="Search cities">
+                    <input type="text" id="city-search" placeholder="Search 261 cities..." aria-label="Search cities">
                     <div class="region-chips" id="region-chips">
                         <span class="region-chip active" data-region="all" style="background:var(--card);color:var(--text);">All</span>
                         <span class="region-chip" data-region="california">CA</span>
@@ -3994,7 +3994,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <div class="ctrl-section" style="margin-top:auto;">
                     <div style="font-size:10px;color:var(--muted);text-align:center;line-height:1.6;padding-top:8px;border-top:1px solid var(--border);">
                         <b style="color:var(--accent);">wxsection.com</b><br>
-                        6 models &middot; 20 products &middot; sub-second renders<br>
+                        6 models &middot; 21 products &middot; sub-second renders<br>
                         <span id="version-info"></span>
                     </div>
                 </div>
@@ -4133,7 +4133,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                                     </div>
                                     <div id="landing-stats" style="font-size:11px;color:var(--muted);line-height:1.7;">
                                         <b style="color:var(--text);">6 models</b> &middot; HRRR 3km, GFS, RRFS, NAM, RAP, NAM-Nest<br>
-                                        <b style="color:var(--text);">20 products</b> &middot; Temperature, wind, fire weather, moisture, dynamics<br>
+                                        <b style="color:var(--text);">21 products</b> &middot; Temperature, wind, fire weather, moisture, dynamics<br>
                                         <b style="color:var(--text);">Keyboard</b> &middot; Left/Right: FHR, Space: play, ?: help
                                     </div>
                                     <div id="landing-cycle" style="margin-top:10px;font-size:10px;color:var(--muted);opacity:0.7;"></div>
@@ -4172,7 +4172,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             </div>
             <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin:-8px 0 8px;">
                 <button class="guide-tab active" data-tab="getting-started" style="flex:1;padding:8px 0;font-size:12px;background:none;border:none;border-bottom:2px solid var(--accent);color:var(--accent);cursor:pointer;font-family:inherit;">Getting Started</button>
-                <button class="guide-tab" data-tab="products" style="flex:1;padding:8px 0;font-size:12px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);cursor:pointer;font-family:inherit;">Products (20)</button>
+                <button class="guide-tab" data-tab="products" style="flex:1;padding:8px 0;font-size:12px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);cursor:pointer;font-family:inherit;">Products (21)</button>
                 <button class="guide-tab" data-tab="shortcuts" style="flex:1;padding:8px 0;font-size:12px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);cursor:pointer;font-family:inherit;">Shortcuts</button>
             </div>
             <div class="modal-body" id="modal-body"></div>
@@ -7687,7 +7687,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:8px;">Key Features</div>
                         <div style="font-size:12px;color:var(--text);line-height:1.8;">
                             <div><b>6 models</b> \u2014 HRRR (3km), GFS (0.25\u00b0), RRFS (3km), NAM (12km), RAP (13km), NAM-Nest (3km)</div>
-                            <div><b>20 products</b> \u2014 Temperature, wind, fire weather, theta-e, vorticity, smoke, and more</div>
+                            <div><b>21 products</b> \u2014 Temperature, wind, fire weather, theta-e, vorticity, smoke, and more</div>
                             <div><b>Sub-second renders</b> \u2014 Mmap-on-NVMe cache architecture for instant response</div>
                             <div><b>Draggable endpoints</b> \u2014 Drag A/B markers to adjust transect in real-time</div>
                             <div><b>Right-click context menu</b> \u2014 Set start/end points, add POI markers, copy coordinates</div>
@@ -10931,7 +10931,7 @@ def _infer_region(key, profile):
 @app.route('/api/v1/cities')
 @rate_limit
 def api_v1_cities():
-    """All 232 cities with coords and basic info for map markers."""
+    """All 261 cities with coords and basic info for map markers."""
     profiles = _get_city_profiles()
     cities = []
     for key, p in profiles.items():
