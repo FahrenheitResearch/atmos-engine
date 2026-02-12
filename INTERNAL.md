@@ -19,11 +19,11 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 | `core/map_overlay.py` | ~1,133 | Map overlay rendering. Reprojection (KDTree for curvilinear, bilinear for GFS), composite assembly (fill + contours + barbs), PNG/binary output |
 | `model_config.py` | ~320 | Model registry. 6 models (HRRR/GFS/RRFS/NAM/RAP/NAM-Nest) metadata, grid specs, download URLs, forecast hour lists |
 
-### Server + UI (1 file, ~15,948 lines)
+### Server + UI (1 file, ~15,961 lines)
 
 | File | Lines | What It Does |
 |------|-------|-------------|
-| `tools/unified_dashboard.py` | ~15,948 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 58 API endpoints (34 v1 + 24 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects, og:image preview, FHR hover thumbnails, hero cross-section, smart product suggestions, skeleton loading, draw-mode feedback, distance/bearing line label, mobile panel backdrop, event timeline (hover tooltips), comparison diff view (with badge labels + draggable divider), 3D terrain, measurement tool, wind barb legend, geocoder search, image zoom/pan, product search filter, slider tick marks, download export, model-colored HUD badges |
+| `tools/unified_dashboard.py` | ~15,961 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 58 API endpoints (34 v1 + 24 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects, og:image preview, FHR hover thumbnails, hero cross-section, smart product suggestions, skeleton loading, draw-mode feedback, distance/bearing line label, mobile panel backdrop, event timeline (hover tooltips), comparison diff view (with badge labels + draggable divider), 3D terrain, measurement tool, wind barb legend, geocoder search, image zoom/pan, product search filter, slider tick marks, download export, model-colored HUD badges |
 
 **Key sections in unified_dashboard.py:**
 - Lines 1-1031: Imports, constants, overlay cache, helper functions, model config dicts
@@ -44,23 +44,23 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 | File | Lines | What It Does |
 |------|-------|-------------|
 | `tools/auto_update.py` | ~929 | Download daemon. Slot-based concurrency (per-model ThreadPoolExecutor), priority boost for early HRRR FHRs, fail-fast pruning, status file IPC, disk eviction |
-| `smart_hrrr/orchestrator.py` | ~312 | Single-FHR download. Multi-source fallback (NOMADS → AWS → Pando), 4-layer validation (HTTP status, content-type, size >500KB, GRIB magic bytes), atomic `.partial` → final rename |
+| `smart_hrrr/orchestrator.py` | ~311 | Single-FHR download. Multi-source fallback (NOMADS → AWS → Pando), 4-layer validation (HTTP status, content-type, size >500KB, GRIB magic bytes), atomic `.partial` → final rename |
 
 ### Agent Research Platform (12 modules + 8 data files + WFO swarm, ~57,500 lines total)
 
 | File | Lines | What It Does |
 |------|-------|-------------|
 | `tools/agent_tools/cross_section.py` | 362 | CrossSectionTool, CrossSectionData, batch_images |
-| `tools/agent_tools/external_data.py` | ~2,400 | METAR, RAWS, SPC, NWS, elevation, drought, Street View, mesonet, wind verification, climatology |
-| `tools/agent_tools/fire_risk.py` | ~1,700 | assess_conditions, investigation_checklist, data quality checks |
+| `tools/agent_tools/external_data.py` | ~2,415 | METAR, RAWS, SPC, NWS, elevation, drought, Street View, mesonet, wind verification, climatology |
+| `tools/agent_tools/fire_risk.py` | ~1,681 | assess_conditions, investigation_checklist, data quality checks |
 | `tools/agent_tools/case_study.py` | 931 | CaseStudy framework, TransectSpec, temporal evolution |
 | `tools/agent_tools/report_builder.py` | 1,142 | ReportBuilder, LaTeX templates, PDF compilation |
-| `tools/agent_tools/forecast.py` | 1,832 | ForecastGenerator, agent swarm orchestrator, national_fire_scan |
+| `tools/agent_tools/forecast.py` | ~1,841 | ForecastGenerator, agent swarm orchestrator, national_fire_scan |
 | `tools/agent_tools/investigation.py` | 900 | investigate_location, investigate_town, batch_investigate (44 OR towns) |
 | `tools/agent_tools/terrain.py` | ~1,318 | analyze_terrain_complexity, city_terrain_assessment (261 city profiles) |
-| `tools/agent_tools/fuel_conditions.py` | ~1,800 | assess_fuel_conditions (73 city ignition profiles), seasonal context |
-| `tools/agent_tools/frontal_analysis.py` | 1,078 | detect_wind_shifts, classify_overnight_conditions |
-| `tools/agent_tools/report_quality.py` | 803 | fire_report_checklist, validate_report_claims |
+| `tools/agent_tools/fuel_conditions.py` | ~1,831 | assess_fuel_conditions (73 city ignition profiles), seasonal context |
+| `tools/agent_tools/frontal_analysis.py` | ~1,077 | detect_wind_shifts, classify_overnight_conditions |
+| `tools/agent_tools/report_quality.py` | ~802 | fire_report_checklist, validate_report_claims |
 
 ### Regional Profile Data (6 files, ~42,000 lines, 258 cities + 3 hardcoded = 261 total)
 
@@ -172,6 +172,10 @@ Same KDTree trick but for 2D→2D. Build projection map once (source grid → ou
 ### Prerender Frame Cache
 
 After a cycle loads, the dashboard auto-prerenders all FHR frames for the current style in parallel (8 ProcessPoolExecutor workers). Cached PNGs are served at ~20ms. The FHR slider scrubs through cached frames instantly.
+
+### Map Overlay Prerender
+
+Mirrors the cross-section prerender pattern for map overlays. `OVERLAY_CACHE` (500 frames, LRU eviction, ~75MB) stores PNG→WebP converted overlay frames (~70-80% size reduction). Auto-prerenders `surface_analysis` and `fire_weather` products on every cycle load via `auto_prerender_overlay_all_products()`. Endpoints: `/api/v1/map-overlay/frame` (cache-first single frame), `/api/v1/map-overlay/prerender` (batch prerender). Frontend uses double-buffered Mapbox image sources (weather-overlay-a/b) with sequence-gated swaps for flash-free animation. `prefetchAllFrames()` fetches all FHR frames as blob URLs for instant slider scrubbing.
 
 ## Key Constants
 
@@ -437,12 +441,12 @@ Control sections (.ctrl-section) get a subtle left border accent in translucent 
 
 ### CSS Utility Classes
 Extracted from inline `style=` attributes for consistency:
-- **Selects**: `.select--flex`, `.select--compact-flex`, `.select--min80`, `.select--min120`, `.select--min120-sm`, `.select--speed`, `.select--gif-speed`, `.select--mp-mode`
-- **Buttons**: `.btn--tight`, `.btn--diff`, `.btn-primary--sm`, `.zoom-btn--sm`
-- **Layout**: `.ctrl-row--mt`, `.ctrl-row--mb`, `.input-range--flex`, `.input--fhrs`
-- **Labels**: `.label--muted-sm`, `.label--vs`
+- **Selects**: `.select--flex`, `.select--compact-flex`, `.select--min50/60/70/80/120`, `.select--min120-sm`, `.select--speed`, `.select--gif-speed`, `.select--mp-mode`
+- **Buttons**: `.btn--tight`, `.btn--diff`, `.btn--feature`, `.btn-primary--sm`, `.zoom-btn--sm`
+- **Layout**: `.ctrl-row--mt`, `.ctrl-row--mb`, `.ctrl-row--wrap`, `.input-range--flex`, `.input--fhrs`, `.playback-group`
+- **Labels**: `.label--muted-sm`, `.label--vs`, `.label--xs`
 - **Badges**: `.badge--success`, `.comparison-badge`
-- **Elements**: `.canvas--colorbar`, `.xsect-actions`, `.xsect-action-download`, `.xsect-action-link`, `.diff-canvas`, `.diff-panel-label`
+- **Elements**: `.canvas--colorbar`, `.xsect-actions`, `.xsect-action-download`, `.xsect-action-link`, `.diff-canvas`, `.diff-panel-label`, `.colorbar-units`, `.event-list`, `.memory-status`
 - **Modals**: `.guide-tabs`, `.modal-content--sm`, `.modal-header--compact`, `.shortcut-title`, `.shortcut-footer`
 - **Legend**: `.legend-title--bold`
 
@@ -493,7 +497,7 @@ Intermediate breakpoint at 769-1024px (tablet landscape): narrower sidebar panel
 GIF button shows frame count during generation ("GIF 18f..."). Success toast includes frame count: "GIF saved (18 frames, 2.1 MB, 8.3s)".
 
 ### Modal Backdrop Blur
-All modals (explainer, archive request, run request) use `backdrop-filter: blur(4px)` for depth-of-field effect behind the modal overlay.
+All modals (explainer, archive request, run request) use `backdrop-filter: blur(8px)` for depth-of-field effect behind the modal overlay.
 
 ### Mapbox Controls Dark Theme
 Zoom/compass controls restyled with dark translucent background, blur backdrop, accent-hover, and inverted icons to match the dark UI theme. Focus-visible ring on keyboard navigation.
