@@ -6233,7 +6233,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         // =========================================================================
         const _overlayTooltip = document.createElement('div');
         _overlayTooltip.id = 'overlay-tooltip';
-        _overlayTooltip.style.cssText = 'position:fixed;z-index:999;pointer-events:none;display:none;background:rgba(15,23,42,0.92);color:#f4f4f4;font-family:system-ui;font-size:12px;padding:6px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);white-space:nowrap;backdrop-filter:blur(4px);box-shadow:0 2px 8px rgba(0,0,0,0.4);';
+        _overlayTooltip.style.cssText = 'position:fixed;z-index:var(--z-hud);pointer-events:none;display:none;background:rgba(15,23,42,0.92);color:#f4f4f4;font-family:system-ui;font-size:12px;padding:6px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);white-space:nowrap;backdrop-filter:blur(4px);box-shadow:0 2px 8px rgba(0,0,0,0.4);';
         document.body.appendChild(_overlayTooltip);
 
         // Grid data cache: binary uint16 grids for instant hover lookup
@@ -7432,7 +7432,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 if (!fhrThumbEl) {
                     fhrThumbEl = document.createElement('div');
                     fhrThumbEl.id = 'fhr-thumb';
-                    fhrThumbEl.style.cssText = 'position:fixed;z-index:9999;pointer-events:none;border-radius:8px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.7);border:1px solid var(--border);background:var(--panel);transition:opacity 0.15s;';
+                    fhrThumbEl.style.cssText = 'position:fixed;z-index:var(--z-tooltip);pointer-events:none;border-radius:8px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.7);border:1px solid var(--border);background:var(--panel);transition:opacity 0.15s;';
                     document.body.appendChild(fhrThumbEl);
                 }
                 const rect = chip.getBoundingClientRect();
@@ -8804,7 +8804,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             hideMapContextMenu();
             ctxMenu = document.createElement('div');
             ctxMenu.id = 'map-ctx-menu';
-            ctxMenu.style.cssText = `position:fixed;left:${x}px;top:${y}px;z-index:9999;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:4px 0;min-width:180px;box-shadow:0 4px 16px rgba(0,0,0,0.4);font-size:12px;opacity:0;transform:scale(0.95);transition:opacity 0.12s ease,transform 0.12s ease;`;
+            ctxMenu.style.cssText = `position:fixed;left:${x}px;top:${y}px;z-index:var(--z-tooltip);background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:4px 0;min-width:180px;box-shadow:0 4px 16px rgba(0,0,0,0.4);font-size:12px;opacity:0;transform:scale(0.95);transition:opacity 0.12s ease,transform 0.12s ease;`;
             requestAnimationFrame(() => { ctxMenu.style.opacity = '1'; ctxMenu.style.transform = 'scale(1)'; });
             const items = [
                 { label: 'Set start point (A)', icon: 'A', action: () => { clearXSMarkers(); startMarker = setupStartMarker(lat, lng); updateDrawState(); } },
@@ -11343,7 +11343,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             if (existing) { existing.remove(); return; }
             const div = document.createElement('div');
             div.id = 'shortcut-help';
-            div.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.95);z-index:9999;background:rgba(15,23,42,0.95);border:1px solid var(--border);border-radius:12px;padding:24px 32px;max-width:380px;backdrop-filter:blur(8px);box-shadow:0 8px 32px rgba(0,0,0,0.5);opacity:0;transition:opacity 0.2s ease,transform 0.2s ease;';
+            div.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.95);z-index:var(--z-tooltip);background:rgba(15,23,42,0.95);border:1px solid var(--border);border-radius:12px;padding:24px 32px;max-width:380px;backdrop-filter:blur(8px);box-shadow:0 8px 32px rgba(0,0,0,0.5);opacity:0;transition:opacity 0.2s ease,transform 0.2s ease;';
             requestAnimationFrame(() => { div.style.opacity = '1'; div.style.transform = 'translate(-50%,-50%) scale(1)'; });
             const kbd = 'background:var(--card);padding:2px 8px;border-radius:4px;font-family:monospace;border:1px solid var(--border);font-size:11px;';
             div.innerHTML = '<div style="font-size:14px;font-weight:700;color:var(--accent);margin-bottom:14px;">Keyboard Shortcuts</div>' +
