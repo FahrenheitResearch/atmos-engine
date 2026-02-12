@@ -19,11 +19,11 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 | `core/map_overlay.py` | ~1,133 | Map overlay rendering. Reprojection (KDTree for curvilinear, bilinear for GFS), composite assembly (fill + contours + barbs), PNG/binary output |
 | `model_config.py` | ~320 | Model registry. 6 models (HRRR/GFS/RRFS/NAM/RAP/NAM-Nest) metadata, grid specs, download URLs, forecast hour lists |
 
-### Server + UI (1 file, ~12,200 lines)
+### Server + UI (1 file, ~12,340 lines)
 
 | File | Lines | What It Does |
 |------|-------|-------------|
-| `tools/unified_dashboard.py` | ~12,200 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 57 API endpoints (34 v1 + 23 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects |
+| `tools/unified_dashboard.py` | ~12,340 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 57 API endpoints (34 v1 + 23 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects |
 
 **Key sections in unified_dashboard.py:**
 - Lines 1-1018: Imports, constants, overlay cache, helper functions, model config dicts
@@ -240,7 +240,7 @@ FHR labels throughout the UI show UTC valid time (e.g., "F06 — 18Z Wed 12"). C
 Functions: `getValidTime(fhr)`, `formatValidTime(fhr)`, `fhrLabel(fhr)`, `fhrWithTime(fhr)`
 
 ### Cycle Age Indicator
-Shows how old the current model run is (e.g., "3h ago", "2d ago") next to the cycle dropdown. Updates every 10 seconds.
+Shows how old the current model run is (e.g., "3h ago", "2d ago") next to the cycle dropdown. Updates every 10 seconds. Color-coded: green (<1h), muted (<4h), amber (4-48h), red (>48h).
 
 ### Right-Click Context Menu
 Right-clicking the map shows a context menu with:
@@ -257,21 +257,40 @@ Selecting a new product style shows a brief info toast with the product's descri
 A 4px gradient bar below the style dropdown shows the color scheme of the currently selected product. Updates on style change. Defined in `cmapGradients` object (20 products).
 
 ### Transect Metadata Overlay
-Floating pill on the cross-section image showing: model name, transect distance (km/mi), bearing, and valid time.
+Floating pill on the cross-section image showing: model name, transect distance (km/mi), bearing, valid time, and render time (e.g., "1.4s").
 
 ### Bottom Status Bar
 Shows product name + FHR with valid time. Updates on each cross-section generation. For events, shows event name with star icon.
 
+### Playback Frame Counter
+During animation playback, shows frame position (e.g., "3/48") next to the slider. Play button toggles between play and pause icons with matching tooltip text.
+
 ### Keyboard Shortcuts
-- Left/Right arrow: step FHR
+- Left/Right arrow (J/K): step FHR
 - Space: play/pause
 - 1-6: switch models (HRRR, GFS, RRFS, NAM, RAP, NAM-Nest)
 - O: toggle map overlay
+- C: compare mode
+- S: swap A/B endpoints
 - Home/End: first/last FHR
+- Esc: clear cross-section line
 - ?: show shortcuts help
+All action buttons include keyboard shortcut hints in their tooltips.
+
+### Onboarding Landing Panel
+Visual 1-2-3 step guide ("Click A → Click B → Explore") with numbered circles. Includes 6 quick-start transect buttons and live cycle info.
 
 ### Quick-Start Transects
 6 preloaded transects on the landing page: Denver Front Range, Columbia Gorge, Sierra Nevada, Great Plains Dryline, Oregon Cascades, LA Basin.
+
+### Tabbed Guide Modal
+Help button opens a 3-tab modal:
+- **Getting Started**: visual steps, key features overview, quick shortcuts
+- **Products (20)**: clickable product reference cards (click to switch and close modal)
+- **Shortcuts**: comprehensive keyboard shortcut grid organized by category
+
+### New Cycle Notifications
+Auto-refresh checks for new model cycles every 3 minutes. Shows toast with model name and cycle label (e.g., "New HRRR cycle: 20260212 12Z").
 
 ### Quick Analysis Workflows
 7 one-click workflow presets (sidebar buttons): Fire Weather, Severe, Upper Air, Moisture, Jet Stream, Surface, Model Compare, Time Series. Each sets style + overlay product + y_top.
