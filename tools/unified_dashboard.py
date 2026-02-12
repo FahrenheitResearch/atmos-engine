@@ -3157,11 +3157,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             user-select: none;
             position: relative;
         }
-        .model-pill:hover { border-color: var(--accent); color: var(--text); }
+        .model-pill:hover { border-color: var(--accent); color: var(--text); transform: translateY(-1px); }
+        .model-pill:active { transform: scale(0.95); }
         .model-pill.active {
             background: var(--accent);
             color: #000;
             border-color: var(--accent);
+            box-shadow: 0 2px 8px rgba(77,166,255,0.3);
             animation: pill-pop 0.2s ease-out;
         }
         @keyframes pill-pop { 0% { transform: scale(0.92); } 60% { transform: scale(1.04); } 100% { transform: scale(1); } }
