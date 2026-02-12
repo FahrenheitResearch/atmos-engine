@@ -3678,8 +3678,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
         .toast.dismissing { opacity: 0; transform: translateY(10px) scale(0.95); }
         .toast.loading { border-left: 3px solid var(--warning); }
+        .toast-spinner {
+            display: inline-block; width: 12px; height: 12px;
+            border: 2px solid var(--warning); border-top-color: transparent;
+            border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0;
+        }
         .toast.success { border-left: 3px solid var(--success); }
-        .toast.error { border-left: 3px solid #ef4444; }
+        .toast.error { border-left: 3px solid var(--danger); }
         .toast.info { border-left: 3px solid var(--accent); }
         .toast-progress {
             position: absolute; bottom: 0; left: 0; height: 2px;
@@ -4558,8 +4563,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <span id="hud-fhr" style="background:var(--hud-dark);color:var(--warning);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;"></span>
                 <span id="hud-overlay" style="display:none;background:var(--hud-overlay);color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;cursor:pointer;" title="Map overlay active (O to toggle)"></span>
             </div>
-            <div id="map-attribution" style="position:absolute;bottom:4px;left:52px;z-index:500;font-size:9px;color:rgba(148,163,184,0.6);pointer-events:none;letter-spacing:0.3px;">wxsection.com &middot; NOAA NWP Data</div>
-            <div id="map-coords" style="position:absolute;bottom:4px;right:8px;z-index:500;font-size:10px;color:rgba(148,163,184,0.7);pointer-events:none;font-family:'SF Mono',Consolas,monospace;letter-spacing:0.3px;"></div>
+            <div id="map-attribution" style="position:absolute;bottom:4px;left:52px;z-index:var(--z-hud);font-size:9px;color:rgba(148,163,184,0.6);pointer-events:none;letter-spacing:0.3px;">wxsection.com &middot; NOAA NWP Data</div>
+            <div id="map-coords" style="position:absolute;bottom:4px;right:8px;z-index:var(--z-hud);font-size:10px;color:rgba(148,163,184,0.7);pointer-events:none;font-family:'SF Mono',Consolas,monospace;letter-spacing:0.3px;"></div>
             <div id="overlay-colorbar" style="display:none;position:absolute;bottom:30px;right:10px;z-index:var(--z-map-hud);background:rgba(0,0,0,0.75);border-radius:6px;padding:6px 10px;pointer-events:none;transition:opacity var(--transition-default) ease;">
                 <div style="font-size:10px;color:#ccc;margin-bottom:3px;" id="colorbar-title"></div>
                 <canvas id="colorbar-canvas" width="200" height="14" style="border-radius:2px;display:block;"></canvas>
@@ -4569,7 +4574,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     <span id="colorbar-max"></span>
                 </div>
             </div>
-            <div id="barb-legend" style="display:none;position:absolute;bottom:30px;left:10px;z-index:1000;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);border-radius:6px;padding:6px 10px;pointer-events:none;border:1px solid rgba(255,255,255,0.1);">
+            <div id="barb-legend" style="display:none;position:absolute;bottom:30px;left:10px;z-index:var(--z-map-hud);background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);border-radius:6px;padding:6px 10px;pointer-events:none;border:1px solid rgba(255,255,255,0.1);">
                 <div style="font-size:10px;color:#ccc;margin-bottom:4px;font-weight:600;">Wind Barbs</div>
                 <div style="display:flex;gap:10px;align-items:center;font-size:9px;color:#aaa;">
                     <div style="text-align:center;"><svg width="20" height="24" viewBox="0 0 20 24"><line x1="10" y1="22" x2="10" y2="4" stroke="#ccc" stroke-width="1.5"/><line x1="10" y1="4" x2="16" y2="8" stroke="#ccc" stroke-width="1.5"/></svg><div>5 kt</div></div>
@@ -6331,8 +6336,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            const icon = type === 'loading' ? '\u23f3' : type === 'success' ? '\u2713' : type === 'info' ? '\u2139' : '\u2717';
-            toast.innerHTML = `<span>${icon} ${message}</span>`;
+            if (type === 'loading') {
+                toast.innerHTML = `<span class="toast-spinner"></span><span>${message}</span>`;
+            } else {
+                const icon = type === 'success' ? '\u2713' : type === 'info' ? '\u2139' : '\u2717';
+                toast.innerHTML = `<span>${icon} ${message}</span>`;
+            }
             toast.onclick = () => dismissToast(toast);
             // Announce to screen readers
             const sr = document.getElementById('sr-live');
