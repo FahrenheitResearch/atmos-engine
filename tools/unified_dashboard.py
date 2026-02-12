@@ -3004,10 +3004,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             background: rgba(14,165,233,0.3); border-color: var(--accent);
             color: var(--accent); pointer-events: none;
             animation: qs-pulse 0.8s ease-in-out infinite;
+            box-shadow: 0 0 8px rgba(14,165,233,0.3);
         }
         @keyframes qs-pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
+            0%, 100% { opacity: 1; box-shadow: 0 0 8px rgba(14,165,233,0.3); }
+            50% { opacity: 0.6; box-shadow: 0 0 16px rgba(14,165,233,0.5); }
         }
         .qs-chip {
             display: inline-block; width: 10px; height: 6px; border-radius: 2px;
@@ -4288,6 +4289,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <span id="hud-model" style="background:rgba(14,165,233,0.9);color:#000;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;letter-spacing:0.5px;"></span>
                 <span id="hud-cycle" style="background:rgba(0,0,0,0.7);color:#ccc;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;"></span>
                 <span id="hud-fhr" style="background:rgba(0,0,0,0.7);color:var(--warning);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;"></span>
+                <span id="hud-overlay" style="display:none;background:rgba(139,92,246,0.85);color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;cursor:pointer;" title="Map overlay active (O to toggle)"></span>
             </div>
             <div id="map-attribution" style="position:absolute;bottom:4px;left:52px;z-index:500;font-size:9px;color:rgba(148,163,184,0.6);pointer-events:none;letter-spacing:0.3px;">wxsection.com &middot; NOAA NWP Data</div>
             <div id="map-coords" style="position:absolute;bottom:4px;right:8px;z-index:500;font-size:10px;color:rgba(148,163,184,0.7);pointer-events:none;font-family:'SF Mono',Consolas,monospace;letter-spacing:0.3px;"></div>
@@ -5827,26 +5829,45 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         _modelMapOverlayRef = modelMapOverlay;  // expose for readdCustomLayers
 
         // Wire up overlay UI controls
+        function updateOverlayHUD() {
+            const hud = document.getElementById('hud-overlay');
+            if (!hud) return;
+            const on = document.getElementById('overlay-on')?.classList.contains('active');
+            if (on) {
+                const prodSel = document.getElementById('overlay-product-select');
+                const prodName = prodSel?.selectedOptions[0]?.textContent || prodSel?.value || 'Overlay';
+                hud.textContent = prodName;
+                hud.style.display = '';
+            } else {
+                hud.style.display = 'none';
+            }
+        }
+        document.getElementById('hud-overlay')?.addEventListener('click', () => {
+            document.getElementById('overlay-off')?.click();
+        });
+
         document.getElementById('overlay-off').onclick = function() {
             this.classList.add('active');
             document.getElementById('overlay-on').classList.remove('active');
             modelMapOverlay.setEnabled(false);
             document.getElementById('barb-legend').style.display = 'none';
+            updateOverlayHUD();
         };
         document.getElementById('overlay-on').onclick = function() {
             this.classList.add('active');
             document.getElementById('overlay-off').classList.remove('active');
             modelMapOverlay.setEnabled(true);
-            // Show barb legend for composite products (which include wind barbs)
             const product = document.getElementById('overlay-product-select')?.value || '';
             const isComposite = ['surface_analysis', 'fire_weather', 'severe_weather', 'upper_500', 'upper_250', 'moisture'].includes(product);
             document.getElementById('barb-legend').style.display = isComposite ? '' : 'none';
+            updateOverlayHUD();
         };
         document.getElementById('overlay-product-select').onchange = function() {
             modelMapOverlay.setProduct(this.value);
             const isComposite = ['surface_analysis', 'fire_weather', 'severe_weather', 'upper_500', 'upper_250', 'moisture'].includes(this.value);
             const overlayOn = document.getElementById('overlay-on')?.classList.contains('active');
             document.getElementById('barb-legend').style.display = (isComposite && overlayOn) ? '' : 'none';
+            updateOverlayHUD();
         };
         document.getElementById('overlay-field-select').onchange = function() {
             modelMapOverlay.setField(this.value);
