@@ -10193,7 +10193,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             a.href = img.src;
             const style = document.getElementById('style-select')?.value || 'xsect';
             const fhrStr = activeFhr != null ? `F${String(activeFhr).padStart(2, '0')}` : '';
-            a.download = `wxsection_${currentModel}_${style}_${fhrStr}.png`;
+            const cmpParams = getComparisonParams();
+            if (cmpParams) {
+                const items = cmpParams.products || cmpParams.models || cmpParams.cycles || [];
+                a.download = `wxsection_${cmpParams.mode}_${items.slice(0,3).join('-')}_${fhrStr}.png`;
+            } else {
+                a.download = `wxsection_${currentModel}_${style}_${fhrStr}.png`;
+            }
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
