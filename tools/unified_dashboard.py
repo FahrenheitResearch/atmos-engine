@@ -2657,7 +2657,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             pointer-events: none;
             z-index: var(--z-base);
             opacity: 0;
-            transition: opacity 0.2s;
+            transition: opacity var(--transition-default);
         }
         .chip-scroll-wrap::before {
             left: 0;
@@ -2926,7 +2926,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            transition: width 0.2s ease, opacity 0.2s ease;
+            transition: width var(--transition-default) ease, opacity var(--transition-default) ease;
             flex-shrink: 0;
             z-index: var(--z-panel);
         }
@@ -2960,7 +2960,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             padding: 12px 16px;
             opacity: 0;
             transform: translateY(4px);
-            transition: opacity 0.2s ease, transform 0.2s ease;
+            transition: opacity var(--transition-default) ease, transform var(--transition-default) ease;
         }
         .tab-content.active { display: flex; flex-direction: column; opacity: 1; transform: translateY(0); }
 
@@ -3323,9 +3323,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .ctrl-section {
             margin-bottom: 12px;
             padding-left: 8px;
+            padding-bottom: 12px;
             border-left: 2px solid transparent;
+            border-bottom: 1px solid rgba(71,85,105,0.3);
             transition: border-color var(--transition-fast);
         }
+        .ctrl-section:last-child { border-bottom: none; padding-bottom: 0; }
         .ctrl-section:hover {
             border-left-color: rgba(14,165,233,0.3);
         }
@@ -3408,7 +3411,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             padding: 5px 8px;
             border-radius: 5px;
             cursor: pointer;
-            transition: background 0.1s;
+            transition: background var(--transition-fast);
         }
         .pp-item:hover { background: var(--card); }
         .pp-item.active { background: var(--accent); color: #000; }
@@ -3650,7 +3653,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             cursor: pointer;
             position: relative;
             overflow: hidden;
-            transition: opacity 0.3s ease, transform 0.3s ease;
+            transition: opacity var(--transition-slow) ease, transform var(--transition-slow) ease;
         }
         .toast.dismissing { opacity: 0; transform: translateY(10px) scale(0.95); }
         .toast.loading { border-left: 3px solid var(--warning); }
@@ -3707,7 +3710,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
         .progress-header:hover { background: var(--surface-alt); }
         .progress-header-left { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text); }
-        .progress-collapse-icon { font-size: 10px; color: var(--muted); transition: transform 0.2s; }
+        .progress-collapse-icon { font-size: 10px; color: var(--muted); transition: transform var(--transition-default); }
         #progress-panel.collapsed .progress-collapse-icon { transform: rotate(-90deg); }
 
         /* Progress badge */
@@ -3725,8 +3728,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         /* Individual progress item */
         .progress-item {
             padding: 10px 14px; border-bottom: 1px solid var(--border);
-            transition: opacity 0.3s;
-            animation: progress-slide-in 0.25s ease-out;
+            transition: opacity var(--transition-slow);
+            animation: progress-slide-in var(--transition-default) ease-out;
         }
         @keyframes progress-slide-in {
             from { opacity: 0; transform: translateY(-8px); }
