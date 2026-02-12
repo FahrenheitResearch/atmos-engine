@@ -1,7 +1,7 @@
 # AI Agent Research Platform — wxsection.com
 
 > Central documentation for the wxsection.com AI-agent-native atmospheric research platform.
-> 36 MCP tools, 6 Python modules (~6,600 lines), 88 curated weather events, 20 visualization products.
+> 52 MCP tools, 12 Python modules (~14,000 lines), 88 curated weather events, 20 visualization products.
 
 ## Table of Contents
 
@@ -18,6 +18,9 @@
   - [Fire Weather Tools](#fire-weather-tools-4)
   - [Terrain & Fuel Tools](#terrain--fuel-tools-8)
   - [Street View Tools](#street-view-tools-2)
+  - [Comparison Tools](#comparison-tools-2)
+  - [Map Overlay Tools](#map-overlay-tools-3)
+  - [Oregon WFO Swarm Tools](#oregon-wfo-swarm-tools-10)
 - [Python API Reference](#python-api-reference)
   - [cross_section — Cross-Section Generation & Analysis](#cross_section)
   - [external_data — External Data Ingestion](#external_data)
@@ -73,9 +76,9 @@ Three access layers, same capabilities:
        ▼                  ▼                  ▼
 ┌──────────────┐  ┌───────────────┐  ┌──────────────────────┐
 │  MCP Server  │  │  Python API   │  │    HTTP API          │
-│  36 tools    │  │  6 modules    │  │    /api/v1/*         │
+│  52 tools    │  │  12 modules   │  │    /api/v1/*         │
 │  mcp_server  │  │  agent_tools/ │  │    unified_dashboard │
-│    .py       │  │  ~6,600 lines │  │    .py               │
+│    .py       │  │  ~14K lines   │  │    .py               │
 └──────┬───────┘  └──────┬────────┘  └──────────┬───────────┘
        │                 │                       │
        └─────────────────┴───────────────────────┘
@@ -108,7 +111,7 @@ External Data Sources:
 
 ### MCP Server
 
-The MCP server exposes all 36 tools to Claude Code and other MCP-compatible AI agents.
+The MCP server exposes all 52 tools to Claude Code and other MCP-compatible AI agents.
 
 **Setup** — Add to `~/.claude/claude_code_config.json`:
 
@@ -127,7 +130,7 @@ The MCP server exposes all 36 tools to Claude Code and other MCP-compatible AI a
 }
 ```
 
-Restart Claude Code. Verify with `/mcp` — you should see 36 tools listed.
+Restart Claude Code. Verify with `/mcp` — you should see 52 tools listed.
 
 **Example** — An agent asks for fire risk:
 ```
@@ -185,7 +188,7 @@ curl "https://wxsection.com/api/v1/capabilities"
 
 ## MCP Server Tools Reference
 
-`tools/mcp_server.py` — 36 tools via stdin/stdout JSON-RPC.
+`tools/mcp_server.py` — 52 tools via stdin/stdout JSON-RPC.
 
 ### Investigation Tools (6)
 
@@ -614,11 +617,141 @@ Multiple Street View images at different headings for panoramic coverage.
 
 Returns: Array of base64-encoded images with heading/direction metadata.
 
+### Comparison Tools (2)
+
+Multi-panel cross-section comparisons for model, temporal, product, or cycle analysis.
+
+#### `generate_comparison`
+Generate a multi-panel comparison cross-section PNG.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `mode` | str | — | Comparison type: `model`, `temporal`, `product`, `cycle` |
+| `start_lat` | float | — | Start latitude |
+| `start_lon` | float | — | Start longitude |
+| `end_lat` | float | — | End latitude |
+| `end_lon` | float | — | End longitude |
+| `product` | str | `temperature` | Cross-section product |
+| `fhr` | int | `0` | Forecast hour |
+| `models` | str | — | Comma-separated model names (for `model` mode) |
+| `fhrs` | str | — | Comma-separated FHRs (for `temporal` mode) |
+| `products` | str | — | Comma-separated products (for `product` mode) |
+| `cycles` | str | — | Comma-separated cycles (for `cycle` mode) |
+
+Returns: base64-encoded PNG image.
+
+#### `generate_comparison_gif`
+Generate animated GIF of multi-panel comparisons across forecast hours.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| Same as `generate_comparison` | | | Plus `fhr_min`, `fhr_max` for FHR range |
+
+Returns: base64-encoded GIF image.
+
+### Map Overlay Tools (3)
+
+Server-rendered map overlays — plan-view composites (surface analysis, fire weather, etc.).
+
+#### `get_model_map`
+Generate a map overlay PNG (plan-view of an atmospheric field or composite).
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `model` | str | `hrrr` | Model name |
+| `product` | str | `surface_analysis` | Composite product preset |
+| `fhr` | int | `0` | Forecast hour |
+
+Returns: base64-encoded PNG image.
+
+#### `list_map_products`
+List available composite map product presets (surface_analysis, fire_weather, etc.).
+
+Returns: List of product objects with id, name, description.
+
+#### `list_map_fields`
+List available map overlay fields (individual fields like t2m, u10m, mslp, etc.).
+
+Returns: List of field objects with id, name, levels, units, colormap.
+
+### Oregon WFO Swarm Tools (10)
+
+Tools for accessing the Oregon Weather Forecast Office agent swarm system — 7 zones, 154 agents per HRRR cycle.
+
+#### `list_oregon_zones`
+List all 7 Oregon fire weather zones with status.
+
+Returns: Zone list with zone_id, name, town count, latest bulletin status.
+
+#### `get_zone_config`
+Get full configuration for an Oregon zone (towns, stations, terrain features).
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `zone_id` | str | — | Zone identifier (e.g., `portland_metro`, `central_cascades`) |
+
+#### `get_zone_transects`
+Get cross-section transect presets for a zone.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `zone_id` | str | — | Zone identifier |
+
+Returns: List of transect presets with start/end coordinates, labels, recommended products.
+
+#### `get_zone_bulletin`
+Get the latest fire weather forecast bulletin for a zone.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `zone_id` | str | — | Zone identifier |
+
+Returns: Full bulletin JSON with risk assessments, town forecasts, discussion, recommendations.
+
+#### `get_zone_town_forecast`
+Get a specific town's fire weather forecast from the latest zone bulletin.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `zone_id` | str | — | Zone identifier |
+| `town` | str | — | Town name |
+
+#### `get_zone_risk_ranking`
+Get all towns ranked by fire risk for a zone.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `zone_id` | str | — | Zone identifier |
+
+Returns: Ranked list of towns with risk scores, key factors, recommendations.
+
+#### `get_zone_discussion`
+Get the AFD-style meteorological discussion for a zone.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `zone_id` | str | — | Zone identifier |
+
+#### `oregon_fire_scan`
+Quick fire weather scan across all 7 Oregon zones.
+
+Returns: Summary of current fire weather risk across all zones with key concerns.
+
+#### `oregon_state_bulletin`
+State-level aggregated fire weather bulletin for all Oregon zones.
+
+Returns: Comprehensive Oregon-wide fire weather assessment.
+
+#### `get_swarm_status`
+Get the pipeline status for all Oregon zone swarms.
+
+Returns: Swarm execution status with zone completion, agent counts, timing.
+
 ---
 
 ## Python API Reference
 
-`tools/agent_tools/` — 6 modules, ~6,600 lines total.
+`tools/agent_tools/` — 12 modules + 8 data files, ~57,500 lines total.
 
 ### cross_section
 
