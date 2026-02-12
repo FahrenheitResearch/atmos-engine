@@ -2851,6 +2851,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             background-size: 10px; background-position: center; background-repeat: no-repeat;
         }
         input[type="checkbox"]:hover { border-color: var(--accent); }
+        input[type="number"] { -moz-appearance: textfield; }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none; margin: 0;
+        }
         /* Guide modal content */
         .guide-header { text-align: center; margin-bottom: 16px; }
         .guide-header-title { font-size: 16px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
@@ -2944,14 +2949,19 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         :focus:not(:focus-visible) { outline: none; }
         label { color: var(--muted); font-size: 12px; font-weight: 500; }
         select {
+            -webkit-appearance: none; appearance: none;
             background: var(--card);
             color: var(--text);
             border: 1px solid var(--border);
-            padding: 5px 8px;
+            padding: 5px 24px 5px 8px;
             border-radius: var(--radius-md);
             cursor: pointer;
             font-size: 13px;
             min-width: 120px;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            background-size: 10px;
         }
         select:focus { outline: 2px solid var(--accent); outline-offset: 1px; box-shadow: 0 0 8px rgba(77,166,255,0.15); }
         input[type="range"] {
