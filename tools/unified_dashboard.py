@@ -3114,18 +3114,23 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .chip.loaded:active, .chip.active:active { opacity: 0.7; }
         .chip.prerendered { position: relative; }
         .chip.prerendered::after {
-            content: '\26A1';
+            content: '';
             position: absolute;
-            top: -3px;
+            top: -2px;
             right: -2px;
-            font-size: 8px;
-            line-height: 1;
+            width: 6px;
+            height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 4px rgba(77,166,255,0.6);
         }
         .chip.extended {
             border-style: dashed;
             font-size: 10px;
             padding: 3px 5px;
+            opacity: 0.7;
         }
+        .chip.extended:hover { opacity: 1; }
         .chip-divider {
             color: var(--muted);
             margin: 0 2px;
@@ -4359,7 +4364,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
         #explainer-modal {
             display: flex; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
             z-index: var(--z-modal); align-items: center; justify-content: center;
             opacity: 0; visibility: hidden; pointer-events: none;
             transition: opacity 0.2s ease, visibility 0.2s ease;
@@ -4389,16 +4394,18 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .guide-tab {
             flex: 1; padding: 8px 0; font-size: 12px; background: none; border: none;
             border-bottom: 2px solid transparent; color: var(--muted); cursor: pointer;
-            font-family: inherit; transition: color var(--transition-fast), border-color var(--transition-fast);
+            font-family: inherit; transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
         }
+        .guide-tab:hover { color: var(--text); background: rgba(255,255,255,0.03); }
         .guide-tab.active { border-bottom-color: var(--accent); color: var(--accent); }
 
         .param-card {
             background: var(--card); border: 1px solid var(--border);
             border-radius: var(--radius-lg); padding: 14px; margin-bottom: 12px;
-            cursor: pointer; transition: border-color var(--transition-fast);
+            cursor: pointer; transition: border-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+            border-left: 3px solid transparent;
         }
-        .param-card:hover { border-color: var(--accent); }
+        .param-card:hover { border-color: var(--accent); border-left-color: var(--accent); transform: translateX(2px); box-shadow: -2px 0 8px rgba(77,166,255,0.1); }
         .param-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
         .param-name { font-weight: 600; color: var(--accent); font-size: 15px; }
         .param-desc { color: var(--muted); font-size: 13px; line-height: 1.5; }
@@ -4406,7 +4413,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
         #request-modal {
             display: flex; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
             z-index: var(--z-modal); align-items: center; justify-content: center;
             opacity: 0; visibility: hidden; pointer-events: none;
             transition: opacity 0.2s ease, visibility 0.2s ease;
@@ -4414,7 +4421,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         #request-modal.visible { opacity: 1; visibility: visible; pointer-events: auto; }
         #run-request-modal {
             display: flex; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
             z-index: var(--z-modal-top); align-items: center; justify-content: center;
             opacity: 0; visibility: hidden; pointer-events: none;
             transition: opacity 0.2s ease, visibility 0.2s ease;
