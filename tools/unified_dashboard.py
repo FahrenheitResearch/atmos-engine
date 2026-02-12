@@ -4144,6 +4144,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                                         <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Recent transects:</div>
                                         <div id="recent-transects-list" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;"></div>
                                     </div>
+                                    <div id="hero-preview" style="margin-bottom:12px;border-radius:8px;overflow:hidden;cursor:pointer;display:none;position:relative;" title="Click to load this transect">
+                                        <img id="hero-preview-img" style="width:100%;display:block;border-radius:8px;opacity:0;transition:opacity 0.4s;" alt="Sample cross-section">
+                                        <div id="hero-preview-label" style="position:absolute;bottom:0;left:0;right:0;padding:4px 10px;background:linear-gradient(transparent,rgba(15,23,42,0.9));font-size:10px;color:var(--muted);text-align:right;">Sample &mdash; click to explore</div>
+                                    </div>
                                     <div id="landing-stats" style="font-size:11px;color:var(--muted);line-height:1.7;">
                                         <b style="color:var(--text);">6 models</b> &middot; HRRR 3km, GFS, RRFS, NAM, RAP, NAM-Nest<br>
                                         <b style="color:var(--text);">21 products</b> &middot; Temperature, wind, fire weather, moisture, dynamics<br>
@@ -7478,6 +7482,36 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             });
         }
         renderRecentTransects();
+
+        // Hero preview: auto-load a sample cross-section on the landing page
+        (function loadHeroPreview() {
+            const heroTransects = [
+                { lat1: 39.7, lon1: -105.5, lat2: 39.7, lon2: -104.0, style: 'temp', label: 'Denver Front Range' },
+                { lat1: 44.0, lon1: -123.5, lat2: 44.0, lon2: -121.0, style: 'wind_speed', label: 'Oregon Cascades' },
+                { lat1: 37.0, lon1: -121.0, lat2: 37.0, lon2: -118.0, style: 'fire_wx', label: 'Sierra Nevada' },
+            ];
+            const pick = heroTransects[Math.floor(Math.random() * heroTransects.length)];
+            const heroEl = document.getElementById('hero-preview');
+            const heroImg = document.getElementById('hero-preview-img');
+            const heroLabel = document.getElementById('hero-preview-label');
+            if (!heroEl || !heroImg) return;
+            // Delay to avoid competing with initial cycle load
+            setTimeout(() => {
+                const url = `/api/v1/cross-section?start_lat=${pick.lat1}&start_lon=${pick.lon1}&end_lat=${pick.lat2}&end_lon=${pick.lon2}&product=${pick.style}&model=hrrr&cycle=latest&fhr=0`;
+                fetch(url).then(r => {
+                    if (!r.ok) throw new Error(r.status);
+                    return r.blob();
+                }).then(blob => {
+                    heroImg.src = URL.createObjectURL(blob);
+                    heroImg.onload = () => {
+                        heroEl.style.display = 'block';
+                        heroImg.style.opacity = '1';
+                        heroLabel.textContent = pick.label + ' \u2014 click to explore';
+                    };
+                    heroEl.onclick = () => quickStart(pick.lat1, pick.lon1, pick.lat2, pick.lon2, pick.style);
+                }).catch(() => {}); // Silently fail if no data
+            }, 2000);
+        })();
 
         // =========================================================================
         // Cross-Section Generation
