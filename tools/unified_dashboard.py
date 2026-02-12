@@ -5030,6 +5030,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                                 </div>
                                 <div class="zoom-controls" id="xsect-actions" style="top:8px;left:8px;right:auto;">
                                     <button id="xsect-download-btn" title="Download cross-section PNG" style="font-size:12px;">&#8681;</button>
+                                    <button id="xsect-copylink-btn" title="Copy shareable link" style="font-size:11px;">&#128279;</button>
                                 </div>
                                 <div id="instructions" class="landing">
                                     <div class="landing-title">wxsection</div>
@@ -8411,6 +8412,25 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
+        };
+
+        // Copy shareable link
+        document.getElementById('xsect-copylink-btn').onclick = function() {
+            if (!startMarker || !endMarker) return;
+            const s = startMarker.getLatLng(), e = endMarker.getLatLng();
+            const style = document.getElementById('style-select')?.value || 'temperature';
+            const params = new URLSearchParams({
+                start_lat: s.lat.toFixed(4), start_lon: s.lng.toFixed(4),
+                end_lat: e.lat.toFixed(4), end_lon: e.lng.toFixed(4),
+                model: currentModel || 'hrrr', product: style, y_axis: currentYAxis || 'pressure'
+            });
+            if (activeFhr !== null) params.set('fhr', activeFhr);
+            const url = `${location.origin}/api/v1/cross-section?${params}`;
+            navigator.clipboard.writeText(url).then(() => {
+                const btn = document.getElementById('xsect-copylink-btn');
+                btn.textContent = '\u2713';
+                setTimeout(() => { btn.innerHTML = '&#128279;'; }, 1500);
+            });
         };
 
         // Show actions bar when image is present, reset zoom on new image
