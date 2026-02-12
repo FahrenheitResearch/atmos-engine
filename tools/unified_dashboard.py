@@ -2746,8 +2746,17 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
         .landing-arrow { color: var(--muted); align-self: center; font-size: 16px; margin-top: -16px; }
         .landing-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; font-size: 10px; color: var(--muted); text-align: center; }
-        .landing-stat { background: var(--card); border-radius: 8px; padding: 10px 8px; border: 1px solid var(--border); }
-        .landing-stat-num { font-size: 18px; font-weight: 700; color: var(--accent); }
+        .landing-stat {
+            background: var(--card); border-radius: 8px; padding: 10px 8px;
+            border: 1px solid var(--border); transition: border-color var(--transition-fast), transform var(--transition-fast);
+        }
+        .landing-stat:hover { border-color: var(--accent); transform: translateY(-2px); }
+        .landing-stat-num {
+            font-size: 20px; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), #06d6a0);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
         .landing-stat-label { font-weight: 600; color: var(--text); font-size: 11px; }
         .landing-stat-sub { margin-top: 2px; }
         .hero-preview-img { width: 100%; display: block; border-radius: 8px; opacity: 0; transition: opacity 0.4s; }
@@ -2826,9 +2835,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .guide-steps { display: flex; gap: 12px; justify-content: center; margin-bottom: 20px; }
         .guide-step { text-align: center; flex: 1; max-width: 120px; }
         .guide-step-num {
-            width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: var(--bg);
+            width: 36px; height: 36px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), #06d6a0);
+            color: var(--bg);
             display: inline-flex; align-items: center; justify-content: center;
             font-weight: 700; font-size: 16px; margin-bottom: 6px;
+            box-shadow: 0 0 12px rgba(77,166,255,0.25);
         }
         .guide-step-label { font-size: 12px; font-weight: 600; color: var(--text); }
         .guide-step-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
