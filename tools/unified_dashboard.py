@@ -3461,6 +3461,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
         .event-detail-text {
             font-size: 12px; color: var(--text); line-height: 1.5; opacity: 0.9;
+            max-height: 120px; overflow-y: auto;
         }
         .event-detail-text ul {
             margin: 4px 0; padding-left: 18px;
@@ -6722,6 +6723,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
         // Submit request
         document.getElementById('req-submit').onclick = async function() {
+            const btn = this;
             const dateStr = document.getElementById('req-date').value.replace(/-/g, '');
             const hour = parseInt(document.getElementById('req-hour').value);
             const fhrStart = parseInt(document.getElementById('req-fhr-start').value);
@@ -6731,6 +6733,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             if (isNaN(hour)) { showToast('Select an init hour', 'error'); return; }
             if (fhrStart > fhrEnd) { showToast('Start FHR must be <= End FHR', 'error'); return; }
 
+            btn.disabled = true;
+            const origText = btn.textContent;
+            btn.textContent = 'Requesting...';
             document.getElementById('run-request-modal').classList.remove('visible');
             const label = `${dateStr}/${String(hour).padStart(2,'0')}z F${String(fhrStart).padStart(2,'0')}-F${String(fhrEnd).padStart(2,'0')}`;
             showToast(`Requesting ${label}...`, 'success', 3000);
@@ -6749,6 +6754,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 if (pp && pp.classList.contains('collapsed')) pp.classList.remove('collapsed');
             } catch (e) {
                 showToast('Request failed', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = origText;
             }
         };
 
@@ -9741,7 +9749,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             detailPanel.classList.add('active');
 
             const content = document.getElementById('city-detail-content');
-            content.innerHTML = '<div class="loading-text">Loading profile...</div>';
+            content.innerHTML = '<div class="loading-spinner"><div class="spinner-ring"></div><div class="loading-text">Loading profile...</div></div>';
 
             try {
                 const res = await fetch(`/api/v1/cities/${key}`);
