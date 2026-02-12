@@ -75,10 +75,10 @@ The product is primarily directed at fire weather — that's why it has VPD, fir
 python restart_dashboard.py
 
 # Or manually:
-python tools/unified_dashboard.py --port 5565 --models hrrr,gfs,rrfs
+python tools/unified_dashboard.py --port 5565 --models hrrr,gfs,rrfs,nam,rap,nam_nest
 
 # Start auto-update daemon (from hrrr-maps/ directory!)
-python tools/auto_update.py --models hrrr,gfs,rrfs --hrrr-slots 6 --gfs-slots 2 --rrfs-slots 4
+python tools/auto_update.py --models hrrr,gfs,rrfs,nam,rap --hrrr-slots 6 --gfs-slots 2 --rrfs-slots 4
 ```
 
 **Important:** Always launch auto_update.py from the `hrrr-maps/` project directory, or set `XSECT_OUTPUTS_DIR` to an absolute path. The outputs directory resolves relative to the project root via `Path(__file__).parent.parent`.

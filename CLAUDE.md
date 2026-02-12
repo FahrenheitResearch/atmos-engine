@@ -52,7 +52,7 @@ python restart_dashboard.py
 python tools/unified_dashboard.py --port 5565 --models hrrr,gfs,rrfs,nam,rap,nam_nest
 
 # Start auto-update daemon (MUST run from hrrr-maps/ directory, or set XSECT_OUTPUTS_DIR)
-python tools/auto_update.py --models hrrr,gfs,rrfs --hrrr-slots 6 --gfs-slots 2 --rrfs-slots 4
+python tools/auto_update.py --models hrrr,gfs,rrfs,nam,rap --hrrr-slots 6 --gfs-slots 2 --rrfs-slots 4
 ```
 
 ## Performance Characteristics
@@ -133,7 +133,7 @@ python C:\Users\drew\hrrr-maps\restart_dashboard.py
 
 ### Restart auto-update
 ```bash
-python tools/auto_update.py --models hrrr,gfs,rrfs --hrrr-slots 6 --gfs-slots 2 --rrfs-slots 4
+python tools/auto_update.py --models hrrr,gfs,rrfs,nam,rap --hrrr-slots 6 --gfs-slots 2 --rrfs-slots 4
 ```
 
 ### Check what's loaded
