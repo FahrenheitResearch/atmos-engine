@@ -2777,10 +2777,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
         .active-product-chip { width: 12px; height: 7px; border-radius: 2px; }
         .loaded-count { font-size: 9px; color: var(--muted); opacity: 0.7; }
+        .mobile-only-setting { display: none; }
+        .settings-footer-section { margin-top: auto; }
         .settings-footer {
             font-size: 10px; color: var(--muted); text-align: center; line-height: 1.6;
             padding-top: 8px; border-top: 1px solid var(--border);
         }
+        .settings-brand { color: var(--accent); }
         .api-code {
             font-size: 10px; background: var(--bg); padding: 2px 6px; border-radius: 3px;
             color: var(--accent); flex: 1; overflow: hidden; text-overflow: ellipsis;
@@ -2826,8 +2829,15 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .event-cat-pills { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
         .mem-text { font-size: 12px; color: var(--muted); }
         .api-section { font-size: 11px; color: var(--muted); line-height: 1.5; }
+        .api-desc { margin-bottom: 4px; }
         .api-row { display: flex; gap: 4px; align-items: center; }
         .setting-hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+        .terrain-exag-row { display: flex; align-items: center; gap: 4px; }
+        .terrain-exag-row label:first-child { flex: none; }
+        .terrain-exag-label { font-size: 10px; color: var(--muted); }
+        #terrain-exag { width: 60px; }
+        #terrain-exag-label { font-size: 10px; color: var(--muted); min-width: 24px; }
+        .api-links { margin-top: 4px; font-size: 10px; }
         .ctrl-row label input[type="checkbox"] { margin-right: 4px; }
         input[type="checkbox"] {
             -webkit-appearance: none; appearance: none;
@@ -4954,18 +4964,18 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     <div class="ctrl-section-title">&#127758; Map Style</div>
                     <div class="ctrl-row">
                         <label>Basemap:</label>
-                        <select id="tile-layer-select" style="flex:1;">
+                        <select id="tile-layer-select">
                             <option value="dark">Dark</option>
                             <option value="light">Light</option>
                             <option value="satellite">Satellite</option>
                             <option value="outdoors">Outdoors</option>
                         </select>
                     </div>
-                    <div class="ctrl-row">
+                    <div class="ctrl-row terrain-exag-row">
                         <label><input type="checkbox" id="toggle-terrain-3d">3D Terrain</label>
-                        <label style="font-size:10px;color:var(--muted);">Exaggeration:</label>
-                        <input type="range" id="terrain-exag" min="1" max="3" step="0.5" value="1.5" style="width:60px;" aria-label="Terrain exaggeration">
-                        <span id="terrain-exag-label" style="font-size:10px;color:var(--muted);min-width:24px;">1.5x</span>
+                        <label class="terrain-exag-label">Exaggeration:</label>
+                        <input type="range" id="terrain-exag" min="1" max="3" step="0.5" value="1.5" aria-label="Terrain exaggeration">
+                        <span id="terrain-exag-label">1.5x</span>
                     </div>
                 </div>
                 <div class="ctrl-section">
@@ -4980,11 +4990,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <label><input type="checkbox" id="toggle-clustering" checked>Cluster markers</label>
                     </div>
                 </div>
-                <div class="ctrl-section mobile-only-setting" style="display:none;">
+                <div class="ctrl-section mobile-only-setting">
                     <div class="ctrl-section-title">&#128240; Layout</div>
                     <div class="ctrl-row">
                         <label>Menu position:</label>
-                        <select id="menu-position-select" style="flex:1;">
+                        <select id="menu-position-select">
                             <option value="bottom">Bottom</option>
                             <option value="top">Top</option>
                         </select>
@@ -4996,17 +5006,17 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <div class="ctrl-section">
                     <div class="ctrl-section-title">&#9889; API</div>
                     <div class="api-section">
-                        <div style="margin-bottom:4px;">Free REST API &mdash; no key required</div>
+                        <div class="api-desc">Free REST API &mdash; no key required</div>
                         <div class="api-row">
                             <code class="api-code">/api/v1/cross-section</code>
                             <button class="api-copy-btn" onclick="navigator.clipboard.writeText(location.origin + '/api/v1/cross-section');showToast('Copied API URL','success');">Copy</button>
                         </div>
-                        <div class="api-links" style="margin-top:4px;font-size:10px;"><a href="/api/v1/products" target="_blank">Browse products</a> &middot; <a href="/api/v1/status" target="_blank">Server status</a></div>
+                        <div class="api-links"><a href="/api/v1/products" target="_blank">Browse products</a> &middot; <a href="/api/v1/status" target="_blank">Server status</a></div>
                     </div>
                 </div>
-                <div class="ctrl-section" style="margin-top:auto;">
+                <div class="ctrl-section settings-footer-section">
                     <div class="settings-footer">
-                        <b style="color:var(--accent);">wxsection.com</b><br>
+                        <b class="settings-brand">wxsection.com</b><br>
                         6 models &middot; 21 products &middot; sub-second renders<br>
                         <span id="version-info"></span>
                     </div>
