@@ -2880,6 +2880,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             cursor: not-allowed;
             pointer-events: none;
         }
+        .btn-sm { padding: 3px 8px; font-size: 12px; }
+        .btn-xs { padding: 2px 6px; font-size: 11px; }
 
         /* ===== Layout: Icon Sidebar + Expanded Panel + Map + Bottom Panel ===== */
         #app-layout {
@@ -3004,7 +3006,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             z-index: var(--z-bottom);
             background: var(--panel);
             border-top: 1px solid var(--border);
-            transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: height var(--transition-slow) cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             flex-direction: column;
             box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
@@ -3785,7 +3787,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
         .progress-bar-fill {
             height: 100%; border-radius: 3px;
-            background: var(--accent); transition: width 0.4s ease;
+            background: var(--accent); transition: width var(--transition-slow) ease;
         }
 
         /* Color-coded progress bars by operation type */
@@ -3808,7 +3810,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             color: var(--muted); cursor: pointer; font-size: 11px;
             padding: 1px 5px; margin-left: 6px; line-height: 1;
         }
-        .cancel-op-btn:hover { color: #ef4444; border-color: #ef4444; }
+        .cancel-op-btn:hover { color: var(--danger); border-color: var(--danger); }
 
         /* Progress footer */
         .progress-footer { padding: 6px 14px; font-size: 11px; color: var(--muted); border-top: 1px solid var(--border); }
@@ -4328,7 +4330,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <select id="favorites-select" style="flex:1;">
                             <option value="">Saved Favorites</option>
                         </select>
-                        <button id="save-favorite-btn" style="padding:3px 8px;font-size:12px;">Save</button>
+                        <button id="save-favorite-btn" class="btn-sm">Save</button>
                     </div>
                 </div>
                 <div class="ctrl-section">
@@ -4394,17 +4396,17 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <div class="ctrl-section">
                     <div class="ctrl-section-title">Actions</div>
                     <div class="ctrl-row" style="flex-wrap:wrap;">
-                        <button id="swap-btn" style="padding:3px 8px;font-size:12px;" title="Swap A/B endpoints (S)" aria-label="Swap endpoints">Swap <span class="kbd-hint">S</span></button>
-                        <button id="clear-btn" style="padding:3px 8px;font-size:12px;" title="Clear cross-section line (Esc)" aria-label="Clear line">Clear <span class="kbd-hint">Esc</span></button>
-                        <button id="poi-btn" style="padding:3px 8px;font-size:12px;" title="Place POI marker (or right-click map)" aria-label="Add point of interest">+ POI</button>
-                        <button id="load-all-btn" style="padding:3px 8px;font-size:12px;" aria-label="Load all forecast hours">Load All</button>
-                        <button id="gif-btn" style="padding:3px 8px;font-size:12px;" title="Generate animated GIF of cross-section loop" aria-label="Generate GIF">GIF</button>
-                        <button id="compare-btn" style="padding:3px 8px;font-size:12px;" title="Compare two cycles side-by-side (C)" aria-label="Compare cycles">Compare <span class="kbd-hint">C</span></button>
-                        <button id="all-models-btn" style="padding:3px 8px;font-size:12px;" title="Compare this transect across all 6 models" aria-label="Compare all models">All Models</button>
-                        <button id="share-btn" style="padding:3px 8px;font-size:12px;" title="Copy shareable link to clipboard" aria-label="Share link">Share</button>
-                        <button id="save-btn" style="padding:3px 8px;font-size:12px;" title="Download cross-section as PNG" aria-label="Save image">Save</button>
-                        <button id="measure-btn" style="padding:3px 8px;font-size:12px;" title="Measure distance on map (M)" aria-label="Measure distance">Measure <span class="kbd-hint">M</span></button>
-                        <button id="help-btn" style="padding:3px 8px;font-size:12px;" title="Keyboard shortcuts and guide (?)" aria-label="Open guide">Guide <span class="kbd-hint">?</span></button>
+                        <button id="swap-btn" class="btn-sm" title="Swap A/B endpoints (S)" aria-label="Swap endpoints">Swap <span class="kbd-hint">S</span></button>
+                        <button id="clear-btn" class="btn-sm" title="Clear cross-section line (Esc)" aria-label="Clear line">Clear <span class="kbd-hint">Esc</span></button>
+                        <button id="poi-btn" class="btn-sm" title="Place POI marker (or right-click map)" aria-label="Add point of interest">+ POI</button>
+                        <button id="load-all-btn" class="btn-sm" aria-label="Load all forecast hours">Load All</button>
+                        <button id="gif-btn" class="btn-sm" title="Generate animated GIF of cross-section loop" aria-label="Generate GIF">GIF</button>
+                        <button id="compare-btn" class="btn-sm" title="Compare two cycles side-by-side (C)" aria-label="Compare cycles">Compare <span class="kbd-hint">C</span></button>
+                        <button id="all-models-btn" class="btn-sm" title="Compare this transect across all 6 models" aria-label="Compare all models">All Models</button>
+                        <button id="share-btn" class="btn-sm" title="Copy shareable link to clipboard" aria-label="Share link">Share</button>
+                        <button id="save-btn" class="btn-sm" title="Download cross-section as PNG" aria-label="Save image">Save</button>
+                        <button id="measure-btn" class="btn-sm" title="Measure distance on map (M)" aria-label="Measure distance">Measure <span class="kbd-hint">M</span></button>
+                        <button id="help-btn" class="btn-sm" title="Keyboard shortcuts and guide (?)" aria-label="Open guide">Guide <span class="kbd-hint">?</span></button>
                     </div>
                     <div class="ctrl-row">
                         <select id="gif-speed" title="GIF speed" aria-label="GIF speed" style="min-width:55px;font-size:11px;">
@@ -4424,7 +4426,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                             <option value="product">Multi-Product</option>
                             <option value="cycle">Cycle Compare</option>
                         </select>
-                        <button id="request-cycle-btn" style="padding:3px 8px;font-size:12px;">Request Run</button>
+                        <button id="request-cycle-btn" class="btn-sm">Request Run</button>
                     </div>
                 </div>
             </div>
