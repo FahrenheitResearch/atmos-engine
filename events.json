@@ -1,495 +1,2178 @@
 {
-    "20180723_12z": {
-        "name": "Carr Fire Ignition",
-        "category": "fire-ca",
-        "date_local": "2018-07-23",
-        "why": "Carr Fire ignition near Whiskeytown, CA",
-        "notes": "Ignition ~1pm PST; 12z gives 14h buildup through evening spread"
-    },
-    "20181108_00z": {
-        "name": "Camp Fire - Deadliest CA Fire",
-        "category": "fire-ca",
-        "date_local": "2018-11-08",
-        "why": "Camp Fire ignition and destruction of Paradise, CA",
-        "notes": "Morning ignition; 85 dead, town destroyed in hours"
-    },
-    "20200817_12z": {
-        "name": "CA Lightning Siege - Outbreak",
-        "category": "fire-ca",
-        "date_local": "2020-08-17",
-        "why": "CA lightning outbreak / start of Aug 2020 lightning siege",
-        "notes": "Widespread ignitions Aug 16-17; afternoon/evening spread"
-    },
-    "20200818_12z": {
-        "name": "CA Lightning Siege - Expansion",
-        "category": "fire-ca",
-        "date_local": "2020-08-18",
-        "why": "CA lightning-siege rapid expansion day",
-        "notes": "Wind/behavior shift drove major growth in multiple complexes"
-    },
-    "20200906_12z": {
-        "name": "Creek Fire Explosive Growth",
-        "category": "fire-ca",
-        "date_local": "2020-09-06",
-        "why": "Creek Fire explosive growth / pyroCb period",
-        "notes": "Strongest runs late Sep 5-Sep 7; afternoon-evening critical"
-    },
-    "20200907_18z": {
-        "name": "PNW Labor Day Windstorm Onset",
-        "category": "fire-pnw",
-        "date_local": "2020-09-07",
-        "why": "Pacific NW Labor Day windstorm onset",
-        "notes": "Strongest winds evening/night; fires ignited/spread rapidly"
-    },
-    "20200908_00z": {
-        "name": "PNW Windstorm - Catastrophic Spread",
-        "category": "fire-pnw",
-        "date_local": "2020-09-08",
-        "why": "Pacific NW windstorm continuation / catastrophic spread",
-        "notes": "Peak impacts daytime into evening"
-    },
-    "20200927_00z": {
-        "name": "Glass Fire - Diablo Winds",
-        "category": "fire-ca",
-        "date_local": "2020-09-27",
-        "why": "NorCal Diablo-wind critical fire weather (Glass Fire start)",
-        "notes": "Overnight to morning wind-driven spread"
-    },
-    "20201021_12z": {
-        "name": "East Troublesome Blowup",
-        "category": "fire-co",
-        "date_local": "2020-10-21",
-        "why": "CO wind-driven blowup conditions (East Troublesome)",
-        "notes": "Peak late morning to afternoon"
-    },
-    "20201026_00z": {
-        "name": "SoCal Santa Ana - Silverado/Blue Ridge",
-        "category": "fire-ca",
-        "date_local": "2020-10-26",
-        "why": "SoCal Santa Ana extreme winds (Silverado/Blue Ridge)",
-        "notes": "Peak overnight to morning into midday"
-    },
-    "20210629_12z": {
-        "name": "PNW Heat Dome Peak",
-        "category": "other",
-        "date_local": "2021-06-29",
-        "why": "Pacific NW heat dome peak (extreme heat/dryness)",
-        "notes": "Peak afternoon/evening"
-    },
-    "20210804_12z": {
-        "name": "Dixie Fire - Greenville Run",
-        "category": "fire-ca",
-        "date_local": "2021-08-04",
-        "why": "Dixie Fire major run into Greenville",
-        "notes": "Peak late afternoon/evening"
-    },
-    "20211230_06z": {
-        "name": "Marshall Fire Windstorm",
-        "category": "fire-co",
-        "date_local": "2021-12-30",
-        "why": "Marshall Fire downslope windstorm",
-        "notes": "Winds developed mid-morning; extreme midday gusts"
-    },
-    "20220422_12z": {
-        "name": "Hermits Peak/Calf Canyon",
-        "category": "fire-sw",
-        "date_local": "2022-04-22",
-        "why": "Hermits Peak/Calf Canyon extreme fire weather day",
-        "notes": "Strong winds/low RH; rapid spread"
-    },
-    "20220906_12z": {
-        "name": "CA Heat Wave + Mosquito Fire",
-        "category": "fire-ca",
-        "date_local": "2022-09-06",
-        "why": "CA extreme heat wave + Mosquito Fire start",
-        "notes": "Peak heat/low RH afternoon; ignition early evening"
-    },
-    "20220909_18z": {
-        "name": "Cedar Creek East-Wind Event",
-        "category": "fire-pnw",
-        "date_local": "2022-09-09",
-        "why": "OR east-wind Red Flag day (Cedar Creek)",
-        "notes": "Winds increase Fri AM + surge again Fri evening"
-    },
-    "20240226_12z": {
-        "name": "Smokehouse Creek Ignition",
-        "category": "fire-sw",
-        "date_local": "2024-02-26",
-        "why": "TX Panhandle wind-driven outbreak (Smokehouse Creek ignition)",
-        "notes": "Strongest spread afternoon/evening"
-    },
-    "20240227_12z": {
-        "name": "Smokehouse Creek Day 2",
-        "category": "fire-sw",
-        "date_local": "2024-02-27",
-        "why": "TX Panhandle continued wind-driven growth",
-        "notes": "Rapid expansion continued daytime"
-    },
-    "20240725_12z": {
-        "name": "Park Fire First Burn Period",
-        "category": "fire-ca",
-        "date_local": "2024-07-25",
-        "why": "Park Fire first full burn period after ignition",
-        "notes": "Large growth driven by heat/dry + winds"
-    },
-    "20250107_00z": {
-        "name": "LA Santa Ana Outbreak (Palisades/Eaton)",
-        "category": "fire-ca",
-        "date_local": "2025-01-07",
-        "why": "LA-area Santa Ana outbreak (Palisades/Eaton etc. starting Jan 7-9)",
-        "notes": "Peak morning to daytime winds"
-    },
-    "20250107_18z": {
-        "name": "Eaton Fire Onset",
-        "category": "fire-ca",
-        "date_local": "2025-01-07",
-        "why": "Eaton Fire ignition and rapid spread during Santa Ana event",
-        "notes": "Evening ignition; wind-driven growth overnight"
-    },
-    "20250702_18z": {
-        "name": "Madre Fire Explosive Growth",
-        "category": "fire-ca",
-        "date_local": "2025-07-02",
-        "why": "Madre Fire onset + explosive growth into July 3",
-        "notes": "Ignition early afternoon; huge growth overnight to next morning"
-    },
-    "20250801_18z": {
-        "name": "Gifford Fire Ignition",
-        "category": "fire-ca",
-        "date_local": "2025-08-01",
-        "why": "Gifford Fire ignition (large 2025 CA fire)",
-        "notes": "Ignition afternoon; growth into overnight"
-    },
-
-    "20200826_18z": {
-        "name": "Hurricane Laura Cat 4",
-        "category": "hurricane",
-        "notes": "150mph, Cameron LA landfall"
-    },
-    "20200916_00z": {
-        "name": "Hurricane Sally Cat 2",
-        "category": "hurricane",
-        "notes": "Stalled, 30in rain Gulf Coast"
-    },
-    "20201009_12z": {
-        "name": "Hurricane Delta Cat 2",
-        "category": "hurricane",
-        "notes": "Same area as Laura, 6 weeks later"
-    },
-    "20201028_12z": {
-        "name": "Hurricane Zeta Cat 3",
-        "category": "hurricane",
-        "notes": "Fast mover across Gulf Coast"
-    },
-    "20201108_18z": {
-        "name": "Tropical Storm Eta",
-        "category": "hurricane",
-        "notes": "12th US landfall of 2020 season"
-    },
-    "20210829_06z": {
-        "name": "Hurricane Ida Cat 4",
-        "category": "hurricane",
-        "notes": "150mph, Katrina anniversary, catastrophic LA damage"
-    },
-    "20210913_18z": {
-        "name": "Hurricane Nicholas Cat 1",
-        "category": "hurricane",
-        "notes": "Houston-area heavy rain event"
-    },
-    "20220928_12z": {
-        "name": "Hurricane Ian Cat 4",
-        "category": "hurricane",
-        "notes": "$110B damage, near-Cat 5 at FL landfall"
-    },
-    "20221110_00z": {
-        "name": "Hurricane Nicole Cat 1",
-        "category": "hurricane",
-        "notes": "Rare November hurricane, FL east coast"
-    },
-    "20230830_00z": {
-        "name": "Hurricane Idalia Cat 3",
-        "category": "hurricane",
-        "notes": "Rapid intensification, Big Bend FL"
-    },
-    "20230916_06z": {
-        "name": "Hurricane Lee Post-Tropical",
-        "category": "hurricane",
-        "notes": "Maine near-miss, large wind field"
-    },
-    "20240708_00z": {
-        "name": "Hurricane Beryl Cat 1",
-        "category": "hurricane",
-        "notes": "Earliest Cat 5 in Atlantic history, TX landfall"
-    },
-    "20240805_00z": {
-        "name": "Hurricane Debby Cat 1",
-        "category": "hurricane",
-        "notes": "Stalled, 20-30in rain SC"
-    },
-    "20240926_18z": {
-        "name": "Hurricane Helene Cat 4",
-        "category": "hurricane",
-        "notes": "Catastrophic NC inland flooding"
-    },
-    "20241009_12z": {
-        "name": "Hurricane Milton Cat 3",
-        "category": "hurricane",
-        "notes": "Extreme rapid intensification to Cat 5"
-    },
-
-    "20200303_03z": {
-        "name": "Nashville TN EF3/EF4",
-        "category": "tornado",
-        "notes": "Nocturnal, 25 dead"
-    },
-    "20200412_18z": {
-        "name": "Easter 2020 Outbreak",
-        "category": "tornado",
-        "notes": "141 tornadoes, Bassfield EF4"
-    },
-    "20210126_02z": {
-        "name": "Fultondale AL EF3",
-        "category": "tornado",
-        "notes": "Nocturnal, 150mph"
-    },
-    "20210325_15z": {
-        "name": "Birmingham/Eagle Point AL EF3",
-        "category": "tornado",
-        "notes": "80mi track"
-    },
-    "20210327_01z": {
-        "name": "Newnan GA EF4",
-        "category": "tornado",
-        "notes": "Nocturnal, 170mph"
-    },
-    "20211211_00z": {
-        "name": "Quad-State Mayfield KY EF4",
-        "category": "tornado",
-        "notes": "250mi track, 57 dead"
-    },
-    "20211210_23z": {
-        "name": "Edwardsville IL Amazon EF3",
-        "category": "tornado",
-        "notes": "6 dead, warehouse collapse"
-    },
-    "20220305_18z": {
-        "name": "Winterset IA EF4",
-        "category": "tornado",
-        "notes": "70mi track, QLCS transition"
-    },
-    "20220429_22z": {
-        "name": "Andover KS EF3",
-        "category": "tornado",
-        "notes": "155mph, 0 fatalities"
-    },
-    "20230324_22z": {
-        "name": "Rolling Fork MS EF4",
-        "category": "tornado",
-        "notes": "195mph, 17 dead"
-    },
-    "20230621_22z": {
-        "name": "Matador TX EF3",
-        "category": "tornado",
-        "notes": "Small town devastated"
-    },
-    "20231209_15z": {
-        "name": "Dec 2023 TN Outbreak",
-        "category": "tornado",
-        "notes": "39 tornadoes, EF3 Clarksville"
-    },
-    "20240426_18z": {
-        "name": "Elkhorn-Blair NE EF4",
-        "category": "tornado",
-        "notes": "Omaha metro, 170mph"
-    },
-    "20240428_01z": {
-        "name": "Sulphur/Marietta OK EF3-EF4",
-        "category": "tornado",
-        "notes": "First OK violent tornado in 8yr"
-    },
-    "20240506_23z": {
-        "name": "Barnsdall OK EF4",
-        "category": "tornado",
-        "notes": "180mph, 40mi track"
-    },
-    "20240521_17z": {
-        "name": "Greenfield IA EF4",
-        "category": "tornado",
-        "notes": "DOW 309-318mph, 5 dead"
-    },
-    "20240526_00z": {
-        "name": "Valley View TX EF3",
-        "category": "tornado",
-        "notes": "Nocturnal, I-35, 7 dead"
-    },
-    "20250315_14z": {
-        "name": "Kentwood-Carson LA/MS EF4",
-        "category": "tornado",
-        "notes": "67mi track, 6 dead"
-    },
-    "20250516_17z": {
-        "name": "St. Louis MO EF3",
-        "category": "tornado",
-        "notes": "Urban, $1.6B, first since 1959"
-    },
-    "20250517_01z": {
-        "name": "Somerset-London KY EF4",
-        "category": "tornado",
-        "notes": "60mi track, 19 dead"
-    },
-
-    "20200810_12z": {
-        "name": "Iowa Derecho",
-        "category": "derecho",
-        "notes": "$11B, 140mph, costliest thunderstorm ever"
-    },
-    "20211215_18z": {
-        "name": "December Midwest Derecho",
-        "category": "derecho",
-        "notes": "First-ever December derecho"
-    },
-    "20220512_16z": {
-        "name": "May SD Derecho",
-        "category": "derecho",
-        "notes": "107mph, haboob"
-    },
-    "20220613_18z": {
-        "name": "Ohio Valley Derecho",
-        "category": "derecho",
-        "notes": "98mph Ft Wayne record"
-    },
-    "20230629_12z": {
-        "name": "June Midwest Derecho",
-        "category": "derecho",
-        "notes": "600mi path, 100mph IL"
-    },
-    "20240516_18z": {
-        "name": "Houston Derecho",
-        "category": "derecho",
-        "notes": "100mph downtown, 8 dead"
-    },
-    "20240715_18z": {
-        "name": "July Chicago Derecho",
-        "category": "derecho",
-        "notes": "32 tornadoes, 105mph"
-    },
-    "20250429_17z": {
-        "name": "Pennsylvania Derecho",
-        "category": "derecho",
-        "notes": "120mph, 700mi path"
-    },
-    "20250620_18z": {
-        "name": "N Plains Derecho + Enderlin EF5",
-        "category": "derecho",
-        "notes": "First EF5 since 2013"
-    },
-    "20250728_18z": {
-        "name": "July N Plains Derecho",
-        "category": "derecho",
-        "notes": "99mph Sioux Center"
-    },
-    "20241119_12z": {
-        "name": "PNW Bomb Cyclone",
-        "category": "derecho",
-        "notes": "942mb, 85mph, 600K outages"
-    },
-
-    "20210428_18z": {
-        "name": "Hondo TX Record Hail 6.42in",
-        "category": "hail",
-        "notes": "$1.4B damage"
-    },
-    "20230621_18z": {
-        "name": "Red Rocks CO Hail + 36 Tornadoes",
-        "category": "hail",
-        "notes": "CO tornado record day"
-    },
-    "20240314_18z": {
-        "name": "DFW Hailstorm",
-        "category": "hail",
-        "notes": "Record 106 reports of 2in+"
-    },
-    "20240528_18z": {
-        "name": "South Plains DVD-Size Hail",
-        "category": "hail",
-        "notes": "4-5in Lubbock area"
-    },
-    "20240531_00z": {
-        "name": "Denver Midnight Hail",
-        "category": "hail",
-        "notes": "$1B+, nocturnal"
-    },
-    "20240602_18z": {
-        "name": "Vigo Park TX 7in Hail",
-        "category": "hail",
-        "notes": "Possible state record"
-    },
-    "20250526_18z": {
-        "name": "Menard TX 5.87in Hail",
-        "category": "hail",
-        "notes": "Near-record"
-    },
-
-    "20211114_00z": {
-        "name": "PNW Atmospheric River",
-        "category": "ar",
-        "notes": "Coquihalla Hwy collapse, WA/BC emergency"
-    },
-    "20230104_12z": {
-        "name": "CA AR Strongest Storm",
-        "category": "ar",
-        "notes": "100mph Tahoe, 9 consecutive ARs"
-    },
-    "20230109_00z": {
-        "name": "CA AR Peak Flooding",
-        "category": "ar",
-        "notes": "IVT 750-1000, Montecito evac"
-    },
-    "20240204_06z": {
-        "name": "Pineapple Express LA",
-        "category": "ar",
-        "notes": "Wettest LA day since 2003"
-    },
-    "20251210_12z": {
-        "name": "PNW Mega-AR Cat 5",
-        "category": "ar",
-        "notes": "All-time flood records"
-    },
-
-    "20210215_12z": {
-        "name": "Winter Storm Uri",
-        "category": "winter",
-        "notes": "TX grid near-collapse, 246 dead"
-    },
-    "20221118_00z": {
-        "name": "Buffalo Lake Effect 81in",
-        "category": "winter",
-        "notes": "66in in one day"
-    },
-    "20221223_06z": {
-        "name": "Winter Storm Elliott",
-        "category": "winter",
-        "notes": "Bomb cyclone, 47 dead Buffalo"
-    },
-    "20250121_06z": {
-        "name": "Gulf Coast Blizzard Enzo",
-        "category": "winter",
-        "notes": "8in snow New Orleans"
-    },
-    "20241107_00z": {
-        "name": "Colorado Blizzard",
-        "category": "winter",
-        "notes": "42in SE CO, 90hr snow"
-    },
-
-    "20210628_12z": {
-        "name": "PNW Heat Dome",
-        "category": "other",
-        "notes": "Portland 116F, 1400 dead"
-    },
-    "20250704_00z": {
-        "name": "TX MCV Flooding",
-        "category": "other",
-        "notes": "Guadalupe R 26ft in 45min, 135 dead"
-    }
+  "20180723_12z": {
+    "name": "Carr Fire Ignition",
+    "category": "fire-ca",
+    "date_local": "2018-07-23",
+    "why": "Carr Fire ignition near Whiskeytown, CA",
+    "notes": "Ignition ~1pm PST; 12z gives 14h buildup through evening spread",
+    "coordinates": {
+      "suggested_sections": [
+        {
+          "label": "W-E through Sacramento River Canyon wind corridor",
+          "start": [
+            40.64,
+            -123.3
+          ],
+          "end": [
+            40.64,
+            -121.9
+          ],
+          "products": [
+            "wind_speed",
+            "fire_wx",
+            "rh"
+          ],
+          "best_fhr": 10
+        },
+        {
+          "label": "N-S across fire spread axis toward Redding",
+          "start": [
+            41.1,
+            -122.4
+          ],
+          "end": [
+            40.2,
+            -122.8
+          ],
+          "products": [
+            "temperature",
+            "vpd",
+            "smoke"
+          ],
+          "best_fhr": 12
+        },
+        {
+          "label": "SW-NE through canyon channeling and terrain acceleration",
+          "start": [
+            40.3,
+            -123.0
+          ],
+          "end": [
+            41.0,
+            -122.2
+          ],
+          "products": [
+            "omega",
+            "wind_speed",
+            "fire_wx"
+          ],
+          "best_fhr": 14
+        }
+      ],
+      "center": [
+        40.64,
+        -122.6
+      ]
+    },
+    "hero_product": "wind_speed",
+    "quad_products": [
+      "wind_speed",
+      "fire_wx",
+      "rh",
+      "vpd"
+    ],
+    "hero_fhr": 11,
+    "essential_fhrs": [
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14
+    ]
+  },
+  "20181108_00z": {
+    "name": "Camp Fire - Deadliest CA Fire",
+    "category": "fire-ca",
+    "date_local": "2018-11-08",
+    "why": "Camp Fire ignition and destruction of Paradise, CA",
+    "notes": "Morning ignition; 85 dead, town destroyed in hours",
+    "coordinates": {
+      "suggested_sections": [
+        {
+          "label": "NE-SW through Feather River Canyon Jarbo Gap wind corridor",
+          "start": [
+            40.2,
+            -121.0
+          ],
+          "end": [
+            39.4,
+            -121.9
+          ],
+          "products": [
+            "wind_speed",
+            "fire_wx",
+            "rh"
+          ],
+          "best_fhr": 15
+        },
+        {
+          "label": "N-S through Paradise showing terrain-driven wind descent",
+          "start": [
+            40.1,
+            -121.6
+          ],
+          "end": [
+            39.5,
+            -121.6
+          ],
+          "products": [
+            "temperature",
+            "wind_speed",
+            "omega"
+          ],
+          "best_fhr": 16
+        },
+        {
+          "label": "W-E across Sierra foothills capturing downslope acceleration",
+          "start": [
+            39.8,
+            -122.2
+          ],
+          "end": [
+            39.8,
+            -120.7
+          ],
+          "products": [
+            "wind_speed",
+            "vpd",
+            "dewpoint_dep"
+          ],
+          "best_fhr": 14
+        }
+      ],
+      "center": [
+        39.8,
+        -121.45
+      ]
+    },
+    "hero_product": "wind_speed",
+    "quad_products": [
+      "wind_speed",
+      "fire_wx",
+      "rh",
+      "vpd"
+    ],
+    "hero_fhr": 16,
+    "essential_fhrs": [
+      14,
+      15,
+      16,
+      17,
+      18
+    ]
+  },
+  "20200817_12z": {
+    "name": "CA Lightning Siege - Outbreak",
+    "category": "fire-ca",
+    "date_local": "2020-08-17",
+    "why": "CA lightning outbreak / start of Aug 2020 lightning siege",
+    "notes": "Widespread ignitions Aug 16-17; afternoon/evening spread",
+    "coordinates": {
+      "suggested_sections": [
+        {
+          "label": "S-N through Bay Area/Napa lightning corridor (LNU Complex)",
+          "start": [
+            37.5,
+            -122.3
+          ],
+          "end": [
+            39.5,
+            -122.3
+          ],
+          "products": [
+            "theta_e",
+            "omega",
+            "rh"
+          ],
+          "best_fhr": 4
+        },
+        {
+          "label": "SW-NE moisture plume from Tropical Storm Fausto remnants",
+          "start": [
+            35.5,
+            -124.0
+          ],
+          "end": [
+            40.0,
+            -120.0
+          ],
+          "products": [
+            "moisture_transport",
+            "omega",
+            "cloud_total"
+          ],
+          "best_fhr": 2
+        },
+        {
+          "label": "W-E through SCU Complex area across Central Valley to Sierra foothills",
+          "start": [
+            37.4,
+            -122.8
+          ],
+          "end": [
+            37.4,
+            -120.5
+          ],
+          "products": [
+            "temperature",
+            "fire_wx",
+            "vpd"
+          ],
+          "best_fhr": 6
+        }
+      ],
+      "center": [
+        38.5,
+        -122.3
+      ]
+    },
+    "hero_product": "theta_e",
+    "quad_products": [
+      "theta_e",
+      "omega",
+      "rh",
+      "temperature"
+    ],
+    "hero_fhr": 4,
+    "essential_fhrs": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ]
+  },
+  "20200818_12z": {
+    "name": "CA Lightning Siege - Expansion",
+    "category": "fire-ca",
+    "date_local": "2020-08-18",
+    "why": "CA lightning-siege rapid expansion day",
+    "notes": "Wind/behavior shift drove major growth in multiple complexes",
+    "coordinates": {
+      "suggested_sections": [
+        {
+          "label": "W-E through LNU Complex Napa/Sonoma fire zone",
+          "start": [
+            38.5,
+            -123.0
+          ],
+          "end": [
+            38.5,
+            -121.0
+          ],
+          "products": [
+            "wind_speed",
+            "fire_wx",
+            "smoke"
+          ],
+          "best_fhr": 8
+        },
+        {
+          "label": "N-S through multiple complexes (LNU to SCU corridor)",
+          "start": [
+            39.0,
+            -121.8
+          ],
+          "end": [
+            37.2,
+            -121.8
+          ],
+          "products": [
+            "rh",
+            "temperature",
+            "vpd"
+          ],
+          "best_fhr": 10
+        },
+        {
+          "label": "SW-NE through CZU/Santa Cruz Mtns into Central Valley smoke plume",
+          "start": [
+            37.0,
+            -122.5
+          ],
+          "end": [
+            38.0,
+            -121.0
+          ],
+          "products": [
+            "smoke",
+            "omega",
+            "wind_speed"
+          ],
+          "best_fhr": 12
+        }
+      ],
+      "center": [
+        38.5,
+        -122.0
+      ]
+    },
+    "hero_product": "fire_wx",
+    "quad_products": [
+      "fire_wx",
+      "wind_speed",
+      "rh",
+      "smoke"
+    ],
+    "hero_fhr": 10,
+    "essential_fhrs": [
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14
+    ]
+  },
+  "20200906_12z": {
+    "name": "Creek Fire Explosive Growth",
+    "category": "fire-ca",
+    "date_local": "2020-09-06",
+    "why": "Creek Fire explosive growth / pyroCb period",
+    "notes": "Strongest runs late Sep 5-Sep 7; afternoon-evening critical",
+    "coordinates": {
+      "suggested_sections": [
+        {
+          "label": "W-E through Sierra fire zone capturing pyroCb convection",
+          "start": [
+            37.2,
+            -120.0
+          ],
+          "end": [
+            37.2,
+            -118.6
+          ],
+          "products": [
+            "smoke",
+            "omega",
+            "wind_speed"
+          ],
+          "best_fhr": 10
+        },
+        {
+          "label": "SW-NE pyroCb transect through San Joaquin drainage",
+          "start": [
+            36.8,
+            -119.8
+          ],
+          "end": [
+            37.6,
+            -118.8
+          ],
+          "products": [
+            "omega",
+            "cloud_total",
+            "theta_e"
+          ],
+          "best_fhr": 12
+        },
+        {
+          "label": "S-N along Sierra crest through Big Creek fire progression",
+          "start": [
+            36.6,
+            -119.3
+          ],
+          "end": [
+            37.8,
+            -119.3
+          ],
+          "products": [
+            "fire_wx",
+            "rh",
+            "vpd"
+          ],
+          "best_fhr": 11
+        }
+      ],
+      "center": [
+        37.2,
+        -119.3
+      ]
+    },
+    "hero_product": "smoke",
+    "quad_products": [
+      "smoke",
+      "omega",
+      "wind_speed",
+      "fire_wx"
+    ],
+    "hero_fhr": 12,
+    "essential_fhrs": [
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16
+    ]
+  },
+  "20200907_18z": {
+    "name": "PNW Labor Day Windstorm Onset",
+    "category": "fire-pnw",
+    "date_local": "2020-09-07",
+    "why": "Pacific NW Labor Day windstorm onset",
+    "notes": "Strongest winds evening/night; fires ignited/spread rapidly",
+    "coordinates": {
+      "suggested_sections": [
+        {
+          "label": "W-E Cascades downslope through Santiam Canyon",
+          "start": [
+            44.7,
+            -121.0
+          ],
+          "end": [
+            44.7,
+            -123.5
+          ],
+          "products": [
+            "wind_speed",
+            "fire_wx",
+            "omega"
+          ],
+          "best_fhr": 8
+        },
+        {
+          "label": "W-E Columbia Gorge gap wind transect",
+          "start": [
+            45.6,
+            -120.5
+          ],
+          "end": [
+            45.6,
+            -123.0
+          ],
+          "products": [
+            "wind_speed",
+            "rh",
+            "temperature"
+          ],
+          "best_fhr": 9
+        },
+        {
+          "label": "N-S through western OR fire complex (Portland to Medford)",
+          "start": [
+            45.8,
+            -122.5
+          ],
+          "end": [
+            42.5,
+            -122.5
+          ],
+          "products": [
+            "wind_speed",
+            "fire_wx",
+            "vpd"
+          ],
+          "best_fhr": 8
+        }
+      ],
+      "center": [
+        44.7,
+        -122.25
+      ]
+    },
+    "hero_product": "wind_speed",
+    "quad_products": [
+      "wind_speed",
+      "fire_wx",
+      "rh",
+      "vpd"
+    ],
+    "hero_fhr": 9,
+    "essential_fhrs": [
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ]
+  },
+  "20200908_00z": {
+    "name": "PNW Windstorm - Catastrophic Spread",
+    "category": "fire-pnw",
+    "date_local": "2020-09-08",
+    "why": "Pacific NW windstorm continuation / catastrophic spread",
+    "notes": "Peak impacts daytime into evening",
+    "coordinates": {
+      "suggested_sections": [
+        {
+          "label": "E-W Cascades downslope winds (Santiam transect)",
+          "start": [
+            44.75,
+            -121.0
+          ],
+          "end": [
+            44.75,
+            -123.5
+          ],
+          "products": [
+            "wind_speed",
+            "fire_wx",
+            "omega"
+          ],
+          "best_fhr": 12
+        },
+        {
+          "label": "N-S through OR fire corridor (Columbia to Rogue)",
+          "start": [
+            46.0,
+            -122.3
+          ],
+          "end": [
+            42.0,
+            -122.3
+          ],
+          "products": [
+            "wind_speed",
+            "smoke",
+            "temperature"
+          ],
+          "best_fhr": 14
+        },
+        {
+          "label": "W-E Rogue Valley transect (Alameda fire zone)",
+          "start": [
+            42.4,
+            -123.5
+          ],
+          "end": [
+            42.4,
+            -121.5
+          ],
+          "products": [
+            "fire_wx",
+            "rh",
+            "vpd"
+          ],
+          "best_fhr": 10
+        }
+      ],
+      "center": [
+        44.75,
+        -122.25
+      ]
+    },
+    "hero_product": "wind_speed",
+    "quad_products": [
+      "wind_speed",
+      "fire_wx",
+      "rh",
+      "smoke"
+    ],
+    "hero_fhr": 12,
+    "essential_fhrs": [
+      6,
+      8,
+      10,
+      12,
+      14,
+      16,
+      18
+    ]
+  },
+  "20200927_00z": {
+    "name": "Glass Fire - Diablo Winds",
+    "category": "fire-ca",
+    "date_local": "2020-09-27",
+    "why": "NorCal Diablo-wind critical fire weather (Glass Fire start)",
+    "notes": "Overnight to morning wind-driven spread",
+    "coordinates": {
+      "suggested_sections": [
+        {
+          "label": "NE-SW through Diablo wind corridor into Napa Valley",
+          "start": [
+            39.0,
+            -121.8
+          ],
+          "end": [
+            38.1,
+            -123.1
+          ],
+          "products": [
+            "wind_speed",
+            "fire_wx",
+            "rh"
+          ],
+          "best_fhr": 12
+        },
+        {
+          "label": "W-E across Coast Range gap channeling into Napa/Sonoma",
+          "start": [
+            38.56,
+            -123.3
+          ],
+          "end": [
+            38.56,
+            -121.6
+          ],
+          "products": [
+            "wind_speed",
+            "omega",
+            "vpd"
+          ],
+          "best_fhr": 14
+        },
+        {
+          "label": "N-S through Napa Valley fire progression (Calistoga to Sonoma)",
+          "start": [
+            38.9,
+            -122.5
+          ],
+          "end": [
+            38.2,
+            -122.5
+          ],
+          "products": [
+            "temperature",
+            "dewpoint_dep",
+            "smoke"
+          ],
+          "best_fhr": 16
+        }
+      ],
+      "center": [
+        38.55,
+        -122.44999999999999
+      ]
+    },
+    "hero_product": "wind_speed",
+    "quad_products": [
+      "wind_speed",
+      "fire_wx",
+      "rh",
+      "vpd"
+    ],
+    "hero_fhr": 14,
+    "essential_fhrs": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18
+    ]
+  },
+  "20201021_12z": {
+    "name": "East Troublesome Blowup",
+    "category": "fire-co",
+    "date_local": "2020-10-21",
+    "why": "CO wind-driven blowup conditions (East Troublesome)",
+    "notes": "Peak late morning to afternoon",
+    "coordinates": {
+      "suggested_sections": [
+        {
+          "label": "W-E downslope through fire zone (Gore Range to Front Range plains)",
+          "start": [
+            40.15,
+            -107.0
+          ],
+          "end": [
+            40.15,
+            -104.8
+          ],
+          "products": [
+            "wind_speed",
+            "fire_wx",
+            "omega"
+          ],
+          "best_fhr": 12
+        },
+        {
+          "label": "SW-NE Continental Divide transect (Leadville to Ft Collins)",
+          "start": [
+            39.3,
+            -107.0
+          ],
+          "end": [
+            40.8,
+            -105.0
+          ],
+          "products": [
+            "wind_speed",
+            "rh",
+            "vpd"
+          ],
+          "best_fhr": 14
+        },
+        {
+          "label": "N-S through Front Range fire corridor (WY border to Denver)",
+          "start": [
+            41.0,
+            -105.8
+          ],
+          "end": [
+            39.0,
+            -105.8
+          ],
+          "products": [
+            "fire_wx",
+            "smoke",
+            "omega"
+          ],
+          "best_fhr": 10
+        }
+      ],
+      "center": [
+        40.15,
+        -105.9
+      ]
+    },
+    "hero_product": "wind_speed",
+    "quad_products": [
+      "wind_speed",
+      "fire_wx",
+      "rh",
+      "vpd"
+    ],
+    "hero_fhr": 12,
+    "essential_fhrs": [
+      6,
+      8,
+      10,
+      12,
+      14,
+      16,
+      18
+    ]
+  },
+  "20201026_00z": {
+    "name": "SoCal Santa Ana - Silverado/Blue Ridge",
+    "category": "fire-ca",
+    "date_local": "2020-10-26",
+    "why": "SoCal Santa Ana extreme winds (Silverado/Blue Ridge)",
+    "notes": "Peak overnight to morning into midday",
+    "coordinates": {
+      "suggested_sections": [
+        {
+          "label": "NE-SW through Santiago Canyon Santa Ana wind corridor",
+          "start": [
+            34.1,
+            -117.1
+          ],
+          "end": [
+            33.4,
+            -118.2
+          ],
+          "products": [
+            "wind_speed",
+            "fire_wx",
+            "rh"
+          ],
+          "best_fhr": 16
+        },
+        {
+          "label": "W-E across Santa Ana Mountains terrain gap channeling",
+          "start": [
+            33.74,
+            -118.3
+          ],
+          "end": [
+            33.74,
+            -117.0
+          ],
+          "products": [
+            "wind_speed",
+            "omega",
+            "vpd"
+          ],
+          "best_fhr": 18
+        },
+        {
+          "label": "N-S from high desert through Santa Ana Canyon to coast",
+          "start": [
+            34.2,
+            -117.5
+          ],
+          "end": [
+            33.3,
+            -117.8
+          ],
+          "products": [
+            "temperature",
+            "dewpoint_dep",
+            "fire_wx"
+          ],
+          "best_fhr": 15
+        }
+      ],
+      "center": [
+        33.75,
+        -117.65
+      ]
+    },
+    "hero_product": "wind_speed",
+    "quad_products": [
+      "wind_speed",
+      "fire_wx",
+      "rh",
+      "vpd"
+    ],
+    "hero_fhr": 18,
+    "essential_fhrs": [
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22
+    ]
+  },
+  "20210629_12z": {
+    "name": "PNW Heat Dome Peak",
+    "category": "other",
+    "date_local": "2021-06-29",
+    "why": "Pacific NW heat dome peak (extreme heat/dryness)",
+    "notes": "Peak afternoon/evening"
+  },
+  "20210804_12z": {
+    "name": "Dixie Fire - Greenville Run",
+    "category": "fire-ca",
+    "date_local": "2021-08-04",
+    "why": "Dixie Fire major run into Greenville",
+    "notes": "Peak late afternoon/evening",
+    "coordinates": {
+      "suggested_sections": [
+        {
+          "label": "SW-NE through Indian Valley wind channeling into Greenville",
+          "start": [
+            39.8,
+            -121.4
+          ],
+          "end": [
+            40.5,
+            -120.5
+          ],
+          "products": [
+            "wind_speed",
+            "fire_wx",
+            "rh"
+          ],
+          "best_fhr": 12
+        },
+        {
+          "label": "W-E across northern Sierra terrain and fire perimeter",
+          "start": [
+            40.14,
+            -121.8
+          ],
+          "end": [
+            40.14,
+            -120.1
+          ],
+          "products": [
+            "temperature",
+            "vpd",
+            "omega"
+          ],
+          "best_fhr": 14
+        },
+        {
+          "label": "N-S through Dixie Fire active progression corridor",
+          "start": [
+            40.6,
+            -121.0
+          ],
+          "end": [
+            39.7,
+            -121.0
+          ],
+          "products": [
+            "smoke",
+            "wind_speed",
+            "fire_wx"
+          ],
+          "best_fhr": 10
+        }
+      ],
+      "center": [
+        40.15,
+        -120.95
+      ]
+    },
+    "hero_product": "wind_speed",
+    "quad_products": [
+      "wind_speed",
+      "fire_wx",
+      "rh",
+      "vpd"
+    ],
+    "hero_fhr": 12,
+    "essential_fhrs": [
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16
+    ]
+  },
+  "20211230_06z": {
+    "name": "Marshall Fire Windstorm",
+    "category": "fire-co",
+    "date_local": "2021-12-30",
+    "why": "Marshall Fire downslope windstorm",
+    "notes": "Winds developed mid-morning; extreme midday gusts",
+    "coordinates": {
+      "suggested_sections": [
+        {
+          "label": "W-E downslope mountain wave (Continental Divide to eastern plains)",
+          "start": [
+            39.95,
+            -106.3
+          ],
+          "end": [
+            39.95,
+            -104.1
+          ],
+          "products": [
+            "wind_speed",
+            "fire_wx",
+            "omega"
+          ],
+          "best_fhr": 12
+        },
+        {
+          "label": "NW-SE foothills to plains (Estes Park to Castle Rock)",
+          "start": [
+            40.7,
+            -106.0
+          ],
+          "end": [
+            39.2,
+            -104.3
+          ],
+          "products": [
+            "wind_speed",
+            "temperature",
+            "rh"
+          ],
+          "best_fhr": 13
+        },
+        {
+          "label": "N-S along Front Range foothills wind corridor (Cheyenne to CO Springs)",
+          "start": [
+            41.0,
+            -105.2
+          ],
+          "end": [
+            38.8,
+            -104.9
+          ],
+          "products": [
+            "wind_speed",
+            "omega",
+            "vpd"
+          ],
+          "best_fhr": 11
+        }
+      ],
+      "center": [
+        39.95,
+        -105.19999999999999
+      ]
+    },
+    "hero_product": "wind_speed",
+    "quad_products": [
+      "wind_speed",
+      "fire_wx",
+      "rh",
+      "vpd"
+    ],
+    "hero_fhr": 12,
+    "essential_fhrs": [
+      8,
+      10,
+      11,
+      12,
+      13,
+      14,
+      16
+    ]
+  },
+  "20220422_12z": {
+    "name": "Hermits Peak/Calf Canyon",
+    "category": "fire-sw",
+    "date_local": "2022-04-22",
+    "why": "Hermits Peak/Calf Canyon extreme fire weather day",
+    "notes": "Strong winds/low RH; rapid spread",
+    "coordinates": {
+      "suggested_sections": [
+        {
+          "label": "SW-NE across Sangre de Cristo range through fire zone",
+          "start": [
+            35.0,
+            -106.5
+          ],
+          "end": [
+            36.6,
+            -104.3
+          ],
+          "products": [
+            "wind_speed",
+            "fire_wx",
+            "omega"
+          ],
+          "best_fhr": 10
+        },
+        {
+          "label": "W-E through Hermits Peak downslope corridor (Jemez to plains)",
+          "start": [
+            35.82,
+            -106.8
+          ],
+          "end": [
+            35.82,
+            -104.2
+          ],
+          "products": [
+            "wind_speed",
+            "rh",
+            "vpd"
+          ],
+          "best_fhr": 12
+        },
+        {
+          "label": "N-S through Sangre de Cristo fire corridor (Taos to Santa Fe)",
+          "start": [
+            36.8,
+            -105.4
+          ],
+          "end": [
+            34.8,
+            -105.4
+          ],
+          "products": [
+            "fire_wx",
+            "dewpoint_dep",
+            "temperature"
+          ],
+          "best_fhr": 8
+        }
+      ],
+      "center": [
+        35.8,
+        -105.4
+      ]
+    },
+    "hero_product": "wind_speed",
+    "quad_products": [
+      "wind_speed",
+      "fire_wx",
+      "rh",
+      "vpd"
+    ],
+    "hero_fhr": 12,
+    "essential_fhrs": [
+      6,
+      8,
+      10,
+      12,
+      14,
+      15
+    ]
+  },
+  "20220906_12z": {
+    "name": "CA Heat Wave + Mosquito Fire",
+    "category": "fire-ca",
+    "date_local": "2022-09-06",
+    "why": "CA extreme heat wave + Mosquito Fire start",
+    "notes": "Peak heat/low RH afternoon; ignition early evening",
+    "coordinates": {
+      "suggested_sections": [
+        {
+          "label": "W-E through American River Canyon fire zone and heat dome",
+          "start": [
+            39.01,
+            -121.5
+          ],
+          "end": [
+            39.01,
+            -119.9
+          ],
+          "products": [
+            "temperature",
+            "fire_wx",
+            "vpd"
+          ],
+          "best_fhr": 14
+        },
+        {
+          "label": "SW-NE from Central Valley into Sierra foothills heat gradient",
+          "start": [
+            38.5,
+            -121.5
+          ],
+          "end": [
+            39.5,
+            -120.0
+          ],
+          "products": [
+            "rh",
+            "omega",
+            "wind_speed"
+          ],
+          "best_fhr": 16
+        },
+        {
+          "label": "N-S through Placer/El Dorado County fire spread corridor",
+          "start": [
+            39.5,
+            -120.74
+          ],
+          "end": [
+            38.5,
+            -120.74
+          ],
+          "products": [
+            "smoke",
+            "fire_wx",
+            "temperature"
+          ],
+          "best_fhr": 18
+        }
+      ],
+      "center": [
+        39.01,
+        -120.7
+      ]
+    },
+    "hero_product": "temperature",
+    "quad_products": [
+      "temperature",
+      "fire_wx",
+      "vpd",
+      "rh"
+    ],
+    "hero_fhr": 17,
+    "essential_fhrs": [
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20
+    ]
+  },
+  "20220909_18z": {
+    "name": "Cedar Creek East-Wind Event",
+    "category": "fire-pnw",
+    "date_local": "2022-09-09",
+    "why": "OR east-wind Red Flag day (Cedar Creek)",
+    "notes": "Winds increase Fri AM + surge again Fri evening",
+    "coordinates": {
+      "suggested_sections": [
+        {
+          "label": "W-E Cascade downslope through Cedar Creek fire origin",
+          "start": [
+            43.73,
+            -123.3
+          ],
+          "end": [
+            43.73,
+            -121.2
+          ],
+          "products": [
+            "wind_speed",
+            "fire_wx",
+            "omega"
+          ],
+          "best_fhr": 9
+        },
+        {
+          "label": "SW-NE from Oakridge through fire zone to Bend",
+          "start": [
+            43.2,
+            -123.2
+          ],
+          "end": [
+            44.3,
+            -121.0
+          ],
+          "products": [
+            "wind_speed",
+            "rh",
+            "vpd"
+          ],
+          "best_fhr": 8
+        },
+        {
+          "label": "N-S through central Cascades fire corridor",
+          "start": [
+            44.8,
+            -122.1
+          ],
+          "end": [
+            42.7,
+            -122.1
+          ],
+          "products": [
+            "fire_wx",
+            "smoke",
+            "temperature"
+          ],
+          "best_fhr": 10
+        }
+      ],
+      "center": [
+        43.73,
+        -122.25
+      ]
+    },
+    "hero_product": "wind_speed",
+    "quad_products": [
+      "wind_speed",
+      "fire_wx",
+      "rh",
+      "vpd"
+    ],
+    "hero_fhr": 9,
+    "essential_fhrs": [
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ]
+  },
+  "20240226_12z": {
+    "name": "Smokehouse Creek Ignition",
+    "category": "fire-sw",
+    "date_local": "2024-02-26",
+    "why": "TX Panhandle wind-driven outbreak (Smokehouse Creek ignition)",
+    "notes": "Strongest spread afternoon/evening",
+    "coordinates": {
+      "suggested_sections": [
+        {
+          "label": "SW-NE through TX Panhandle fire zone (Stinnett to Canadian)",
+          "start": [
+            35.2,
+            -101.5
+          ],
+          "end": [
+            36.5,
+            -99.5
+          ],
+          "products": [
+            "wind_speed",
+            "fire_wx",
+            "rh"
+          ],
+          "best_fhr": 10
+        },
+        {
+          "label": "W-E dryline and wind corridor transect",
+          "start": [
+            35.8,
+            -102.0
+          ],
+          "end": [
+            35.8,
+            -99.0
+          ],
+          "products": [
+            "dewpoint_dep",
+            "wind_speed",
+            "vpd"
+          ],
+          "best_fhr": 12
+        },
+        {
+          "label": "N-S cold front passage transect",
+          "start": [
+            37.0,
+            -100.5
+          ],
+          "end": [
+            34.5,
+            -100.5
+          ],
+          "products": [
+            "wind_speed",
+            "temperature",
+            "fire_wx"
+          ],
+          "best_fhr": 8
+        }
+      ],
+      "center": [
+        35.85,
+        -100.5
+      ]
+    },
+    "hero_product": "wind_speed",
+    "quad_products": [
+      "wind_speed",
+      "fire_wx",
+      "rh",
+      "vpd"
+    ],
+    "hero_fhr": 12,
+    "essential_fhrs": [
+      8,
+      10,
+      12,
+      14,
+      16
+    ]
+  },
+  "20240227_12z": {
+    "name": "Smokehouse Creek Day 2",
+    "category": "fire-sw",
+    "date_local": "2024-02-27",
+    "why": "TX Panhandle continued wind-driven growth",
+    "notes": "Rapid expansion continued daytime",
+    "coordinates": {
+      "suggested_sections": [
+        {
+          "label": "W-E expansion corridor (Panhandle to Oklahoma border)",
+          "start": [
+            35.9,
+            -101.5
+          ],
+          "end": [
+            35.9,
+            -99.0
+          ],
+          "products": [
+            "wind_speed",
+            "fire_wx",
+            "rh"
+          ],
+          "best_fhr": 8
+        },
+        {
+          "label": "NW-SE post-frontal wind corridor",
+          "start": [
+            36.8,
+            -101.0
+          ],
+          "end": [
+            35.0,
+            -99.5
+          ],
+          "products": [
+            "wind_speed",
+            "temperature",
+            "vpd"
+          ],
+          "best_fhr": 10
+        },
+        {
+          "label": "N-S through Canadian TX into fire zone (OK border to Lubbock)",
+          "start": [
+            37.0,
+            -100.2
+          ],
+          "end": [
+            34.5,
+            -100.2
+          ],
+          "products": [
+            "fire_wx",
+            "smoke",
+            "dewpoint_dep"
+          ],
+          "best_fhr": 6
+        }
+      ],
+      "center": [
+        35.9,
+        -100.25
+      ]
+    },
+    "hero_product": "wind_speed",
+    "quad_products": [
+      "wind_speed",
+      "fire_wx",
+      "rh",
+      "vpd"
+    ],
+    "hero_fhr": 8,
+    "essential_fhrs": [
+      4,
+      6,
+      8,
+      10,
+      12
+    ]
+  },
+  "20240725_12z": {
+    "name": "Park Fire First Burn Period",
+    "category": "fire-ca",
+    "date_local": "2024-07-25",
+    "why": "Park Fire first full burn period after ignition",
+    "notes": "Large growth driven by heat/dry + winds",
+    "coordinates": {
+      "suggested_sections": [
+        {
+          "label": "W-E from Sacramento Valley into Sierra foothills fire progression",
+          "start": [
+            39.78,
+            -122.6
+          ],
+          "end": [
+            39.78,
+            -120.9
+          ],
+          "products": [
+            "fire_wx",
+            "wind_speed",
+            "temperature"
+          ],
+          "best_fhr": 10
+        },
+        {
+          "label": "S-N through Butte County from Chico into Ishi Wilderness/Lassen NF",
+          "start": [
+            39.4,
+            -121.5
+          ],
+          "end": [
+            40.3,
+            -121.8
+          ],
+          "products": [
+            "vpd",
+            "smoke",
+            "rh"
+          ],
+          "best_fhr": 14
+        },
+        {
+          "label": "SW-NE along fire spread corridor through canyon terrain",
+          "start": [
+            39.5,
+            -122.2
+          ],
+          "end": [
+            40.1,
+            -121.3
+          ],
+          "products": [
+            "wind_speed",
+            "omega",
+            "fire_wx"
+          ],
+          "best_fhr": 12
+        }
+      ],
+      "center": [
+        39.78,
+        -121.75
+      ]
+    },
+    "hero_product": "fire_wx",
+    "quad_products": [
+      "fire_wx",
+      "wind_speed",
+      "temperature",
+      "vpd"
+    ],
+    "hero_fhr": 12,
+    "essential_fhrs": [
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16
+    ]
+  },
+  "20250107_00z": {
+    "name": "LA Santa Ana Outbreak (Palisades/Eaton)",
+    "category": "fire-ca",
+    "date_local": "2025-01-07",
+    "why": "LA-area Santa Ana outbreak (Palisades/Eaton etc. starting Jan 7-9)",
+    "notes": "Peak morning to daytime winds",
+    "coordinates": {
+      "suggested_sections": [
+        {
+          "label": "NE-SW Santa Ana wind corridor from Great Basin to LA coast",
+          "start": [
+            34.6,
+            -117.5
+          ],
+          "end": [
+            33.7,
+            -118.8
+          ],
+          "products": [
+            "wind_speed",
+            "fire_wx",
+            "rh"
+          ],
+          "best_fhr": 20
+        },
+        {
+          "label": "N-S through San Gabriel Mountains to LA Basin (Eaton Canyon corridor)",
+          "start": [
+            34.8,
+            -118.2
+          ],
+          "end": [
+            33.8,
+            -118.2
+          ],
+          "products": [
+            "wind_speed",
+            "omega",
+            "vpd"
+          ],
+          "best_fhr": 22
+        },
+        {
+          "label": "W-E through Santa Monica Mountains to Palisades fire zone",
+          "start": [
+            34.05,
+            -118.8
+          ],
+          "end": [
+            34.05,
+            -117.6
+          ],
+          "products": [
+            "fire_wx",
+            "dewpoint_dep",
+            "temperature"
+          ],
+          "best_fhr": 19
+        }
+      ],
+      "center": [
+        34.150000000000006,
+        -118.15
+      ]
+    },
+    "hero_product": "wind_speed",
+    "quad_products": [
+      "wind_speed",
+      "fire_wx",
+      "rh",
+      "vpd"
+    ],
+    "hero_fhr": 21,
+    "essential_fhrs": [
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24
+    ]
+  },
+  "20250107_18z": {
+    "name": "Eaton Fire Onset",
+    "category": "fire-ca",
+    "date_local": "2025-01-07",
+    "why": "Eaton Fire ignition and rapid spread during Santa Ana event",
+    "notes": "Evening ignition; wind-driven growth overnight",
+    "coordinates": {
+      "suggested_sections": [
+        {
+          "label": "N-S through Eaton Canyon from San Gabriel Mtns into Altadena/Pasadena",
+          "start": [
+            34.5,
+            -118.1
+          ],
+          "end": [
+            33.9,
+            -118.1
+          ],
+          "products": [
+            "wind_speed",
+            "fire_wx",
+            "omega"
+          ],
+          "best_fhr": 10
+        },
+        {
+          "label": "NE-SW along Santa Ana wind corridor through San Gabriel passes",
+          "start": [
+            34.5,
+            -117.6
+          ],
+          "end": [
+            33.9,
+            -118.6
+          ],
+          "products": [
+            "wind_speed",
+            "rh",
+            "vpd"
+          ],
+          "best_fhr": 12
+        },
+        {
+          "label": "W-E across LA Basin capturing wind acceleration zones",
+          "start": [
+            34.19,
+            -118.7
+          ],
+          "end": [
+            34.19,
+            -117.5
+          ],
+          "products": [
+            "fire_wx",
+            "dewpoint_dep",
+            "temperature"
+          ],
+          "best_fhr": 14
+        }
+      ],
+      "center": [
+        34.2,
+        -118.1
+      ]
+    },
+    "hero_product": "wind_speed",
+    "quad_products": [
+      "wind_speed",
+      "fire_wx",
+      "rh",
+      "vpd"
+    ],
+    "hero_fhr": 13,
+    "essential_fhrs": [
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18
+    ]
+  },
+  "20250702_18z": {
+    "name": "Madre Fire Explosive Growth",
+    "category": "fire-ca",
+    "date_local": "2025-07-02",
+    "why": "Madre Fire onset + explosive growth into July 3",
+    "notes": "Ignition early afternoon; huge growth overnight to next morning",
+    "coordinates": {
+      "suggested_sections": [
+        {
+          "label": "W-E through Cuyama Valley wind corridor along Highway 166",
+          "start": [
+            35.1,
+            -120.8
+          ],
+          "end": [
+            35.1,
+            -119.2
+          ],
+          "products": [
+            "wind_speed",
+            "fire_wx",
+            "vpd"
+          ],
+          "best_fhr": 6
+        },
+        {
+          "label": "S-N from Santa Barbara coast through Los Padres terrain to SLO",
+          "start": [
+            34.5,
+            -120.0
+          ],
+          "end": [
+            35.7,
+            -120.0
+          ],
+          "products": [
+            "temperature",
+            "rh",
+            "omega"
+          ],
+          "best_fhr": 4
+        },
+        {
+          "label": "SW-NE through fire progression corridor and downslope wind zone",
+          "start": [
+            34.7,
+            -120.5
+          ],
+          "end": [
+            35.5,
+            -119.5
+          ],
+          "products": [
+            "fire_wx",
+            "smoke",
+            "wind_speed"
+          ],
+          "best_fhr": 8
+        }
+      ],
+      "center": [
+        35.1,
+        -120.0
+      ]
+    },
+    "hero_product": "fire_wx",
+    "quad_products": [
+      "fire_wx",
+      "wind_speed",
+      "temperature",
+      "vpd"
+    ],
+    "hero_fhr": 7,
+    "essential_fhrs": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ]
+  },
+  "20250801_18z": {
+    "name": "Gifford Fire Ignition",
+    "category": "fire-ca",
+    "date_local": "2025-08-01",
+    "why": "Gifford Fire ignition (large 2025 CA fire)",
+    "notes": "Ignition afternoon; growth into overnight",
+    "coordinates": {
+      "suggested_sections": [
+        {
+          "label": "W-E through Highway 166 canyon corridor and Los Padres terrain",
+          "start": [
+            35.11,
+            -120.9
+          ],
+          "end": [
+            35.11,
+            -119.3
+          ],
+          "products": [
+            "wind_speed",
+            "fire_wx",
+            "vpd"
+          ],
+          "best_fhr": 6
+        },
+        {
+          "label": "S-N from Santa Barbara coast through Sierra Madre Mountains",
+          "start": [
+            34.5,
+            -120.1
+          ],
+          "end": [
+            35.7,
+            -120.1
+          ],
+          "products": [
+            "temperature",
+            "rh",
+            "omega"
+          ],
+          "best_fhr": 8
+        },
+        {
+          "label": "SW-NE through fire progression from coast to interior valleys",
+          "start": [
+            34.7,
+            -120.6
+          ],
+          "end": [
+            35.5,
+            -119.6
+          ],
+          "products": [
+            "fire_wx",
+            "smoke",
+            "wind_speed"
+          ],
+          "best_fhr": 10
+        }
+      ],
+      "center": [
+        35.11,
+        -120.1
+      ]
+    },
+    "hero_product": "fire_wx",
+    "quad_products": [
+      "fire_wx",
+      "wind_speed",
+      "temperature",
+      "vpd"
+    ],
+    "hero_fhr": 8,
+    "essential_fhrs": [
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ]
+  },
+  "20200826_18z": {
+    "name": "Hurricane Laura Cat 4",
+    "category": "hurricane",
+    "notes": "150mph, Cameron LA landfall"
+  },
+  "20200916_00z": {
+    "name": "Hurricane Sally Cat 2",
+    "category": "hurricane",
+    "notes": "Stalled, 30in rain Gulf Coast"
+  },
+  "20201009_12z": {
+    "name": "Hurricane Delta Cat 2",
+    "category": "hurricane",
+    "notes": "Same area as Laura, 6 weeks later"
+  },
+  "20201028_12z": {
+    "name": "Hurricane Zeta Cat 3",
+    "category": "hurricane",
+    "notes": "Fast mover across Gulf Coast"
+  },
+  "20201108_18z": {
+    "name": "Tropical Storm Eta",
+    "category": "hurricane",
+    "notes": "12th US landfall of 2020 season"
+  },
+  "20210829_06z": {
+    "name": "Hurricane Ida Cat 4",
+    "category": "hurricane",
+    "notes": "150mph, Katrina anniversary, catastrophic LA damage"
+  },
+  "20210913_18z": {
+    "name": "Hurricane Nicholas Cat 1",
+    "category": "hurricane",
+    "notes": "Houston-area heavy rain event"
+  },
+  "20220928_12z": {
+    "name": "Hurricane Ian Cat 4",
+    "category": "hurricane",
+    "notes": "$110B damage, near-Cat 5 at FL landfall"
+  },
+  "20221110_00z": {
+    "name": "Hurricane Nicole Cat 1",
+    "category": "hurricane",
+    "notes": "Rare November hurricane, FL east coast"
+  },
+  "20230830_00z": {
+    "name": "Hurricane Idalia Cat 3",
+    "category": "hurricane",
+    "notes": "Rapid intensification, Big Bend FL"
+  },
+  "20230916_06z": {
+    "name": "Hurricane Lee Post-Tropical",
+    "category": "hurricane",
+    "notes": "Maine near-miss, large wind field"
+  },
+  "20240708_00z": {
+    "name": "Hurricane Beryl Cat 1",
+    "category": "hurricane",
+    "notes": "Earliest Cat 5 in Atlantic history, TX landfall"
+  },
+  "20240805_00z": {
+    "name": "Hurricane Debby Cat 1",
+    "category": "hurricane",
+    "notes": "Stalled, 20-30in rain SC"
+  },
+  "20240926_18z": {
+    "name": "Hurricane Helene Cat 4",
+    "category": "hurricane",
+    "notes": "Catastrophic NC inland flooding"
+  },
+  "20241009_12z": {
+    "name": "Hurricane Milton Cat 3",
+    "category": "hurricane",
+    "notes": "Extreme rapid intensification to Cat 5"
+  },
+  "20200303_03z": {
+    "name": "Nashville TN EF3/EF4",
+    "category": "tornado",
+    "notes": "Nocturnal, 25 dead"
+  },
+  "20200412_18z": {
+    "name": "Easter 2020 Outbreak",
+    "category": "tornado",
+    "notes": "141 tornadoes, Bassfield EF4"
+  },
+  "20210126_02z": {
+    "name": "Fultondale AL EF3",
+    "category": "tornado",
+    "notes": "Nocturnal, 150mph"
+  },
+  "20210325_15z": {
+    "name": "Birmingham/Eagle Point AL EF3",
+    "category": "tornado",
+    "notes": "80mi track"
+  },
+  "20210327_01z": {
+    "name": "Newnan GA EF4",
+    "category": "tornado",
+    "notes": "Nocturnal, 170mph"
+  },
+  "20211211_00z": {
+    "name": "Quad-State Mayfield KY EF4",
+    "category": "tornado",
+    "notes": "250mi track, 57 dead"
+  },
+  "20211210_23z": {
+    "name": "Edwardsville IL Amazon EF3",
+    "category": "tornado",
+    "notes": "6 dead, warehouse collapse"
+  },
+  "20220305_18z": {
+    "name": "Winterset IA EF4",
+    "category": "tornado",
+    "notes": "70mi track, QLCS transition"
+  },
+  "20220429_22z": {
+    "name": "Andover KS EF3",
+    "category": "tornado",
+    "notes": "155mph, 0 fatalities"
+  },
+  "20230324_22z": {
+    "name": "Rolling Fork MS EF4",
+    "category": "tornado",
+    "notes": "195mph, 17 dead"
+  },
+  "20230621_22z": {
+    "name": "Matador TX EF3",
+    "category": "tornado",
+    "notes": "Small town devastated"
+  },
+  "20231209_15z": {
+    "name": "Dec 2023 TN Outbreak",
+    "category": "tornado",
+    "notes": "39 tornadoes, EF3 Clarksville"
+  },
+  "20240426_18z": {
+    "name": "Elkhorn-Blair NE EF4",
+    "category": "tornado",
+    "notes": "Omaha metro, 170mph"
+  },
+  "20240428_01z": {
+    "name": "Sulphur/Marietta OK EF3-EF4",
+    "category": "tornado",
+    "notes": "First OK violent tornado in 8yr"
+  },
+  "20240506_23z": {
+    "name": "Barnsdall OK EF4",
+    "category": "tornado",
+    "notes": "180mph, 40mi track"
+  },
+  "20240521_17z": {
+    "name": "Greenfield IA EF4",
+    "category": "tornado",
+    "notes": "DOW 309-318mph, 5 dead"
+  },
+  "20240526_00z": {
+    "name": "Valley View TX EF3",
+    "category": "tornado",
+    "notes": "Nocturnal, I-35, 7 dead"
+  },
+  "20250315_14z": {
+    "name": "Kentwood-Carson LA/MS EF4",
+    "category": "tornado",
+    "notes": "67mi track, 6 dead"
+  },
+  "20250516_17z": {
+    "name": "St. Louis MO EF3",
+    "category": "tornado",
+    "notes": "Urban, $1.6B, first since 1959"
+  },
+  "20250517_01z": {
+    "name": "Somerset-London KY EF4",
+    "category": "tornado",
+    "notes": "60mi track, 19 dead"
+  },
+  "20200810_12z": {
+    "name": "Iowa Derecho",
+    "category": "derecho",
+    "notes": "$11B, 140mph, costliest thunderstorm ever"
+  },
+  "20211215_18z": {
+    "name": "December Midwest Derecho",
+    "category": "derecho",
+    "notes": "First-ever December derecho"
+  },
+  "20220512_16z": {
+    "name": "May SD Derecho",
+    "category": "derecho",
+    "notes": "107mph, haboob"
+  },
+  "20220613_18z": {
+    "name": "Ohio Valley Derecho",
+    "category": "derecho",
+    "notes": "98mph Ft Wayne record"
+  },
+  "20230629_12z": {
+    "name": "June Midwest Derecho",
+    "category": "derecho",
+    "notes": "600mi path, 100mph IL"
+  },
+  "20240516_18z": {
+    "name": "Houston Derecho",
+    "category": "derecho",
+    "notes": "100mph downtown, 8 dead"
+  },
+  "20240715_18z": {
+    "name": "July Chicago Derecho",
+    "category": "derecho",
+    "notes": "32 tornadoes, 105mph"
+  },
+  "20250429_17z": {
+    "name": "Pennsylvania Derecho",
+    "category": "derecho",
+    "notes": "120mph, 700mi path"
+  },
+  "20250620_18z": {
+    "name": "N Plains Derecho + Enderlin EF5",
+    "category": "derecho",
+    "notes": "First EF5 since 2013"
+  },
+  "20250728_18z": {
+    "name": "July N Plains Derecho",
+    "category": "derecho",
+    "notes": "99mph Sioux Center"
+  },
+  "20241119_12z": {
+    "name": "PNW Bomb Cyclone",
+    "category": "derecho",
+    "notes": "942mb, 85mph, 600K outages"
+  },
+  "20210428_18z": {
+    "name": "Hondo TX Record Hail 6.42in",
+    "category": "hail",
+    "notes": "$1.4B damage"
+  },
+  "20230621_18z": {
+    "name": "Red Rocks CO Hail + 36 Tornadoes",
+    "category": "hail",
+    "notes": "CO tornado record day"
+  },
+  "20240314_18z": {
+    "name": "DFW Hailstorm",
+    "category": "hail",
+    "notes": "Record 106 reports of 2in+"
+  },
+  "20240528_18z": {
+    "name": "South Plains DVD-Size Hail",
+    "category": "hail",
+    "notes": "4-5in Lubbock area"
+  },
+  "20240531_00z": {
+    "name": "Denver Midnight Hail",
+    "category": "hail",
+    "notes": "$1B+, nocturnal"
+  },
+  "20240602_18z": {
+    "name": "Vigo Park TX 7in Hail",
+    "category": "hail",
+    "notes": "Possible state record"
+  },
+  "20250526_18z": {
+    "name": "Menard TX 5.87in Hail",
+    "category": "hail",
+    "notes": "Near-record"
+  },
+  "20211114_00z": {
+    "name": "PNW Atmospheric River",
+    "category": "ar",
+    "notes": "Coquihalla Hwy collapse, WA/BC emergency"
+  },
+  "20230104_12z": {
+    "name": "CA AR Strongest Storm",
+    "category": "ar",
+    "notes": "100mph Tahoe, 9 consecutive ARs"
+  },
+  "20230109_00z": {
+    "name": "CA AR Peak Flooding",
+    "category": "ar",
+    "notes": "IVT 750-1000, Montecito evac"
+  },
+  "20240204_06z": {
+    "name": "Pineapple Express LA",
+    "category": "ar",
+    "notes": "Wettest LA day since 2003"
+  },
+  "20251210_12z": {
+    "name": "PNW Mega-AR Cat 5",
+    "category": "ar",
+    "notes": "All-time flood records"
+  },
+  "20210215_12z": {
+    "name": "Winter Storm Uri",
+    "category": "winter",
+    "notes": "TX grid near-collapse, 246 dead"
+  },
+  "20221118_00z": {
+    "name": "Buffalo Lake Effect 81in",
+    "category": "winter",
+    "notes": "66in in one day"
+  },
+  "20221223_06z": {
+    "name": "Winter Storm Elliott",
+    "category": "winter",
+    "notes": "Bomb cyclone, 47 dead Buffalo"
+  },
+  "20250121_06z": {
+    "name": "Gulf Coast Blizzard Enzo",
+    "category": "winter",
+    "notes": "8in snow New Orleans"
+  },
+  "20241107_00z": {
+    "name": "Colorado Blizzard",
+    "category": "winter",
+    "notes": "42in SE CO, 90hr snow"
+  },
+  "20210628_12z": {
+    "name": "PNW Heat Dome",
+    "category": "other",
+    "notes": "Portland 116F, 1400 dead"
+  },
+  "20250704_00z": {
+    "name": "TX MCV Flooding",
+    "category": "other",
+    "notes": "Guadalupe R 26ft in 45min, 135 dead"
+  }
 }
