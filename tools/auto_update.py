@@ -532,9 +532,8 @@ def run_download_pass_concurrent(work_queues, slot_limits, hrrr_max_fhr=None, re
     total_new = 0
     # Per-model queue refresh intervals (seconds). Low values reduce publish-detect latency.
     model_refresh_interval = refresh_intervals or {
-        'hrrr': 2,
-        'gfs': 10,
-        'rrfs': 2,
+        'hrrr': 2, 'gfs': 10, 'rrfs': 2,
+        'nam': 10, 'rap': 5, 'nam_nest': 10,
     }
     last_model_refresh = {m: 0.0 for m in slot_limits}
     # Track consecutive all-fail refresh cycles per model. When a model's cycle
@@ -570,9 +569,9 @@ def run_download_pass_concurrent(work_queues, slot_limits, hrrr_max_fhr=None, re
         # Check if HRRR still has early FHRs (F00-F05) in queue
         has_early = any(fhr < HRRR_PRIORITY_FHRS for _, _, fhr in hrrr_q)
         if has_early and not hrrr_boost_active:
-            # Steal slots from RRFS/GFS for HRRR
+            # Steal slots from other models for HRRR
             stolen = 0
-            for donor in ('rrfs', 'gfs'):
+            for donor in sorted(m for m in base_slot_limits if m != 'hrrr'):
                 give = max(0, base_slot_limits.get(donor, 0) - 1)  # Keep at least 1
                 if give > 0:
                     slot_limits[donor] = base_slot_limits[donor] - give
@@ -768,8 +767,14 @@ def main():
                         help="Concurrent HRRR FHR downloads (default: 4)")
     parser.add_argument("--gfs-slots", type=int, default=2,
                         help="Concurrent GFS FHR downloads (default: 2)")
-    parser.add_argument("--rrfs-slots", type=int, default=8,
-                        help="Concurrent RRFS FHR downloads (default: 2)")
+    parser.add_argument("--rrfs-slots", type=int, default=4,
+                        help="Concurrent RRFS FHR downloads (default: 4)")
+    parser.add_argument("--nam-slots", type=int, default=2,
+                        help="Concurrent NAM FHR downloads (default: 2)")
+    parser.add_argument("--rap-slots", type=int, default=2,
+                        help="Concurrent RAP FHR downloads (default: 2)")
+    parser.add_argument("--nam-nest-slots", type=int, default=2,
+                        help="Concurrent NAM-Nest FHR downloads (default: 2)")
     parser.add_argument("--idle-sleep-seconds", type=int, default=2,
                         help="Idle sleep when up-to-date (default: 2)")
     parser.add_argument("--between-pass-seconds", type=int, default=2,
@@ -780,6 +785,12 @@ def main():
                         help="In-pass queue refresh interval for GFS (default: 10)")
     parser.add_argument("--rrfs-refresh-seconds", type=int, default=2,
                         help="In-pass queue refresh interval for RRFS (default: 2)")
+    parser.add_argument("--nam-refresh-seconds", type=int, default=10,
+                        help="In-pass queue refresh interval for NAM (default: 10)")
+    parser.add_argument("--rap-refresh-seconds", type=int, default=5,
+                        help="In-pass queue refresh interval for RAP (default: 5)")
+    parser.add_argument("--nam-nest-refresh-seconds", type=int, default=10,
+                        help="In-pass queue refresh interval for NAM-Nest (default: 10)")
 
     args = parser.parse_args()
     models = [m.strip().lower() for m in args.models.split(',')]
@@ -787,25 +798,34 @@ def main():
         'hrrr': max(0, args.hrrr_slots),
         'gfs': max(0, args.gfs_slots),
         'rrfs': max(0, args.rrfs_slots),
+        'nam': max(0, args.nam_slots),
+        'rap': max(0, args.rap_slots),
+        'nam_nest': max(0, args.nam_nest_slots),
     }
 
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
+
+    hrrr_max_fhr = args.max_hours if args.max_hours else None
+    refresh_intervals = {
+        'hrrr': max(1, args.hrrr_refresh_seconds),
+        'gfs': max(1, args.gfs_refresh_seconds),
+        'rrfs': max(1, args.rrfs_refresh_seconds),
+        'nam': max(1, args.nam_refresh_seconds),
+        'rap': max(1, args.rap_refresh_seconds),
+        'nam_nest': max(1, args.nam_nest_refresh_seconds),
+    }
 
     logger.info("=" * 60)
     logger.info(f"Multi-Model Auto-Update Service")
     logger.info(f"Models: {', '.join(m.upper() for m in models)}")
     logger.info(f"Legacy check interval: {args.interval} min (compat)")
     logger.info(f"Idle sleep: {args.idle_sleep_seconds}s | Between-pass sleep: {args.between_pass_seconds}s")
-    logger.info(
-        "Queue refresh: "
-        f"HRRR={args.hrrr_refresh_seconds}s, "
-        f"GFS={args.gfs_refresh_seconds}s, "
-        f"RRFS={args.rrfs_refresh_seconds}s"
-    )
+    refresh_parts = [f"{m.upper()}={refresh_intervals.get(m, 5)}s" for m in models]
+    logger.info(f"Queue refresh: {', '.join(refresh_parts)}")
     for m in models:
         mfhr = args.max_hours if (args.max_hours and m == 'hrrr') else MODEL_DEFAULT_MAX_FHR.get(m, 18)
-        slots = slot_limits.get(m, 1)
+        slots = slot_limits.get(m, 2)
         logger.info(f"  {m.upper()}: F00-F{mfhr:02d} (base), slots={slots}")
     logger.info("=" * 60)
 
@@ -820,12 +840,6 @@ def main():
     # --------------- Concurrent slot-based download loop ---------------
     # Each model gets dedicated concurrency slots so slow RRFS/GFS transfers
     # cannot block HRRR progression.
-    hrrr_max_fhr = args.max_hours if args.max_hours else None
-    refresh_intervals = {
-        'hrrr': max(1, args.hrrr_refresh_seconds),
-        'gfs': max(1, args.gfs_refresh_seconds),
-        'rrfs': max(1, args.rrfs_refresh_seconds),
-    }
 
     while running:
         try:
