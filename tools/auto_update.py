@@ -32,7 +32,10 @@ from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from model_config import get_model_registry
+from model_config import (
+    get_model_registry, get_model_config, get_model_fhr_list,
+    get_model_availability_lag, SYNOPTIC_HOURS,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -47,57 +50,31 @@ OUTPUTS_BASE = Path(os.environ.get('XSECT_OUTPUTS_DIR', str(_PROJECT_DIR / 'outp
 import tempfile
 STATUS_FILE = Path(tempfile.gettempdir()) / "auto_update_status.json"
 
-SYNOPTIC_HOURS = {0, 6, 12, 18}
+# ---------------------------------------------------------------------------
+# All model-specific config is imported from model_config.py (single source
+# of truth). Build lookup dicts from the registry for backward compatibility.
+# ---------------------------------------------------------------------------
+_registry = get_model_registry()
 
-# Per-model: which GRIB file patterns confirm a complete FHR download
-# NOTE: wrfnat excluded from HRRR — only needed for smoke style, lazy-downloaded on demand
 MODEL_REQUIRED_PATTERNS = {
-    'hrrr': ['*wrfprs*.grib2', '*wrfsfc*.grib2'],
-    'gfs':  ['*pgrb2.0p25*'],
-    'rrfs': ['*prslev*.grib2'],
-    'nam':  ['*awphys*.grib2'],
-    'rap':  ['*awp130pgrb*.grib2'],
-    'nam_nest': ['*conusnest.hiresf*.grib2'],
+    name: cfg.grib_required_patterns or ['*.grib2']
+    for name, cfg in _registry.models.items()
 }
-
-# Per-model: which file_types to request from the orchestrator
-# NOTE: wrfnat (native) excluded from HRRR — saves ~663MB/FHR (56% reduction)
-# Smoke style lazy-downloads wrfnat on first request via dashboard
 MODEL_FILE_TYPES = {
-    'hrrr': ['pressure', 'surface'],  # wrfprs (~383MB) + wrfsfc (~136MB) = ~519MB vs 1.18GB
-    'gfs':  ['pressure'],             # pgrb2.0p25 (has surface data in it)
-    'rrfs': ['pressure'],             # prslev (has surface data in it)
-    'nam':  ['pressure'],             # awphys (combined pressure + surface; cfgrib extracts v-wind)
-    'rap':  ['pressure'],             # awp130pgrb (combined pressure + surface)
-    'nam_nest': ['pressure'],         # conusnest.hiresf (combined file)
+    name: cfg.grib_file_types or ['pressure']
+    for name, cfg in _registry.models.items()
 }
-
-# Per-model: which FHRs to download
 MODEL_FORECAST_HOURS = {
-    'hrrr': list(range(19)),                          # F00-F18 every hour (synoptic extends to F48)
-    'gfs':  list(range(0, 121, 3)) + list(range(126, 385, 6)),  # F00-F120 every 3h, F126-F384 every 6h
-    'rrfs': list(range(19)),                          # F00-F18 base (synoptic extends to F84)
-    'nam':  list(range(37)) + list(range(39, 85, 3)),  # F00-F36 hourly, F39-F84 3-hourly
-    'rap':  list(range(22)),                          # F00-F21 every hour (extended cycles go further)
-    'nam_nest': list(range(61)),                      # F00-F60 every hour
+    name: cfg.base_fhr_list or list(range(19))
+    for name, cfg in _registry.models.items()
 }
 MODEL_DEFAULT_MAX_FHR = {
-    'hrrr': 18,
-    'gfs':  384,
-    'rrfs': 84,
-    'nam':  84,
-    'rap':  21,
-    'nam_nest': 60,
+    name: cfg.get_max_forecast_hour(0)
+    for name, cfg in _registry.models.items()
 }
-
-# Per-model: data availability lag (minutes after init time)
 MODEL_AVAILABILITY_LAG = {
-    'hrrr': int(os.environ.get('XSECT_LAG_HRRR_MIN', '50')),
-    'gfs':  int(os.environ.get('XSECT_LAG_GFS_MIN', '180')),   # GFS starts later
-    'rrfs': int(os.environ.get('XSECT_LAG_RRFS_MIN', '0')),    # Probe latest RRFS cycle aggressively
-    'nam':  int(os.environ.get('XSECT_LAG_NAM_MIN', '90')),    # NAM available ~90min after init
-    'rap':  int(os.environ.get('XSECT_LAG_RAP_MIN', '50')),    # RAP similar to HRRR
-    'nam_nest': int(os.environ.get('XSECT_LAG_NAM_NEST_MIN', '105')),  # NAM Nest slightly later
+    name: cfg.availability_lag_minutes
+    for name, cfg in _registry.models.items()
 }
 
 
@@ -261,17 +238,11 @@ def get_pending_work(model, max_hours=None):
     if max_hours is None:
         max_hours = MODEL_DEFAULT_MAX_FHR.get(model, 18)
 
-    # HRRR: 2 cycles (current + previous for base FHRs)
-    # GFS: 2 cycles (runs every 6h, 180min lag already covers availability)
-    # RRFS: 4 cycles — lag=0 means aggressive probing, but RRFS takes ~120min
-    #   to publish. Hourly 00-12z then 3-hourly (15/18/21z). Synoptic extends to F84.
-    #   At 4 cycles we always reach back far enough to find one that's available.
-    if model == 'rrfs':
-        n_cycles = 4
-    elif model == 'hrrr':
-        n_cycles = 2
-    else:
-        n_cycles = 2
+    # Probe multiple recent cycles to find available data.
+    # RRFS lag=0 needs more probing (data publishes ~120min after init).
+    # Models with longer lags (GFS 180min) already skip stale cycles.
+    CYCLES_TO_PROBE = {'rrfs': 4}  # All others default to 2
+    n_cycles = CYCLES_TO_PROBE.get(model, 2)
     cycles = get_latest_cycles(model, count=n_cycles)
     if not cycles:
         return []
@@ -299,16 +270,14 @@ def get_pending_work(model, max_hours=None):
     for cycle_items in per_cycle:
         work.extend(cycle_items[1:])
 
-    # Extended synoptic FHRs: append beyond base range for latest synoptic cycle
-    # HRRR: F19-F48, RRFS: F19-F84 (lower priority, appended after base FHRs)
-    if model in ('hrrr', 'rrfs'):
+    # Extended synoptic FHRs: append beyond base range for latest extended cycle
+    # Uses model_config to determine which models have extended cycles and their FHR lists
+    cfg = get_model_config(model)
+    if cfg and cfg.has_extended_cycles():
         syn = get_latest_synoptic_cycle(model)
         if syn:
             syn_date, syn_hour = syn
-            if model == 'hrrr':
-                ext_fhrs = list(range(19, 49))  # F19-F48 hourly
-            else:  # rrfs
-                ext_fhrs = list(range(19, 61)) + list(range(63, 85, 3))  # F19-F60 hourly, F63-F84 3-hourly
+            ext_fhrs = cfg.get_extended_only_fhrs()
             run_dir = get_base_dir(model) / syn_date / f"{syn_hour:02d}z"
             patterns = MODEL_REQUIRED_PATTERNS.get(model, ['*.grib2'])
             work_set = {(d, h, f) for d, h, f in work}
@@ -453,17 +422,22 @@ def cleanup_old_date_folders(model='hrrr'):
 def cleanup_old_extended(model='hrrr'):
     """Keep only 2 most recent synoptic runs with extended FHRs.
 
-    HRRR: F19-F48, RRFS: F19-F84. Deletes extended FHR dirs from older synoptic cycles.
+    Deletes extended FHR dirs from older synoptic cycles. Uses model_config to
+    determine which models have extended cycles and what the extended FHRs are.
     """
-    if model not in ('hrrr', 'rrfs'):
+    cfg = get_model_config(model)
+    if not cfg or not cfg.has_extended_cycles():
         return
 
-    max_ext = 49 if model == 'hrrr' else 85  # HRRR F48, RRFS F84
+    ext_only = cfg.get_extended_only_fhrs()
+    if not ext_only:
+        return
+
     base_dir = get_base_dir(model)
-    synoptic_with_extended = []
     if not base_dir.exists():
         return
 
+    synoptic_with_extended = []
     for date_dir in sorted(base_dir.iterdir(), reverse=True):
         if not date_dir.is_dir() or not date_dir.name.isdigit():
             continue
@@ -471,15 +445,15 @@ def cleanup_old_extended(model='hrrr'):
             if not hour_dir.is_dir() or not hour_dir.name.endswith('z'):
                 continue
             hour = int(hour_dir.name.replace('z', ''))
-            if hour not in SYNOPTIC_HOURS:
+            if not cfg.is_extended_cycle(hour):
                 continue
-            has_extended = any((hour_dir / f"F{f:02d}").exists() for f in range(19, max_ext))
+            has_extended = any((hour_dir / f"F{f:02d}").exists() for f in ext_only[:5])
             if has_extended:
                 synoptic_with_extended.append(hour_dir)
 
-    # Keep newest 2 with extended data, delete F19+ from the rest
+    # Keep newest 2 with extended data, delete extended FHRs from the rest
     for old_dir in synoptic_with_extended[2:]:
-        for fhr in range(19, max_ext):
+        for fhr in ext_only:
             fhr_dir = old_dir / f"F{fhr:02d}"
             if fhr_dir.exists():
                 try:
@@ -510,13 +484,11 @@ def run_update_cycle_for_model(model, max_hours=None):
         except Exception as e:
             logger.warning(f"[{model.upper()}] Failed to update {date_str}/{hour:02d}z: {e}")
 
-    # Extended synoptic FHRs: HRRR F19-F48, RRFS F19-F60 hourly + F63-F84 3-hourly
-    if model in ('hrrr', 'rrfs'):
-        max_ext_fhr = 48 if model == 'hrrr' else 84
-        if model == 'hrrr':
-            ext_fhr_list = list(range(19, 49))
-        else:  # rrfs: F19-F60 hourly, F63-F84 3-hourly
-            ext_fhr_list = list(range(19, 61)) + list(range(63, 85, 3))
+    # Extended FHRs: download beyond base range for the latest extended cycle
+    cfg = get_model_config(model)
+    if cfg and cfg.has_extended_cycles():
+        ext_fhr_list = cfg.get_extended_only_fhrs()
+        max_ext_fhr = cfg.extended_fhr_list[-1] if cfg.extended_fhr_list else 0
         syn = get_latest_synoptic_cycle(model)
         if syn:
             syn_date, syn_hour = syn

@@ -33,6 +33,11 @@ from flask import Flask, jsonify, request, send_file, abort, Response
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from model_config import (
+    SYNOPTIC_HOURS as _MC_SYNOPTIC_HOURS,
+    get_model_config, get_model_fhr_list as _mc_get_model_fhr_list,
+    get_model_max_fhr, get_model_availability_lag, get_model_registry,
+)
 from core.map_overlay import MapOverlayEngine, OVERLAY_FIELDS, get_colormap_lut, PRODUCT_PRESETS, ContourSpec, BarbSpec, CompositeSpec
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s | %(levelname)s | %(message)s')
@@ -861,71 +866,47 @@ def is_cancelled(op_id):
 # DATA MANAGER - On-Demand Loading for Memory Efficiency
 # =============================================================================
 
-# Model-specific configuration for CrossSectionManager
+# ---------------------------------------------------------------------------
+# Model-specific configuration — derived from model_config.py (single source of truth)
+# ---------------------------------------------------------------------------
+_mc_registry = get_model_registry()
+
 MODEL_PRS_PATTERNS = {
-    'hrrr': '*wrfprs*.grib2',
-    'rrfs': '*prslev*.grib2',
-    'gfs':  '*pgrb2.0p25*',  # GFS files have no .grib2 extension
-    'nam':  '*awphys*.grib2',
-    'rap':  '*awp130pgrb*.grib2',
-    'nam_nest': '*conusnest.hiresf*.grib2',
+    name: (cfg.grib_required_patterns[0] if cfg.grib_required_patterns else '*.grib2')
+    for name, cfg in _mc_registry.models.items()
 }
 MODEL_SFC_PATTERNS = {
-    'hrrr': '*wrfsfc*.grib2',
-    'rrfs': '*prslev*.grib2',   # RRFS: surface in same prslev file
-    'gfs':  '*pgrb2.0p25*',    # GFS: surface in same pgrb2 file (no .grib2 ext)
-    'nam':  '*awphys*.grib2',   # NAM: same file for surface
-    'rap':  '*awp130pgrb*.grib2',   # RAP: same file for surface
-    'nam_nest': '*conusnest.hiresf*.grib2',  # NAM Nest: combined file
+    name: (cfg.grib_required_patterns[0] if not cfg.needs_separate_sfc
+           else cfg.file_types.get('surface', cfg.file_types.get('pressure', '')) and
+           f"*{cfg.file_types.get('surface', '')}*.grib2")
+    for name, cfg in _mc_registry.models.items()
 }
-MODEL_NEEDS_SEPARATE_SFC = {'hrrr'}  # Only HRRR has separate wrfsfc
+# Fix SFC patterns: HRRR has separate wrfsfc, all others reuse pressure pattern
+MODEL_SFC_PATTERNS['hrrr'] = '*wrfsfc*.grib2'
+MODEL_NEEDS_SEPARATE_SFC = {
+    name for name, cfg in _mc_registry.models.items() if cfg.needs_separate_sfc
+}
 MODEL_FORECAST_HOURS = {
-    'hrrr': list(range(19)),                # F00-F18 (base; synoptic cycles extend to F48)
-    'gfs':  list(range(0, 385, 6)),         # F00-F384 every 6 hours
-    'rrfs': list(range(19)),                # F00-F18 (base; synoptic cycles extend to F84)
-    'nam':  list(range(37)) + list(range(39, 85, 3)),  # F00-F36 hourly, F39-F84 3-hourly
-    'rap':  list(range(22)),                # F00-F21 (base; extended cycles go further)
-    'nam_nest': list(range(61)),            # F00-F60 hourly
+    name: cfg.base_fhr_list or list(range(19))
+    for name, cfg in _mc_registry.models.items()
 }
-SYNOPTIC_HOURS = {0, 6, 12, 18}
+SYNOPTIC_HOURS = _MC_SYNOPTIC_HOURS
 
 def get_max_fhr_for_cycle(model_name: str, cycle_hour: int) -> int:
-    """Return max forecast hour for a given model+cycle. Synoptic cycles extend further."""
-    if model_name == 'hrrr' and cycle_hour in SYNOPTIC_HOURS:
-        return 48
-    if model_name == 'rrfs' and cycle_hour in SYNOPTIC_HOURS:
-        return 84
-    if model_name == 'rap' and cycle_hour in {3, 9, 15, 21}:
-        return 51  # RAP extended cycles
-    base = MODEL_FORECAST_HOURS.get(model_name, list(range(19)))
-    return base[-1] if base else 18
+    """Return max forecast hour for a given model+cycle."""
+    return get_model_max_fhr(model_name, cycle_hour)
 
 def get_model_fhr_list(model_name: str, cycle_hour: int = None) -> list:
-    """Return the actual FHR list for a model+cycle (handles sparse GFS/NAM FHRs)."""
-    if model_name == 'hrrr' and cycle_hour is not None and cycle_hour in SYNOPTIC_HOURS:
-        return list(range(49))  # F00-F48 every hour
-    if model_name == 'rrfs' and cycle_hour is not None and cycle_hour in SYNOPTIC_HOURS:
-        return list(range(61)) + list(range(63, 85, 3))  # F00-F60 hourly, F63-F84 3-hourly
-    if model_name == 'rap' and cycle_hour is not None and cycle_hour in {3, 9, 15, 21}:
-        return list(range(52))  # F00-F51 every hour (extended)
-    return MODEL_FORECAST_HOURS.get(model_name, list(range(19)))
+    """Return the actual FHR list for a model+cycle."""
+    return _mc_get_model_fhr_list(model_name, cycle_hour)
+
 MODEL_MIN_LEVELS = {
-    'hrrr': 40,
-    'gfs':  20,  # GFS has ~34 pressure levels
-    'rrfs': 40,
-    'nam':  30,  # NAM has ~40 pressure levels
-    'rap':  30,  # RAP has ~37 pressure levels
-    'nam_nest': 40,  # NAM Nest has full level set
+    name: cfg.min_pressure_levels
+    for name, cfg in _mc_registry.models.items()
 }
 MODEL_EXCLUDED_STYLES = {
-    'gfs': {'smoke'},       # GFS has no PM2.5/smoke
-    'rrfs': {'smoke'},      # RRFS has no smoke either
-    'hrrr': set(),          # HRRR supports all styles
-    'nam': {'smoke', 'q', 'moisture_transport', 'cloud_total', 'icing',
-            'dewpoint_dep', 'vorticity', 'pv'},  # cfgrib extracts v-wind; missing q/cloud/dew_point; vorticity only 5 levels (misaligned)
-    'rap': {'smoke', 'q', 'moisture_transport', 'cloud_total', 'icing',
-            'dewpoint_dep', 'vorticity', 'pv'},  # cfgrib extracts v-wind; missing q/cloud/dew_point; vorticity 2D only
-    'nam_nest': {'smoke', 'dewpoint_dep', 'vorticity', 'pv'},  # dew_point/vorticity only 7/42 levels (misaligned)
+    name: cfg.excluded_styles or set()
+    for name, cfg in _mc_registry.models.items()
 }
 
 # ── Lazy wrfnat download for smoke style ──
@@ -1071,14 +1052,10 @@ class CrossSectionManager:
         self.MEM_EVICT_MB = mem_evict_mb
         self._min_levels = MODEL_MIN_LEVELS.get(model_name, 40)
         self._display_prefix = model_name.upper()
-        # Load model config for metadata
-        try:
-            from model_config import get_model_registry
-            self.model_config = get_model_registry().get_model(model_name)
-            if self.model_config:
-                self._display_prefix = self.model_config.full_name.split('(')[0].strip()
-        except Exception:
-            self.model_config = None
+        # Load model config for metadata (already imported at module level)
+        self.model_config = get_model_config(model_name)
+        if self.model_config:
+            self._display_prefix = self.model_config.full_name.split('(')[0].strip()
 
     def _sfc_file_from_prs(self, prs_file: str) -> str:
         """Derive the surface GRIB path from a pressure GRIB path."""
@@ -1103,11 +1080,13 @@ class CrossSectionManager:
     #        Keep previous synoptic during handoff until new one is ready.
     # RRFS: newest cycle + always keep 1 synoptic (84h) cycle loaded.
     # GFS: newest cycle only; keep previous during handoff.
-    HRRR_HOURLY_CYCLES = 3   # Number of recent hourly cycles to keep
-    HRRR_SYNOPTIC_CYCLES = 2 # Number of synoptic (48h) cycles to keep
-    RRFS_SYNOPTIC_CYCLES = 1 # Always keep 1 full synoptic (84h) RRFS cycle
-    RRFS_HOURLY_CYCLES = 1   # Non-synoptic RRFS cycles to keep
-    GFS_CYCLES = 2            # GFS cycles to keep (evict oldest on 3rd)
+    # Cycle retention — derived from model_config.py at init time
+    # (class-level defaults for backward compat; overridden in __init__ per model)
+    HRRR_HOURLY_CYCLES = 3
+    HRRR_SYNOPTIC_CYCLES = 2
+    RRFS_SYNOPTIC_CYCLES = 1
+    RRFS_HOURLY_CYCLES = 1
+    GFS_CYCLES = 2
 
     def _get_target_cycles(self) -> list:
         """Return the list of cycles we WANT loaded, in priority order (newest first).
@@ -1119,7 +1098,8 @@ class CrossSectionManager:
         if not self.available_cycles:
             return []
 
-        if self.model_name in ('hrrr', 'rrfs'):
+        cfg = get_model_config(self.model_name)
+        if cfg and cfg.synoptic_cycles_to_keep > 0:
             return self._get_synoptic_target_cycles()
         else:
             return self._get_simple_target_cycles()
@@ -1138,13 +1118,14 @@ class CrossSectionManager:
         newest = self.available_cycles[0]  # Overall newest init
         synoptics = [c for c in self.available_cycles if c.get('is_synoptic')]
 
-        # Model-specific limits
-        if self.model_name == 'hrrr':
-            max_synoptic = self.HRRR_SYNOPTIC_CYCLES
-            max_hourly = self.HRRR_HOURLY_CYCLES
-        else:  # rrfs
-            max_synoptic = self.RRFS_SYNOPTIC_CYCLES
-            max_hourly = self.RRFS_HOURLY_CYCLES
+        # Model-specific limits from model_config
+        cfg = get_model_config(self.model_name)
+        if cfg and cfg.synoptic_cycles_to_keep > 0:
+            max_synoptic = cfg.synoptic_cycles_to_keep
+            max_hourly = cfg.hourly_cycles_to_keep
+        else:
+            max_synoptic = 2
+            max_hourly = 3
 
         # 1. Latest init — always first, period
         targets.append(newest)
@@ -1177,7 +1158,8 @@ class CrossSectionManager:
 
     def _get_simple_target_cycles(self) -> list:
         """GFS/NAM/RAP/NAM-Nest: keep up to N newest cycles."""
-        max_cycles = self.GFS_CYCLES
+        cfg = get_model_config(self.model_name)
+        max_cycles = cfg.hourly_cycles_to_keep if cfg else 2
         return self.available_cycles[:max_cycles]
 
     def get_protected_cycles(self) -> set:
@@ -1527,7 +1509,8 @@ class CrossSectionManager:
         cycle_queues = []
         for cycle in cycles_to_load:
             cycle_key = cycle['cycle_key']
-            is_synoptic = cycle.get('is_synoptic', False) and self.model_name in ('hrrr', 'rrfs')
+            _cfg = get_model_config(self.model_name)
+            is_synoptic = cycle.get('is_synoptic', False) and _cfg and _cfg.synoptic_cycles_to_keep > 0
             allowed = cycle['available_fhrs'] if is_synoptic else [f for f in cycle['available_fhrs'] if f in self.PRELOAD_FHRS]
             with self._lock:
                 fhrs = [fhr for fhr in allowed if (cycle_key, fhr) not in self.loaded_items]
@@ -1782,7 +1765,8 @@ class CrossSectionManager:
             cycle_key = cycle['cycle_key']
             is_synoptic = cycle.get('is_synoptic', False)
 
-            if is_synoptic and self.model_name in ('hrrr', 'rrfs'):
+            _cfg = get_model_config(self.model_name)
+            if is_synoptic and _cfg and _cfg.synoptic_cycles_to_keep > 0:
                 allowed_fhrs = cycle['available_fhrs']
             else:
                 allowed_fhrs = [f for f in cycle['available_fhrs'] if f in self.PRELOAD_FHRS]
@@ -5417,12 +5401,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 <div class="form-row">
                     <div style="flex:1;">
                         <label class="form-label">FHR Start</label>
-                        <input type="number" id="req-fhr-start" value="0" min="0" max="48" class="form-input">
+                        <input type="number" id="req-fhr-start" value="0" min="0" max="384" class="form-input">
                     </div>
                     <span style="padding-bottom:8px;color:var(--muted);">to</span>
                     <div style="flex:1;">
                         <label class="form-label">FHR End <span id="req-fhr-max-hint" style="opacity:0.6;">(max 18)</span></label>
-                        <input type="number" id="req-fhr-end" value="18" min="0" max="48" class="form-input">
+                        <input type="number" id="req-fhr-end" value="18" min="0" max="384" class="form-input">
                     </div>
                 </div>
                 <button id="req-submit" class="form-submit">Download & Load</button>
@@ -5754,6 +5738,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             await loadCycles();
             generateCrossSection();
             modelMapOverlay.loadFieldsMeta().then(() => modelMapOverlay.update());
+            if (typeof updateMaxFhr === 'function') updateMaxFhr();
         }
 
         // Update model pill status dots periodically
@@ -7605,18 +7590,37 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             if (e.target === this) this.classList.remove('visible');
         });
 
-        // Update max FHR when hour changes (HRRR synoptic = 48)
+        // Update max FHR when hour/model changes — uses /api/v1/models metadata
+        const _modelMaxFhr = {};  // cache: model -> {synoptic: N, base: N, extHours: [...]}
+        async function _loadModelFhrMeta() {
+            try {
+                const r = await fetch('/api/v1/models');
+                const data = await r.json();
+                for (const m of (data.models || [])) {
+                    const cfg = m.config || {};
+                    _modelMaxFhr[m.name] = {
+                        base: cfg.base_max_fhr || 18,
+                        extended: cfg.extended_max_fhr || cfg.base_max_fhr || 18,
+                        extHours: cfg.extended_cycle_hours || [],
+                    };
+                }
+            } catch(e) { /* fallback to defaults */ }
+        }
+        _loadModelFhrMeta();
+
         function updateMaxFhr() {
             const hour = parseInt(document.getElementById('req-hour').value) || 0;
-            const isSynoptic = [0, 6, 12, 18].includes(hour);
             const model = currentModel;
+            const meta = _modelMaxFhr[model];
             let maxFhr = 18;
-            if (model === 'hrrr' && isSynoptic) maxFhr = 48;
-            else if (model === 'gfs') maxFhr = 384;
+            if (meta) {
+                const isExt = meta.extHours.includes(hour);
+                maxFhr = isExt ? meta.extended : meta.base;
+            }
             const endInput = document.getElementById('req-fhr-end');
             endInput.max = maxFhr;
             if (parseInt(endInput.value) > maxFhr) endInput.value = maxFhr;
-            document.getElementById('req-fhr-max-hint').textContent = `(max ${maxFhr})`;
+            document.getElementById('req-fhr-max-hint').textContent = `(max F${String(maxFhr).padStart(2,'0')})`;
         }
         document.getElementById('req-hour').addEventListener('change', updateMaxFhr);
 
@@ -12419,8 +12423,20 @@ def og_preview():
 
 @app.route('/api/models')
 def api_models():
-    """List enabled models."""
-    return jsonify({'models': model_registry.list_models()})
+    """List enabled models with FHR metadata."""
+    models = model_registry.list_models()  # Already returns rich dicts
+    # Augment each model entry with FHR config from model_config
+    for entry in models:
+        cfg = get_model_config(entry['id'])
+        if cfg:
+            base_fhrs = cfg.base_fhr_list or list(range(19))
+            ext_fhrs = cfg.extended_fhr_list
+            entry['config'] = {
+                'base_max_fhr': base_fhrs[-1] if base_fhrs else 18,
+                'extended_max_fhr': ext_fhrs[-1] if ext_fhrs else (base_fhrs[-1] if base_fhrs else 18),
+                'extended_cycle_hours': sorted(cfg.extended_cycle_hours) if cfg.extended_cycle_hours else [],
+            }
+    return jsonify({'models': models})
 
 @app.route('/api/cycles')
 def api_cycles():
@@ -13270,17 +13286,18 @@ def api_v1_comparison_gif():
     except (KeyError, ValueError) as e:
         return jsonify({'error': f'Invalid parameters: {e}'}), 400
 
+    # Determine model first so we can set smart defaults
+    model_name = request.args.get('model', 'hrrr').lower()
+
     try:
         fhr_min = int(request.args.get('fhr_min', 0))
-        fhr_max = int(request.args.get('fhr_max', 48))
+        _default_max = get_model_max_fhr(model_name, 0)
+        fhr_max = int(request.args.get('fhr_max', _default_max))
     except ValueError:
-        fhr_min, fhr_max = 0, 48
+        fhr_min, fhr_max = 0, get_model_max_fhr(model_name, 0)
 
     # Build the base args (everything except fhr) and iterate over FHRs
     from werkzeug.datastructures import ImmutableMultiDict
-
-    # Determine which FHRs are available
-    model_name = request.args.get('model', 'hrrr').lower()
     mgr = model_registry.get(model_name)
     cycle_raw = request.args.get('cycle', 'latest')
     cycle_key = mgr.resolve_cycle(cycle_raw, fhr_min)
@@ -14430,7 +14447,7 @@ def api_v1_capabilities():
                 'base': MODEL_FORECAST_HOURS.get(name, []),
                 'synoptic_max': get_max_fhr_for_cycle(name, 0),  # synoptic (00z) max FHR
             },
-            'synoptic_hours': sorted(SYNOPTIC_HOURS) if name in ('hrrr', 'rrfs') else None,
+            'synoptic_hours': sorted(cfg.extended_cycle_hours) if cfg and cfg.extended_cycle_hours else None,
             'excluded_products': sorted(excluded),
             'available_cycles': cycle_count,
         }

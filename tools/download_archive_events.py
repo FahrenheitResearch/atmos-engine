@@ -29,6 +29,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from smart_hrrr.orchestrator import download_forecast_hour
 from core.cross_section_interactive import InteractiveCrossSection
+from model_config import SYNOPTIC_HOURS
 
 # Defaults
 DEFAULT_ARCHIVE_DIR = Path(r"D:\hrrr\archive-events")
@@ -37,9 +38,6 @@ DEFAULT_EVENTS_FILE = PROJECT_ROOT / "events.json"
 DEFAULT_THREADS = 12
 DEFAULT_CONVERT_WORKERS = 4
 DEFAULT_MAX_FHR = 24
-
-# Synoptic cycles have F00-F48; non-synoptic have F00-F18
-SYNOPTIC_HOURS = {0, 6, 12, 18}
 
 
 @dataclass
