@@ -196,13 +196,15 @@ def get_downloaded_fhrs(model, date_str, hour, max_fhr=None):
     return downloaded
 
 
-def get_latest_synoptic_cycle():
+def get_latest_synoptic_cycle(model='hrrr'):
     """Find the most recent synoptic cycle (00/06/12/18z) that should be available.
 
-    Returns (date_str, hour) or None. Only used for HRRR extended forecasts.
+    Uses per-model availability lag to determine what's likely published.
+    Returns (date_str, hour) or None.
     """
     now = datetime.now(timezone.utc)
-    latest_possible = now - timedelta(minutes=50)
+    lag = MODEL_AVAILABILITY_LAG.get(model, 50)
+    latest_possible = now - timedelta(minutes=lag)
 
     for offset in range(0, 24):
         cycle_time = latest_possible - timedelta(hours=offset)
@@ -300,7 +302,7 @@ def get_pending_work(model, max_hours=None):
     # Extended synoptic FHRs: append beyond base range for latest synoptic cycle
     # HRRR: F19-F48, RRFS: F19-F84 (lower priority, appended after base FHRs)
     if model in ('hrrr', 'rrfs'):
-        syn = get_latest_synoptic_cycle()
+        syn = get_latest_synoptic_cycle(model)
         if syn:
             syn_date, syn_hour = syn
             if model == 'hrrr':
@@ -515,7 +517,7 @@ def run_update_cycle_for_model(model, max_hours=None):
             ext_fhr_list = list(range(19, 49))
         else:  # rrfs: F19-F60 hourly, F63-F84 3-hourly
             ext_fhr_list = list(range(19, 61)) + list(range(63, 85, 3))
-        syn = get_latest_synoptic_cycle()
+        syn = get_latest_synoptic_cycle(model)
         if syn:
             syn_date, syn_hour = syn
             try:
