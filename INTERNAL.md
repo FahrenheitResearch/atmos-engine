@@ -17,13 +17,13 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 |------|-------|-------------|
 | `core/cross_section_interactive.py` | ~3,605 | **The heart.** GRIB extraction, mmap cache, KDTree interp, all 21 product renderers (including isentropic ascent), GFS CONUS subset, smoke lazy-load, comparison panels |
 | `core/map_overlay.py` | ~1,133 | Map overlay rendering. Reprojection (KDTree for curvilinear, bilinear for GFS), composite assembly (fill + contours + barbs), PNG/binary output |
-| `model_config.py` | ~320 | Model registry. 6 models (HRRR/GFS/RRFS/NAM/RAP/NAM-Nest) metadata, grid specs, download URLs, forecast hour lists |
+| `model_config.py` | ~528 | **Single source of truth** for all model configuration. ModelConfig dataclass with `get_fhr_list()`, `is_extended_cycle()`, `get_max_forecast_hour()`. Centralized: FHR lists (base + extended), availability lags (env-overridable), excluded styles, GRIB patterns, cycle retention limits, download URLs. All other files derive model constants from here. |
 
 ### Server + UI (1 file, ~15,961 lines)
 
 | File | Lines | What It Does |
 |------|-------|-------------|
-| `tools/unified_dashboard.py` | ~15,961 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 58 API endpoints (34 v1 + 24 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects, og:image preview, FHR hover thumbnails, hero cross-section, smart product suggestions, skeleton loading, draw-mode feedback, distance/bearing line label, mobile panel backdrop, event timeline (hover tooltips), comparison diff view (with badge labels + draggable divider), 3D terrain, measurement tool, wind barb legend, geocoder search, image zoom/pan, product search filter, slider tick marks, download export, model-colored HUD badges |
+| `tools/unified_dashboard.py` | ~16,015 | **Everything else.** Flask server, Mapbox GL JS frontend (inline HTML/CSS/JS), all 58 API endpoints (34 v1 + 24 legacy), model managers, prerender cache, autoload/rescan thread, frame cache, progress tracking, events system, city/region profiles UI, comparison/GIF generation, quick-start transects, og:image preview, FHR hover thumbnails, hero cross-section, smart product suggestions, skeleton loading, draw-mode feedback, distance/bearing line label, mobile panel backdrop, event timeline (hover tooltips), comparison diff view (with badge labels + draggable divider), 3D terrain, measurement tool, wind barb legend, geocoder search, image zoom/pan, product search filter, slider tick marks, download export, model-colored HUD badges |
 
 **Key sections in unified_dashboard.py:**
 - Lines 1-1031: Imports, constants, overlay cache, helper functions, model config dicts
@@ -43,7 +43,7 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 
 | File | Lines | What It Does |
 |------|-------|-------------|
-| `tools/auto_update.py` | ~929 | Download daemon. Slot-based concurrency (per-model ThreadPoolExecutor), priority boost for early HRRR FHRs, fail-fast pruning, status file IPC, disk eviction |
+| `tools/auto_update.py` | ~912 | Download daemon. Slot-based concurrency (per-model ThreadPoolExecutor), priority boost for early HRRR FHRs, fail-fast pruning, status file IPC, disk eviction. All model constants derived from model_config.py. |
 | `smart_hrrr/orchestrator.py` | ~311 | Single-FHR download. Multi-source fallback (NOMADS → AWS → Pando), 4-layer validation (HTTP status, content-type, size >500KB, GRIB magic bytes), atomic `.partial` → final rename |
 
 ### Agent Research Platform (12 modules + 8 data files + WFO swarm, ~57,500 lines total)
@@ -57,7 +57,7 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 | `tools/agent_tools/report_builder.py` | 1,142 | ReportBuilder, LaTeX templates, PDF compilation |
 | `tools/agent_tools/forecast.py` | ~1,841 | ForecastGenerator, agent swarm orchestrator, national_fire_scan |
 | `tools/agent_tools/investigation.py` | 900 | investigate_location, investigate_town, batch_investigate (44 OR towns) |
-| `tools/agent_tools/terrain.py` | ~1,318 | analyze_terrain_complexity, city_terrain_assessment (261 city profiles) |
+| `tools/agent_tools/terrain.py` | ~1,318 | analyze_terrain_complexity, city_terrain_assessment (3 hardcoded + 258 from regional data = 261 total) |
 | `tools/agent_tools/fuel_conditions.py` | ~1,831 | assess_fuel_conditions (73 city ignition profiles), seasonal context |
 | `tools/agent_tools/frontal_analysis.py` | ~1,077 | detect_wind_shifts, classify_overnight_conditions |
 | `tools/agent_tools/report_quality.py` | ~802 | fire_report_checklist, validate_report_claims |
@@ -99,18 +99,28 @@ The web UI and cross-section tool are the human interface. The API and MCP serve
 
 ## Supported Models
 
-| Model | Resolution | Domain | Cycles | Max FHR | Notes |
-|-------|-----------|--------|--------|---------|-------|
-| **HRRR** | 3km | CONUS | Every hour | 18h (48h synoptic) | Primary model. Full field set (21 products). |
-| **GFS** | 0.25deg | Global (CONUS subset) | 00/06/12/18z | 384h | Subset to CONUS+5deg at extraction. All products except smoke. |
-| **RRFS** | 3km | North America | Hourly 00-12z, 3-hourly 15/18/21z | 18h (84h synoptic) | Experimental HRRR successor. Rotated lat/lon grid. All products except smoke. |
-| **NAM** | 12km | CONUS | 00/06/12/18z | 84h | awphys product. 39 levels. cfgrib extracts v-wind (eccodes misses it). Missing q/cloud/dew_point. |
-| **RAP** | 13km | CONUS | Every hour | 21h (51h ext) | awp130pgrb product. 37 levels. Same cfgrib v-wind trick. Missing q/cloud/dew_point. |
-| **NAM-Nest** | 3km | CONUS | 00/06/12/18z | 60h | High-res NAM nest. 42 levels, 926MB/FHR. Has most fields; dew_point/vorticity partial (7/42 levels). |
+> **All model-specific configuration is centralized in `model_config.py`** — FHR lists, availability lags, excluded styles, GRIB patterns, cycle retention limits, download URLs. No hardcoded model constants in auto_update.py or unified_dashboard.py — both derive everything from the ModelConfig registry at import time. Availability lags are overridable via env vars (`XSECT_LAG_HRRR_MIN`, etc.).
 
-**NAM/RAP cfgrib v-wind discovery**: eccodes one-pass scan misses v-component of wind in awphys/awp130pgrb GRIB products, but cfgrib (the `auto` backend fallback) successfully extracts it. Verified: NAM v_wind (39, 428, 614), RAP v_wind (37, 337, 451) — both with real wind values. Wind-dependent styles (wind_speed, shear, fire_wx) are now **enabled**. Still excluded: q, moisture_transport, cloud_total, icing, dewpoint_dep, vorticity, pv (missing fields or level count mismatch).
+| Model | Resolution | Domain | Cycles | Base FHR | Extended FHR | Avail. Lag | Products |
+|-------|-----------|--------|--------|----------|--------------|------------|----------|
+| **HRRR** | 3km | CONUS | Every hour | F00-F18 | F00-F48 (00/06/12/18z) | 50min | 21/21 |
+| **GFS** | 0.25deg | Global→CONUS | 00/06/12/18z | F00-F120 3h, F126-F384 6h | (same) | 180min | 20/21 |
+| **RRFS** | 3km | N. America | Hourly 00-12z, 3h 15/18/21z | F00-F18 | F00-F60 1h, F63-F84 3h (00/06/12/18z) | 0min | 20/21 |
+| **NAM** | 12km | CONUS | 00/06/12/18z | F00-F36 1h, F39-F84 3h | (same) | 90min | 14/21 |
+| **RAP** | 13km | CONUS | Every hour | F00-F21 | F00-F51 (03/09/15/21z) | 50min | 14/21 |
+| **NAM-Nest** | 3km | CONUS | 00/06/12/18z | F00-F60 | (same) | 105min | 18/21 |
 
-**NAM-Nest level mismatch**: dew_point and vorticity arrays have only 7 of 42 pressure levels. The `interp_3d()` function maps array indices to pressure level indices, so mismatched arrays get placed at WRONG pressure positions. These styles (dewpoint_dep, vorticity, pv) are excluded via `MODEL_EXCLUDED_STYLES`.
+**Excluded styles by model** (defined in `model_config.py` `excluded_styles` field):
+- **HRRR**: none (21/21)
+- **GFS**: smoke (20/21)
+- **RRFS**: smoke (20/21)
+- **NAM**: smoke, q, moisture_transport, cloud_total, icing, dewpoint_dep, vorticity, pv (14/21)
+- **RAP**: smoke, q, moisture_transport, cloud_total, icing, dewpoint_dep, vorticity, pv (14/21)
+- **NAM-Nest**: smoke, dewpoint_dep, vorticity, pv (18/21)
+
+**NAM/RAP cfgrib v-wind discovery**: eccodes one-pass scan misses v-component of wind in awphys/awp130pgrb GRIB products, but cfgrib (the `auto` backend fallback) successfully extracts it. Verified: NAM v_wind (39, 428, 614), RAP v_wind (37, 337, 451). Wind-dependent styles (wind_speed, shear, fire_wx) are now **enabled**. The remaining exclusions (q, moisture_transport, cloud_total, icing) are missing from the GRIB products entirely. dewpoint_dep/vorticity/pv have level count mismatches.
+
+**NAM-Nest level mismatch**: dew_point and vorticity arrays have only 7 of 42 pressure levels. The `interp_3d()` function maps array indices to pressure level indices, so mismatched arrays get placed at WRONG pressure positions. These styles (dewpoint_dep, vorticity, pv) are excluded via `model_config.py`.
 
 **Sub-hourly data**: No publicly available NWP model provides sub-hourly 3D pressure level data. HRRR wrfsubhf (15-min) is surface-only (2D) — useless for cross-sections. All 3D data (wrfprs, prslev, etc.) is hourly at best. Future possibility: 3D-RTMA (15-min 3D analysis) is in experimental/prototype stage at NCEP, not yet available.
 
@@ -180,21 +190,24 @@ Mirrors the cross-section prerender pattern for map overlays. `OVERLAY_CACHE` (5
 ## Key Constants
 
 ```python
-# unified_dashboard.py
+# unified_dashboard.py (operational tuning — these stay in the dashboard)
 RENDER_SEMAPHORE = 12       # Max concurrent matplotlib renders
 PRERENDER_WORKERS = 8       # Parallel prerender processes
 PRELOAD_WORKERS = 20        # Cached mmap load threads
 GRIB_POOL_WORKERS = 6       # GRIB conversion processes
-HRRR_HOURLY_CYCLES = 3      # Non-synoptic hourly cycles to keep loaded
-HRRR_SYNOPTIC_CYCLES = 2    # Synoptic (48h) cycles always retained
-RRFS_SYNOPTIC_CYCLES = 1    # Always keep 1 full synoptic (84h) RRFS cycle
-RRFS_HOURLY_CYCLES = 1      # Non-synoptic RRFS cycles to keep
 
-# auto_update.py
+# auto_update.py (download tuning — these stay in auto_update)
 HRRR_SLOTS = 4-6            # Concurrent HRRR downloads (boosted to ~12 during priority)
 GFS_SLOTS = 2               # Concurrent GFS downloads
 RRFS_SLOTS = 4-8            # Concurrent RRFS downloads
 MIN_GRIB_SIZE = 500_000     # Download validation minimum (500KB)
+
+# model_config.py (per-model — centralized, no duplicates elsewhere)
+# FHR lists:          base_fhr_list, extended_fhr_list, extended_cycle_hours
+# Cycle retention:    synoptic_cycles_to_keep, hourly_cycles_to_keep
+# Download timing:    availability_lag_minutes (env-overridable: XSECT_LAG_{MODEL}_MIN)
+# GRIB validation:    grib_required_patterns, grib_file_types, needs_separate_sfc
+# Product filtering:  excluded_styles, min_pressure_levels
 ```
 
 ## Known Issues / Underbaked Areas
@@ -590,7 +603,7 @@ python restart_dashboard.py
 
 # Auto-update (MUST run from hrrr-maps/ directory)
 cd C:\Users\drew\hrrr-maps
-python tools/auto_update.py --models hrrr,gfs,rrfs --hrrr-slots 6 --gfs-slots 2 --rrfs-slots 4
+python tools/auto_update.py --models hrrr,gfs,rrfs,nam,rap --hrrr-slots 6 --gfs-slots 2 --rrfs-slots 4
 
 # MCP public server
 python tools/mcp_public.py  # port 5566

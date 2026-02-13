@@ -7,11 +7,11 @@ Multi-model atmospheric cross-section generator. Users draw a line on a map, get
 ## Architecture Summary
 
 ```
-tools/unified_dashboard.py         — Flask server + Mapbox GL JS frontend + 58 API endpoints (~15,961 lines)
+tools/unified_dashboard.py         — Flask server + Mapbox GL JS frontend + 58 API endpoints (~16,015 lines)
 core/cross_section_interactive.py  — Rendering engine (matplotlib, 0.5s warm renders) (~3,605 lines)
 core/map_overlay.py                — Map overlay composites (fill + contours + wind barbs) (~1,133 lines)
-tools/auto_update.py               — GRIB download daemon (slot-based concurrent) (~929 lines)
-model_config.py                    — Model registry (6 models: HRRR/GFS/RRFS/NAM/RAP/NAM-Nest) (~320 lines)
+tools/auto_update.py               — GRIB download daemon (slot-based concurrent) (~912 lines)
+model_config.py                    — Central model config (6 models, single source of truth) (~528 lines)
 smart_hrrr/orchestrator.py         — Parallel GRIB download with multi-layer validation (~311 lines)
 tools/agent_tools/                 — Agent research platform (12 modules + 8 data files, ~57,500 lines)
 tools/agent_tools/wfo_swarm/       — Oregon WFO agent swarm pilot (7 zones, 154 agents, ~3,120 lines)
