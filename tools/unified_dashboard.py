@@ -6576,6 +6576,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 enabled = on;
                 document.getElementById('overlay-controls').style.display = on ? 'block' : 'none';
                 const opacityVal = parseInt(document.getElementById('overlay-opacity')?.value || 70) / 100;
+                const activeLayer = map._weatherOverlayActiveLayer || 'a';
                 if (on) {
                     if (!fieldsMetadata) {
                         Promise.all([loadFieldsMeta(), loadProductsMeta()]).then(() => {
@@ -6584,8 +6585,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                                 map.setLayoutProperty('weather-overlay-a', 'visibility', 'visible');
                                 map.setLayoutProperty('weather-overlay-b', 'visibility', 'visible');
                                 // Smooth fade-in
-                                map.setPaintProperty('weather-overlay-' + active, 'raster-opacity-transition', { duration: 400, delay: 0 });
-                                map.setPaintProperty('weather-overlay-' + active, 'raster-opacity', opacityVal);
+                                map.setPaintProperty('weather-overlay-' + activeLayer, 'raster-opacity-transition', { duration: 400, delay: 0 });
+                                map.setPaintProperty('weather-overlay-' + activeLayer, 'raster-opacity', opacityVal);
                             }
                             update();
                             prefetchAllFrames(getLoadedFHRs());
@@ -6595,8 +6596,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         if (mapStyleLoaded) {
                             map.setLayoutProperty('weather-overlay-a', 'visibility', 'visible');
                             map.setLayoutProperty('weather-overlay-b', 'visibility', 'visible');
-                            map.setPaintProperty('weather-overlay-' + active, 'raster-opacity-transition', { duration: 400, delay: 0 });
-                            map.setPaintProperty('weather-overlay-' + active, 'raster-opacity', opacityVal);
+                            map.setPaintProperty('weather-overlay-' + activeLayer, 'raster-opacity-transition', { duration: 400, delay: 0 });
+                            map.setPaintProperty('weather-overlay-' + activeLayer, 'raster-opacity', opacityVal);
                         }
                         update();
                         prefetchAllFrames(getLoadedFHRs());
@@ -6605,8 +6606,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     stopLoop();
                     if (mapStyleLoaded && map.getLayer('weather-overlay-a')) {
                         // Smooth fade-out then hide
-                        map.setPaintProperty('weather-overlay-' + active, 'raster-opacity-transition', { duration: 300, delay: 0 });
-                        map.setPaintProperty('weather-overlay-' + active, 'raster-opacity', 0);
+                        map.setPaintProperty('weather-overlay-' + activeLayer, 'raster-opacity-transition', { duration: 300, delay: 0 });
+                        map.setPaintProperty('weather-overlay-' + activeLayer, 'raster-opacity', 0);
                         setTimeout(() => {
                             if (!enabled) {
                                 map.setLayoutProperty('weather-overlay-a', 'visibility', 'none');
@@ -10060,8 +10061,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     img.classList.add('loaded');
                     if (bprog) bprog.classList.remove('active');
                     // Show zoom controls at low opacity
-                    document.getElementById('zoom-controls').classList.add('visible');
-                    document.getElementById('xsect-actions').classList.add('visible');
+                    document.getElementById('zoom-controls')?.classList.add('visible');
+                    document.getElementById('xsect-actions')?.classList.add('visible');
                     // Update peek image for collapsed panel
                     const peekImg = document.getElementById('peek-img');
                     if (peekImg) peekImg.src = img.src;
